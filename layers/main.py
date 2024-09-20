@@ -19,20 +19,20 @@ class Flatten(Layer):
     def run(self, X):
         return X.flatten()
 
-    def update_parameters(self, gradient):
+    def update_parameters(self, gradient, lr, optimizer):
         return gradient
 
 class Dense(Layer):
-    weights = None
-    biases = None
     def __init__(self, shape, activation):
         super().__init__(shape, activation())
         self.X = None
         self.A = None
         self.Z = None
         self.size = shape[0]
-        self.weights = np.random.uniform(low=-2.4/shape[1], high=2.4/shape[1], size=(shape))
-        self.biases = np.random.uniform(low=-2.4/shape[1], high=2.4/shape[1], size=(self.size,))
+        # Xavier initialization
+        self.weights = np.random.rand(shape[0], shape[1]) * np.sqrt(2. / shape[1])
+        self.biases= np.random.rand(self.size) * np.sqrt(2. / shape[1])
+
     def run(self, X):
         assert (len(X.shape) == 1), "Malformed activation values"
         Z = np.dot(self.weights, X.T) + self.biases
@@ -40,12 +40,9 @@ class Dense(Layer):
         self.Z, self.A, self.X = Z, A, X
         return A
 
-    def update_parameters(self, gradient: np.ndarray, lr):
-        # db = gradient * activation_gradient(z)
-        # dw = db * X
-        # (1, 10)
-        db = self.activation.gradient(self.Z) * gradient
-        dw = db.T * self.X
-        self.weights -= lr * dw
-        self.biases -= lr * self.biases
-        return db @ self.weights
+    def update_parameters(self, gradient: np.ndarray, lr, optimizer):
+        da = self.activation.gradient(self.Z) * gradient
+        dw = np.outer(da, self.X)
+        db = np.sum(da, axis=1, keepdims=True)
+        self.weights, self.biases = optimizer.update(self.weights, self.biases, dw, db)
+        return da.dot(self.weights)

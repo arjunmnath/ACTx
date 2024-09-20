@@ -6,6 +6,9 @@ import activations
 import layers
 from tqdm import  tqdm
 
+import optimizers
+
+
 class Model:
     layers = []
     cost = None
@@ -26,10 +29,10 @@ class Model:
                 return
         n = self.layers[-1].size
         self.layers.append(map[layer]((shape, n), activation=activation))
-        pass
 
 
-    def compile(self, input_shape, cost, lr=0.001):
+    def compile(self, input_shape, cost, optimizer, lr=0.001):
+        self.optimizer = optimizer()
         self.input_shape = input_shape,
         self.cost = cost()
         self.lr = lr
@@ -60,12 +63,13 @@ class Model:
         """
         gradient = self.cost.gradient(A_N_hat, A_N)
         for layer in self.layers[::-1]:
-            gradient = layer.update_parameters(gradient, lr=self.lr)
+            gradient = layer.update_parameters(gradient, lr=self.lr, optimizer=self.optimizer)
 
     def _one_hot_encode(self, x):
         y = np.zeros((1, self.layers[-1].size))
         y[0][x] = 1
         return y
+
     def evaluate(self, x, y):
         correct = 0
         n = len(y)
@@ -74,13 +78,18 @@ class Model:
             if y[i] == np.argmax(predicted):
                 correct += 1
         print("Accuracy:", correct/n)
+
+    def save(self, filename):
+        pass
+
 if __name__ == '__main__':
     model = Model()
-    model.compile(input_shape=(28,28), cost=costs.MSE, lr=0.01)
+    model.compile(input_shape=(28,28), cost=costs.MSE, lr=0.01, optimizer=optimizers.SGD)
     model.add('Flatten', (28, 28))
     model.add("Dense", 64, activation=activations.ReLU)
     model.add("Dense", 10, activation=activations.Softmax)
     (X, Y), (x, y) = tf.keras.datasets.mnist.load_data()
-    model.fit(X, Y, epochs=1)
+    X, x = X / 255, x / 255
+    model.fit(X, Y, epochs=2)
     model.evaluate(x, y)
     # print(model.layers[0].run(X[0]).shape)
