@@ -11,6 +11,9 @@ class Activation(ABC):
     def gradient(self, x):
         pass
 
+
+
+
 class ReLU(Activation):
     def activate(self, x):
         return np.maximum(0, x)
@@ -18,13 +21,25 @@ class ReLU(Activation):
     def gradient(self, x):
         return np.where(x > 0, 1, 0)
 
+class dummy(Activation):
+    def activate(self, x):
+        return x
+
+
+    def gradient(self, x):
+        return np.where(x > 0, 1, 0)
+
+
+
 class Softmax(Activation):
     def activate(self, x):
-        e = np.exp(x - np.max(x)) # x - np.max() for normalization
-        s = np.sum(e)
-        return e / s
+        assert x.ndim == 2
+        z_max = np.max(x, axis=1, keepdims=True)
+        exp_z = np.exp(x - z_max)
+        return exp_z / np.sum(exp_z, axis=-1, keepdims=True)
 
     def gradient(self, x):
         s = self.activate(x)
         jacobian_matrix = np.diagflat(s) - np.outer(s, s)
-        return np.dot(x, jacobian_matrix).reshape(1, -1)
+        gradient = np.dot(x, jacobian_matrix)
+        return gradient.reshape((1,) + gradient.shape)
