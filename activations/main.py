@@ -13,6 +13,12 @@ class Activation(ABC):
 
 
 
+class Sigmoid(Activation):
+    def activate(self, x):
+        return 1. / (1. + np.exp(-x))
+
+    def gradient(self, x):
+        return x * (1.- x)
 
 class ReLU(Activation):
     def activate(self, x):
@@ -24,8 +30,6 @@ class ReLU(Activation):
 class dummy(Activation):
     def activate(self, x):
         return x
-
-
     def gradient(self, x):
         return np.where(x > 0, 1, 0)
 
@@ -39,7 +43,8 @@ class Softmax(Activation):
         return exp_z / np.sum(exp_z, axis=-1, keepdims=True)
 
     def gradient(self, x):
-        s = self.activate(x)
-        jacobian_matrix = np.diagflat(s) - np.outer(s, s)
-        gradient = np.dot(x, jacobian_matrix)
-        return gradient.reshape((1,) + gradient.shape)
+        # s = self.activate(x)
+        # jacobian_matrix = np.diagflat(s) - np.outer(s, s)
+        # gradient = np.dot(x, jacobian_matrix)
+        # return gradient.reshape((1,) + gradient.shape)
+        return self.activate(x)

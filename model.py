@@ -1,49 +1,50 @@
 import numpy as np
-import tensorflow as tf
-import costs
-import activations
 import layers
-from tqdm import  tqdm
-import matplotlib.pyplot as plt
-import optimizers
-from scipy.interpolate import make_interp_spline
+from rich import print, traceback, pretty
 
+pretty.install()
+traceback.install()
 
 class Model:
-    layers = []
+    layers = {}
     cost = None
     input_shape = None
     def __init__(self):
         self.optimizer = None
         self.l2reg = None
         self.lr = None
-
-    def add(self, layer, shape, activation=None):
-        map = {
-            'Flatten': layers.Flatten,
-            'Dense': layers.Dense
+        self._train = False
+        self.previous_size = None
+        self.map = {
+            'Flatten': [layers.Flatten, 0],
+            'Dense': [layers.Dense, 0]
         }
-        if layer == 'Flatten':
-            if len(self.layers) > 0:
-                raise BrokenPipeError
-            else:
-                self.layers.append(map[layer](shape))
-                return
-        n = self.layers[-1].size
-        self.layers.append(map[layer]((n, shape), activation=activation))
+        self._layer_order = []
+    def train(self):
+        self._train = True
+    def eval(self):
+        self._train = False
 
+    def add(self, layer, size, activation=None, name=None): #TODO: Fix this discrepancy
+        if name is None:
+            name = layer.lower() + ('_'+ str(self.map[layer][1]) if self.map[layer][1] != 0 else '')
+            self.map[layer][1] = self.map[layer][1] + 1
+        self.layers[name] = self.map[layer][0](shape=(size, self.previous_size), activation=activation, optimizer=self.optimizer())
+        self._layer_order.append(name)
+        self.previous_size = size
 
-    def compile(self, input_shape, cost, optimizer, lr=0.001, l2reg=0.0001):
-        self.optimizer = optimizer()
+    def compile(self, input_shape, cost, optimizer, lr=0.001, l2reg=0.01):
+        self.optimizer = optimizer
         self.input_shape = input_shape,
         self.cost = cost()
         self.lr = lr
         self.l2reg = l2reg
-        
+        self.previous_size = input_shape
 
-    def fit(self, X, Y, epochs=10, batch_size=100):
-        count = 0
+    def fit(self, X, Y, validation=(), epochs=10, batch_size=100):
         Y = self.vectorize(Y)
+        train_losses = []
+        val_losses = []
         for epoch in range(epochs):
             loss = 0
             for i in range(0, X.shape[0] - batch_size, batch_size):
@@ -51,31 +52,33 @@ class Model:
                 A_hat = Y[i: i+batch_size]
                 self.backward(A_hat, A)
                 loss = self.cost.cost(A_hat, A)
-            print(f"Epoch {epoch + 1}/{epochs}, Loss: {loss}")
+            train_losses.append(loss)
+            if (validation):
+                y_val = self.forward(validation[0])
+                val_loss = self.cost.cost(self.vectorize(validation[1]), y_val)
+                val_losses.append(val_loss)
+            print(f"Epoch {epoch + 1}/{epochs}, Loss: {np.average(loss)}")
+        return train_losses, val_losses
 
     def get_loss(self, A_hat, A):
         return self.l2_loss() + np.average(self.cost.cost(A_hat, A))
 
     def l2_loss(self):
-        l2_loss = 0.5 * self.l2reg * np.sum([np.sum(layer.weights ** 2) for layer in self.layers[1:]])
+        l2_loss = 0.5 * self.l2reg * np.sum([np.sum(self.layers[layer].weights ** 2) for layer in self._layer_order[1:]])
         return l2_loss
 
     def forward(self, X):
         intermediate = X
-        for layer in self.layers:
+        for layer in self._layer_order:
+            layer = self.layers[layer]
             intermediate = layer.run(intermediate)
-            print(intermediate)
+            if not self._train: print(intermediate.shape) # TODO: remove this after debug
         return intermediate
-
-    def _validate_network(self):
-        for layer in self.layers:
-            pass
-
 
     def l2_combined_gradient(self, A_N_hat, A_N):
         gradient = self.cost.gradient(A_N_hat, A_N)
-        for layer in self.layers:
-            gradient += self.l2reg * layer.weights
+        for layer in self._layer_order[1:]:
+            gradient += self.l2reg * self.layers[layer].weights
         return gradient
 
     def backward(self, A_N_hat, A_N):
@@ -85,94 +88,48 @@ class Model:
         :return:
         """
         gradient = self.cost.gradient(A_N_hat, A_N)
-
-        for layer in self.layers[::-1]:
-            gradient = layer.update_parameters(gradient, lr=self.lr, optimizer=self.optimizer, l2reg=self.l2reg)
+        for layer in self._layer_order[::-1]:
+            gradient = self.layers[layer].update_parameters(gradient, lr=self.lr, l2reg=self.l2reg)
 
     def vectorize(self, X):
-        if isinstance(X, int):
-            y = np.zeros((1, self.layers[-1].size))
+        if isinstance(X, int): # TODO: fix this 10 magic value
+            y = np.zeros((1, 10))
             y[0][X] = 1
             return y
-        y = np.zeros((X.size, self.layers[-1].size))
+        y = np.zeros((X.size, 10))
         for i in range(X.size):
             y[i][X[i]] = 1
         return y
 
+    def load_parameters(self, params):
+        for key, value in params.items():
+            layer = self.layers[key]
+            # print(np.array(value).shape)
+            if len(value) == 2:
+                arr1 = np.array(value[0])
+                arr2 = np.array(value[1])
+                layer.weights = arr1.T
+                layer.biases = arr2.reshape(1, -1)
+
     def evaluate(self, x, y):
-        correct = 0
         n = len(y)
         predicted = np.argmax(self.forward(x), axis=1)
         correct = np.count_nonzero(predicted == y)
         print("Accuracy:", correct/n)
 
+    def normalize(self, X, epsilon=1e-8):
+        """
+        :param Z: shape(batch_size, no_of_neurons)
+        :param epsilon: small positive value to avoid division by zero
+        :return: normalized Z
+        """
+        mean = np.mean(X, axis=0, keepdims=True)
+        variance = np.var(X, axis=0, keepdims=True)
+        return (X - mean) / np.sqrt(variance + epsilon)
+
+    def summary(self):
+        characters = ["┏",  "┳", "┓", "┡", "╇",  "┩", "│", "└", "┴", "┘"]
+        pass
     def save(self, filename):
         pass
 
-if __name__ == '__main__':
-    model = Model()
-    model.compile(input_shape=(28,28), cost=costs.MSE, lr=0.001, optimizer=optimizers.SGD)
-    model.add('Flatten', (28, 28))
-    model.add("Dense", 64, activation=activations.ReLU)
-    model.add("Dense", 10, activation=activations.ReLU)
-    (X, Y), (x, y) = tf.keras.datasets.mnist.load_data()
-    X, x = X / 255, x / 255
-    model.fit(X, Y, epochs=2)
-    model.evaluate(x, y)
-    k = 200
-
-    while True:
-        choice = int(input(f"{x.shape}> "))
-        if choice == -1: break
-        predicted = model.forward(x[choice].reshape(1, *x[0].shape))
-        print(predicted)
-        plt.imshow(x[choice], cmap='gray')
-        plt.title(f"Label: {np.argmax(predicted)}")
-        plt.show()
-
-
-    # Y = model.vectorize(Y)
-    # epochs = 1
-    # for epoch in range(epochs):
-    #     loss = 0
-    #     for i in range(0, X.shape[0] - k, k):
-    #         A = model.forward(X[i: i + k])
-    #         A_hat = Y[i: i + k]
-    #         model.backward(A_hat, A)
-    #         loss = model.cost.cost(A_hat, A)
-    #     print(f"Epoch {epoch + 1}/{epochs}, Loss: {np.average(loss)}")
-    #
-    # shape = 2, 3
-    # dense = layers.Dense(shape, activation=activations.ReLU)
-    # dense.weights = np.ones(shape[::-1])
-    # dense.biases = np.ones((1, shape[1]))
-    # costs_ = []
-    # cost = costs.MSE()
-    # y_hat = np.array([.5, .3, .1])
-    # x = np.array([[.1,.2]])
-    # for i in range(300):
-    #     predicted = dense.run(x)
-    #     print_tensor(predicted)
-    #     costs_.append(np.average(cost.cost(y_hat, predicted)))
-    #     print(dense.update_parameters(cost.gradient(y_hat, predicted), lr=5, optimizer=optimizers.SGD()))
-    #
-    # # Discrete data points
-    # x = np.array(range(len(costs_)))
-    # y = np.array(costs_)
-    #
-    # # Interpolation to generate more points for a smooth line
-    # x_smooth = np.linspace(x.min(), x.max(), 300)  # 300 points between the min and max of x
-    # spl = make_interp_spline(x, y, k=3)  # Cubic spline interpolation
-    # y_smooth = spl(x_smooth)
-    #
-    # # Plot the original discrete points
-    # plt.scatter(x, y, label='Discrete Points')
-    #
-    # # Plot the smooth line
-    # plt.plot(x_smooth, y_smooth, label='Continuous Line')
-    #
-    # plt.title('Continuous Graph from Discrete Values')
-    # plt.xlabel('X-axis')
-    # plt.ylabel('Y-axis')
-    # plt.legend()
-    # plt.show()

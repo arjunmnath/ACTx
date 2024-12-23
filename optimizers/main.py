@@ -27,7 +27,6 @@ class Adam(Optimizer):
             self.initialize(weights.shape, biases.shape)
 
         self.t += 1
-
         # Adam update for weights
         self.m_w = self.beta_1 * self.m_w + (1 - self.beta_1) * dw
         self.v_w = self.beta_2 * self.v_w + (1 - self.beta_2) * (dw ** 2)
@@ -51,5 +50,6 @@ class SGD(Optimizer):
 
     def update(self, weights, biases, dw, db):
         weights -= self.lr * dw
-        biases -= self.lr * db.flatten()
+        biases -= self.lr * db
         return weights, biases
+

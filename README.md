@@ -1,1 +1,1 @@
-# ml-from-scratch
+#mlp-from-scratch
