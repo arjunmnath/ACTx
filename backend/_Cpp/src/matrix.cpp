@@ -1,4 +1,3 @@
-// A simple Matrix class for beginners
 #include <iostream>
 #include <stdexcept>
 #include <vector>

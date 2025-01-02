@@ -3,7 +3,6 @@
 
 typedef struct {
   PyObject_HEAD MPS *cpp_obj;
-
 } PyMPS;
 
 static int PyMPS_init(PyMPS *self, PyObject *args, PyObject *kwds) {
@@ -23,7 +22,7 @@ static PyObject *PyMPS_run(PyMPS *self, PyObject *args) {
   }
   uint view[] = {5, 1};
   uint transpose[] = {1, 5};
-  vector<id<MTLBuffer>> buffers = self->cpp_obj->__dummy_data();
+  std::vector<id<MTLBuffer>> buffers = self->cpp_obj->__dummy_data();
   self->cpp_obj->add_matrix(buffers[0], buffers[1], buffers[2], buffers[3]);
 
   if (isTransponse) {

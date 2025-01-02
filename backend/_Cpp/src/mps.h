@@ -7,25 +7,26 @@
 
 #include <Metal/Metal.h>
 #include <string>
+#include <sys/types.h>
 #include <unordered_map>
 #include <vector>
-
-using namespace std;
 class MPS {
-private:
 private:
   id<MTLDevice> device;
   id<MTLLibrary> library;
   id<MTLCommandQueue> commandQueue;
-  unordered_map<string, id<MTLComputePipelineState>> pipelines;
+  std::unordered_map<std::string, id<MTLComputePipelineState>> pipelines;
 
 public:
   MPS();
-  void _init_pipeline(string metal_function_name);
-  void add_matrix(id<MTLBuffer> A, id<MTLBuffer> B, id<MTLBuffer> result,
-                  id<MTLBuffer> meta);
-  vector<id<MTLBuffer>> __dummy_data();
-  void print_buffer_contents(vector<id<MTLBuffer>> buffers, uint stride[]);
+  void _init_pipeline(std::string metal_function_name);
+  void execute_kernel(std::string func, id<MTLBuffer> A, id<MTLBuffer> B,
+                      id<MTLBuffer> result, id<MTLBuffer> meta);
+  std::vector<id<MTLBuffer>> __dummy_data();
+  void print_buffer_contents(std::vector<id<MTLBuffer>> buffers,
+                             std::vector<int> stride);
+  template <typename Type> id<MTLBuffer> createBuffer(Type *data, size_t size);
+  template <typename T> id<MTLBuffer> createEmptyBuffer(int size);
 };
 
 #endif
