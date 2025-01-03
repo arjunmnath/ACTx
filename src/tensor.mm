@@ -159,7 +159,8 @@ public:
   template <typename... Args> void setElement(T value, Args... indexes) {
     int indices[] = {indexes...};
     this->throw_out_of_bound(indices);
-    int offset = indices[0];
+    int offset = this->_compute_offset(indices);
+    this->data_ptr[offset] = value;
   }
 
   // arithemetic Operators
@@ -192,10 +193,15 @@ public:
   }
   Tensor matrix_multiply(const Tensor *other) const {
     assert(this->dims[1] == other->dims[0] && this->dims.size() == 2);
-    return this->_dispatch_kernel_operation(other, "matrix_multiply");
+    std::vector<int> m = {this->dims[0], this->dims[1], other->dims[1]};
+    id<MTLBuffer> meta = device_mps->createBuffer(m.data(), 3);
+    id<MTLBuffer> result;
+    result = device_mps->createEmptyBuffer<T>(this->size);
+    device_mps->execute_kernel_binary("matrix_multiply", this->storage,
+                                      other->storage, result, meta);
+    return Tensor(result, this->dims);
   }
 
-  // FIX: causes Segmentation Fault
   Tensor pow(float exp, bool inplace) {
     std::vector<float> e = {exp};
     id<MTLBuffer> meta = device_mps->createBuffer(this->dims.data(), 3);

@@ -7,65 +7,61 @@ using namespace metal;
 kernel void add_matrix(device float *A [[buffer(0)]],
                        device float *B [[buffer(1)]],
                        device float *C [[buffer(2)]],
-                       constant uint3 &dims [[buffer(3)]],
+                       constant uint2 &dims [[buffer(3)]],
                        uint tid [[thread_position_in_grid]]) {
 
   uint M = dims.x;
   uint N = dims.y;
-  uint P = dims.z;
-  uint row = tid / P;
-  uint col = tid % P;
-  if (row < M && col < P) {
-    C[row * P + col] = A[row * P + col] + B[row * P + col];
+  uint row = tid / N;
+  uint col = tid % N;
+  if (row < M && col < N) {
+    C[row * N + col] = A[row * N + col] + B[row * N + col];
   }
 }
 
 kernel void subtract_matrix(device float *A [[buffer(0)]],
                             device float *B [[buffer(1)]],
                             device float *C [[buffer(2)]],
-                            constant uint3 &dims
+                            constant uint2 &dims
                             [[buffer(3)]], // buffer for M, N, P
                             uint tid [[thread_position_in_grid]]) {
 
   uint M = dims.x;
   uint N = dims.y;
-  uint P = dims.z;
-  uint row = tid / P;
-  uint col = tid % P;
-  if (row < M && col < P) {
-    C[row * P + col] = A[row * P + col] - B[row * P + col];
+  uint row = tid / N;
+  uint col = tid % N;
+  if (row < M && col < N) {
+    C[row * N + col] = A[row * N + col] - B[row * N + col];
   }
 }
 
 kernel void elementwise_divide_matrix(device float *A [[buffer(0)]],
                                       device float *B [[buffer(1)]],
                                       device float *C [[buffer(2)]],
-                                      constant uint3 &dims [[buffer(3)]],
+                                      constant uint2 &dims [[buffer(3)]],
                                       uint tid [[thread_position_in_grid]]) {
 
   uint M = dims.x;
   uint N = dims.y;
-  uint P = dims.z;
-  uint row = tid / P;
-  uint col = tid % P;
-  if (row < M && col < P) {
-    C[row * P + col] = A[row * P + col] / B[row * P + col];
+  uint row = tid / N;
+  uint col = tid % N;
+  if (row < M && col < N) {
+    C[row * N + col] = A[row * N + col] / B[row * N + col];
   }
 }
 
 kernel void elementwise_multiply_matrix(device float *A [[buffer(0)]],
                                         device float *B [[buffer(1)]],
                                         device float *C [[buffer(2)]],
-                                        constant uint3 &dims [[buffer(3)]],
+                                        constant uint2 &dims [[buffer(3)]],
                                         uint tid [[thread_position_in_grid]]) {
 
   uint M = dims.x;
   uint N = dims.y;
-  uint P = dims.z;
-  uint row = tid / P;
-  uint col = tid % P;
-  if (row < M && col < P) {
-    C[row * P + col] = A[row * P + col] * B[row * P + col];
+  uint row = tid / N;
+  uint col = tid % N;
+  if (row < M && col < N) {
+    C[row * N + col] = A[row * N + col] * B[row * N + col];
   }
 }
 
@@ -112,98 +108,92 @@ kernel void matrix_multiply(device float *A [[buffer(0)]],
 kernel void logical_e(device float *A [[buffer(0)]],
                       device float *B [[buffer(1)]],
                       device float *C [[buffer(2)]],
-                      constant uint3 &dims [[buffer(3)]], // buffer for M, N, P
+                      constant uint2 &dims [[buffer(3)]], // buffer for M, N, P
                       uint tid [[thread_position_in_grid]]) {
 
   uint M = dims.x;
   uint N = dims.y;
-  uint P = dims.z;
-  uint row = tid / P;
-  uint col = tid % P;
-  if (row < M && col < P) {
-    C[row * P + col] = A[row * P + col] == B[row * P + col];
+  uint row = tid / N;
+  uint col = tid % N;
+  if (row < M && col < N) {
+    C[row * N + col] = A[row * N + col] == B[row * N + col];
   }
 }
 
 kernel void logical_ne(device float *A [[buffer(0)]],
                        device float *B [[buffer(1)]],
                        device float *C [[buffer(2)]],
-                       constant uint3 &dims [[buffer(3)]], // buffer for M, N, P
+                       constant uint2 &dims [[buffer(3)]], // buffer for M, N, P
                        uint tid [[thread_position_in_grid]]) {
 
   uint M = dims.x;
   uint N = dims.y;
-  uint P = dims.z;
-  uint row = tid / P;
-  uint col = tid % P;
-  if (row < M && col < P) {
-    C[row * P + col] = A[row * P + col] != B[row * P + col];
+  uint row = tid / N;
+  uint col = tid % N;
+  if (row < M && col < N) {
+    C[row * N + col] = A[row * N + col] != B[row * N + col];
   }
 }
 
 kernel void logical_gt(device float *A [[buffer(0)]],
                        device float *B [[buffer(1)]],
                        device float *C [[buffer(2)]],
-                       constant uint3 &dims [[buffer(3)]], // buffer for M, N, P
+                       constant uint2 &dims [[buffer(3)]], // buffer for M, N, P
                        uint tid [[thread_position_in_grid]]) {
 
   uint M = dims.x;
   uint N = dims.y;
-  uint P = dims.z;
-  uint row = tid / P;
-  uint col = tid % P;
-  if (row < M && col < P) {
-    C[row * P + col] = A[row * P + col] > B[row * P + col];
+  uint row = tid / N;
+  uint col = tid % N;
+  if (row < M && col < N) {
+    C[row * N + col] = A[row * N + col] > B[row * N + col];
   }
 }
 
 kernel void logical_gte(device float *A [[buffer(0)]],
                         device float *B [[buffer(1)]],
                         device float *C [[buffer(2)]],
-                        constant uint3 &dims
+                        constant uint2 &dims
                         [[buffer(3)]], // buffer for M, N, P
                         uint tid [[thread_position_in_grid]]) {
 
   uint M = dims.x;
   uint N = dims.y;
-  uint P = dims.z;
-  uint row = tid / P;
-  uint col = tid % P;
-  if (row < M && col < P) {
-    C[row * P + col] = A[row * P + col] >= B[row * P + col];
+  uint row = tid / N;
+  uint col = tid % N;
+  if (row < M && col < N) {
+    C[row * N + col] = A[row * N + col] >= B[row * N + col];
   }
 }
 
 kernel void logical_lt(device float *A [[buffer(0)]],
                        device float *B [[buffer(1)]],
                        device float *C [[buffer(2)]],
-                       constant uint3 &dims [[buffer(3)]], // buffer for M, N, P
+                       constant uint2 &dims [[buffer(3)]], // buffer for M, N, P
                        uint tid [[thread_position_in_grid]]) {
 
   uint M = dims.x;
   uint N = dims.y;
-  uint P = dims.z;
-  uint row = tid / P;
-  uint col = tid % P;
-  if (row < M && col < P) {
-    C[row * P + col] = A[row * P + col] < B[row * P + col];
+  uint row = tid / N;
+  uint col = tid % N;
+  if (row < M && col < N) {
+    C[row * N + col] = A[row * N + col] < B[row * N + col];
   }
 }
 
 kernel void logical_lte(device float *A [[buffer(0)]],
                         device float *B [[buffer(1)]],
                         device float *C [[buffer(2)]],
-                        constant uint3 &dims
+                        constant uint2 &dims
                         [[buffer(3)]], // buffer for M, N, P
                         uint tid [[thread_position_in_grid]]) {
 
   uint M = dims.x;
   uint N = dims.y;
-  uint P = dims.z;
-  uint row = tid / P;
-  uint col = tid % P;
-  if (row < M && col < P) {
-    C[row * P + col] = A[row * P + col] <= B[row * P + col];
+  uint row = tid / N;
+  uint col = tid % N;
+  if (row < M && col < N) {
+    C[row * N + col] = A[row * N + col] <= B[row * N + col];
   }
 }
 
@@ -237,5 +227,4 @@ kernel void log(device float *A [[buffer(0)]], device float *C [[buffer(1)]],
     C[row * N + col] = log(A[row * N + col]);
   }
 }
-
 // =====================================================================

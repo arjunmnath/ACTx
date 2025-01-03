@@ -1,1 +1,2 @@
-include backend/src/*.metal
+include src/*.metal
+

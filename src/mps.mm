@@ -1,5 +1,4 @@
 #include "mps.h"
-#include "shader.mm"
 #import <Foundation/Foundation.h>
 #include <Metal/Metal.h>
 #include <cassert>
@@ -212,7 +211,6 @@ void MPS::print_buffer_contents(std::vector<id<MTLBuffer>> buffers,
   uint *meta = (uint *)[buffers[3] contents];
   uint M = meta[0];
   uint N = meta[1];
-  uint P = meta[2];
   for (uint i = 0; i < M; i++) {
     for (uint j = 0; j < N; j++) {
       std::cout << std::setw(2) << std::setfill('0')
