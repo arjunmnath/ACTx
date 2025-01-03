@@ -92,16 +92,16 @@ private:
     id<MTLBuffer> meta = device_mps->createBuffer(m.data(), 3);
     id<MTLBuffer> result;
     result = device_mps->createEmptyBuffer<T>(this->size);
-    device_mps->execute_kernel(kernel_function, this->storage, other->storage,
-                               result, meta);
+    device_mps->execute_kernel_binary(kernel_function, this->storage,
+                                      other->storage, result, meta);
     return Tensor(result, this->dims);
   }
   Tensor _dispatch_kernel_operation_inplace(const Tensor *other,
                                             std::string kernel_function) {
     std::vector<int> m = {this->dims[0], this->dims[1], other->dims[1]};
     id<MTLBuffer> meta = device_mps->createBuffer(m.data(), 3);
-    device_mps->execute_kernel(kernel_function, this->storage, other->storage,
-                               this->storage, meta);
+    device_mps->execute_kernel_binary(kernel_function, this->storage,
+                                      other->storage, this->storage, meta);
     return *this;
   }
   // =====================================================================
@@ -150,7 +150,6 @@ public:
   // =====================================================================
   // Accessors
   std::vector<int> strides() { return this->stride; }
-
   template <typename... Args> double getElement(Args... indexes) const {
     std::vector<int> indices = {indexes...};
     this->throw_out_of_bound(indices);
@@ -168,7 +167,7 @@ public:
     assert(this->dims == other->dims && this->dims.size() == 2);
     return inplace
                ? this->_dispatch_kernel_operation_inplace(other, "add_matrix")
-               : this->_dispatch_kernel_operation_inplace(other, "add_matrix");
+               : this->_dispatch_kernel_operation(other, "add_matrix");
   }
   Tensor subtract(const Tensor *other, bool inplace) {
     assert(this->dims == other->dims && this->dims.size() == 2);
@@ -202,14 +201,14 @@ public:
     id<MTLBuffer> meta = device_mps->createBuffer(this->dims.data(), 3);
     id<MTLBuffer> exponent = device_mps->createBuffer(e.data(), 1);
     id<MTLBuffer> result;
-    if (inplace) {
+    if (!inplace) {
       result = device_mps->createEmptyBuffer<T>(this->size);
-      device_mps->execute_kernel("elementwise_pow", this->storage, exponent,
-                                 result, meta);
+      device_mps->execute_kernel_binary("elementwise_pow", this->storage,
+                                        exponent, result, meta);
     } else {
 
-      device_mps->execute_kernel("elementwise_pow", this->storage, exponent,
-                                 this->storage, meta);
+      device_mps->execute_kernel_binary("elementwise_pow", this->storage,
+                                        exponent, this->storage, meta);
     }
     return inplace ? *this : Tensor(result, this->dims);
   }
@@ -243,13 +242,31 @@ public:
     return this->_dispatch_kernel_operation(other, "logical_lte");
   }
 
+  // Mathematical operations
+  Tensor exp(bool inplace) {
+    id<MTLBuffer> meta = device_mps->createBuffer(this->dims.data(), 2);
+    id<MTLBuffer> result;
+    if (!inplace) {
+      result = device_mps->createEmptyBuffer<T>(this->size);
+      std::cout << result.length << std::endl;
+      device_mps->execute_kernel_unary("exp", this->storage, result, meta);
+    } else {
+      device_mps->execute_kernel_unary("exp", this->storage, this->storage,
+                                       meta);
+    }
+    return inplace ? *this : Tensor(result, this->dims);
+  }
+
   // Utility methods
   Tensor transpose() const {
     // Body for transpose
   }
 
   // Input/Output
-  void print() const {}
+  void print() const {
+    T *ptr = (T *)[this->storage contents];
+    std::cout << ptr[0] << std::endl;
+  }
   void print_matrix() const {
     assert(this->stride.size() == 2);
     for (int i = 0; i < this->dims[0]; i++) {
@@ -272,8 +289,8 @@ int main() {
   std::cout << std::endl;
   Tensor<float> *mat_b = new Tensor<float>(data2, std::vector<int>{3, 3});
   mat_b->print_matrix();
+  Tensor<float> result = mat_a->pow(3, false);
   std::cout << std::endl;
-  Tensor<float> result = mat_a->pow(2, false);
   result.print_matrix();
   return 0;
 }
