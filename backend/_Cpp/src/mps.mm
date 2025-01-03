@@ -6,12 +6,25 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
+#include <dlfcn.h>
 #include <iomanip>
 #include <iostream>
+#include <limits.h>
 #include <string>
 #include <sys/types.h>
+#include <unistd.h>
 #include <unordered_map>
 #include <vector>
+
+static NSString *getModuleDirectory() {
+  Dl_info info;
+  if (dladdr((void *)&getModuleDirectory, &info) != 0 && info.dli_fname) {
+    NSString *modulePath = [NSString stringWithUTF8String:info.dli_fname];
+    NSString *moduleDir = [modulePath stringByDeletingLastPathComponent];
+    return moduleDir;
+  }
+  return nil;
+}
 
 MPS::MPS() {
   NSError *error = nil;
@@ -20,11 +33,20 @@ MPS::MPS() {
     std::cerr << "Metal not available" << std::endl;
     exit(1);
   }
-  this->library = [this->device newLibraryWithSource:shaderSource
-                                             options:nil
-                                               error:&error];
+  NSString *moduleDir = getModuleDirectory();
+  NSString *metallibPath =
+      [moduleDir stringByAppendingPathComponent:@"shader.metallib"];
+  NSData *libraryData = [NSData dataWithContentsOfFile:metallibPath];
+  if (!libraryData) {
+    NSLog(@"Error: Failed to load .metallib file");
+  }
+  dispatch_data_t dispatchData = dispatch_data_create(
+      [libraryData bytes], [libraryData length], dispatch_get_main_queue(),
+      ^{
+      });
+  this->library = [device newLibraryWithData:dispatchData error:&error];
   if (!this->library) {
-    std::cerr << "Shaders compilation failed"
+    std::cerr << "Shaders compilation failed "
               << [[error localizedDescription] UTF8String];
     exit(1);
   }

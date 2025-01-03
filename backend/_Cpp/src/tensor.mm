@@ -257,6 +257,20 @@ public:
     return inplace ? *this : Tensor(result, this->dims);
   }
 
+  Tensor log(bool inplace) {
+    id<MTLBuffer> meta = device_mps->createBuffer(this->dims.data(), 2);
+    id<MTLBuffer> result;
+    if (!inplace) {
+      result = device_mps->createEmptyBuffer<T>(this->size);
+      std::cout << result.length << std::endl;
+      device_mps->execute_kernel_unary("log", this->storage, result, meta);
+    } else {
+      device_mps->execute_kernel_unary("log", this->storage, this->storage,
+                                       meta);
+    }
+    return inplace ? *this : Tensor(result, this->dims);
+  }
+
   // Utility methods
   Tensor transpose() const {
     // Body for transpose
@@ -289,7 +303,7 @@ int main() {
   std::cout << std::endl;
   Tensor<float> *mat_b = new Tensor<float>(data2, std::vector<int>{3, 3});
   mat_b->print_matrix();
-  Tensor<float> result = mat_a->pow(3, false);
+  Tensor<float> result = mat_a->log(false);
   std::cout << std::endl;
   result.print_matrix();
   return 0;

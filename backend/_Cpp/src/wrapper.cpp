@@ -1,5 +1,6 @@
 #include "mps.h"
 #include <Python.h>
+#include <vector>
 
 typedef struct {
   PyObject_HEAD MPS *cpp_obj;
@@ -20,15 +21,16 @@ static PyObject *PyMPS_run(PyMPS *self, PyObject *args) {
   if (!PyArg_ParseTuple(args, "p", &isTransponse)) {
     return NULL;
   }
-  uint view[] = {5, 1};
-  uint transpose[] = {1, 5};
-  std::vector<id<MTLBuffer>> buffers = self->cpp_obj->__dummy_data();
-  self->cpp_obj->add_matrix(buffers[0], buffers[1], buffers[2], buffers[3]);
+  std::vector<int> view = {5, 1};
+  std::vector<int> transpose = {1, 5};
 
+  std::vector<id<MTLBuffer>> buffers = self->cpp_obj->__dummy_data();
+  self->cpp_obj->execute_kernel_binary("elementwise_multiply_matrix",
+                                       buffers[0], buffers[1], buffers[2],
+                                       buffers[3]);
   if (isTransponse) {
     self->cpp_obj->print_buffer_contents(buffers, transpose);
   } else {
-
     self->cpp_obj->print_buffer_contents(buffers, view);
   }
   Py_RETURN_NONE;
