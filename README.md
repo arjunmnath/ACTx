@@ -19,6 +19,66 @@ A high-performance tensor library that leverages Metal for GPU acceleration, imp
 - Python 3.x (for Python bindings)
 - CMake 3.x or higher (for building the project)
 
+## Project Structure
+
+```
+.
+├── src
+│   └── beta
+│   │   ├── cpu.cpp
+│   │   ├── cpu.h
+│   │   ├── device.cpp
+│   │   ├── device.h
+│   │   ├── mps_helper.mm
+│   │   ├── mps_helper.h
+│   │   └── tensor.mm
+│   ├──  matrix.cpp
+│   ├──  mps.h
+│   ├──  mps.nm
+│   ├── Shaders.metal
+│   ├── tensor.mm
+│   └── wrapper.cpp
+├── tests
+│   ├── CMakeLists.txt
+│   ├── ...
+│   └──
+├── examples
+│   └── mlp
+│       ├── activations
+│       │   ├── __init__.py
+│       │   └── main.py
+│       ├── costs
+│       │   ├── __init__.py
+│       │   └── main.py
+│       ├── layers
+│       │   ├── __init__.py
+│       │   └── main.py
+│       ├── optimizers
+│       │   ├── __init__.py
+│       │   └── main.py
+│       ├── tensors
+│       │   ├── __init__.py
+│       │   └── tensor.py
+│       ├── tests
+│       │   ├── activation_methods.py
+│       │   ├── cost_methods.py
+│       │   └── layer.py
+│       └── tf_impl
+│           ├── data.json
+│           ├── gpt-version.py
+│           ├── mnist_model.h5
+│           └── requirements.txt
+├── .gitignore
+├── build_ext.py
+├── CMakeLists.txt
+├── LICENSE
+├── MANIFEST.in
+├── pyproject.toml
+├── README.md
+├── setup.py
+└── setup.cfg
+```
+
 ## Installation
 
 ### From Source
