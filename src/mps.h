@@ -25,6 +25,9 @@ public:
   void execute_kernel_unary(std::string func, id<MTLBuffer> A,
                             id<MTLBuffer> result, id<MTLBuffer> meta);
 
+  void execute_kernel_init(std::string func, id<MTLBuffer> A,
+                           id<MTLBuffer> meta);
+
   std::vector<id<MTLBuffer>> __dummy_data();
   void print_buffer_contents(std::vector<id<MTLBuffer>> buffers,
                              std::vector<int> stride);

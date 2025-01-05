@@ -34,7 +34,7 @@ MPS::MPS() {
   }
   NSString *moduleDir = getModuleDirectory();
   NSString *metallibPath =
-      [moduleDir stringByAppendingPathComponent:@"shader.metallib"];
+      [moduleDir stringByAppendingPathComponent:@"kernels.metallib"];
   NSData *libraryData = [NSData dataWithContentsOfFile:metallibPath];
   if (!libraryData) {
     NSLog(@"Error: Failed to load .metallib file");
@@ -76,7 +76,6 @@ void MPS::_init_pipeline(std::string metal_function_name) {
 }
 void MPS::execute_kernel_unary(std::string func, id<MTLBuffer> A,
                                id<MTLBuffer> result, id<MTLBuffer> meta) {
-  // TODO: fix this size requirement;
   std::string metal_function_name = func;
   if (!pipelines[metal_function_name]) {
     this->_init_pipeline(metal_function_name);
@@ -109,11 +108,43 @@ void MPS::execute_kernel_unary(std::string func, id<MTLBuffer> A,
   [commandBuffer commit];
   [commandBuffer waitUntilCompleted];
 }
+void MPS::execute_kernel_init(std::string func, id<MTLBuffer> A,
+                              id<MTLBuffer> meta) {
+  std::string metal_function_name = func;
+  if (!pipelines[metal_function_name]) {
+    this->_init_pipeline(metal_function_name);
+  }
+  id<MTLComputePipelineState> pipelineState = pipelines[metal_function_name];
+  id<MTLCommandBuffer> commandBuffer = [this->commandQueue commandBuffer];
+  if (!commandBuffer) {
+    std::cerr << "Failed to create command buffer." << std::endl;
+    exit(1);
+  }
+
+  id<MTLComputeCommandEncoder> computeEncoder =
+      [commandBuffer computeCommandEncoder];
+  if (!computeEncoder) {
+    std::cerr << "Failed to create compute command encoder." << std::endl;
+    exit(1);
+  }
+  [computeEncoder setComputePipelineState:pipelineState];
+  [computeEncoder setBuffer:A offset:0 atIndex:0];
+  [computeEncoder setBuffer:meta offset:0 atIndex:1];
+  NSUInteger threadExecutionWidth = pipelineState.threadExecutionWidth;
+  size_t threadsPerThreadgroup = threadExecutionWidth;
+  size_t threadgroups =
+      (A.length + threadsPerThreadgroup - 1) / threadsPerThreadgroup;
+  [computeEncoder
+       dispatchThreadgroups:MTLSizeMake(threadgroups, 1, 1)
+      threadsPerThreadgroup:MTLSizeMake(threadsPerThreadgroup, 1, 1)];
+  [computeEncoder endEncoding];
+  [commandBuffer commit];
+  [commandBuffer waitUntilCompleted];
+}
 
 void MPS::execute_kernel_binary(std::string func, id<MTLBuffer> A,
                                 id<MTLBuffer> B, id<MTLBuffer> result,
                                 id<MTLBuffer> meta) {
-  // TODO: fix this size requirement;
   std::string metal_function_name = func;
   if (!pipelines[metal_function_name]) {
     this->_init_pipeline(metal_function_name);

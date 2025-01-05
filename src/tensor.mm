@@ -142,6 +142,23 @@ public:
         std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
   }
 
+  static Tensor ones(std::vector<int> shape, std::string dtype = "float") {
+    assert(shape.size() == 2);
+    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), 2);
+    id<MTLBuffer> result =
+        device_mps->createEmptyBuffer<T>(shape[0] * shape[1]);
+    device_mps->execute_kernel_init("init_one", result, meta);
+    return Tensor(result, shape);
+  }
+  static Tensor zeros(std::vector<int> shape, std::string dtype = "float") {
+    assert(shape.size() == 2);
+    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), 2);
+    id<MTLBuffer> result =
+        device_mps->createEmptyBuffer<T>(shape[0] * shape[1]);
+    device_mps->execute_kernel_init("init_zero", result, meta);
+    return Tensor(result, shape);
+  }
+
   // Destructor
   ~Tensor() {
     // Body for destructor
@@ -300,17 +317,25 @@ public:
 };
 
 int main() {
-  std::vector<float> data2 = {1.2, 2.3, 3.6, 4.0, 5.9, 6.1, 7.4, 8.2, 9.3};
-  std::vector<uint> conf = {3, 3, 3};
-  std::vector<float> resul(9, 0);
-  std::vector<float> data1 = {2.3, 3.6, 4.0, 5.9, 6.1, 7.4, 8.2, 9.3, 1.2};
-  Tensor<float> *mat_a = new Tensor<float>(data1, std::vector<int>{3, 3});
-  mat_a->print_matrix();
-  std::cout << std::endl;
-  Tensor<float> *mat_b = new Tensor<float>(data2, std::vector<int>{3, 3});
-  mat_b->print_matrix();
-  Tensor<float> result = mat_a->log(false);
-  std::cout << std::endl;
-  result.print_matrix();
+  /*
+std::vector<float> data2 = {1.2, 2.3, 3.6, 4.0, 5.9, 6.1, 7.4, 8.2, 9.3};
+std::vector<uint> conf = {3, 3, 3};
+std::vector<float> resul(9, 0);
+std::vector<float> data1 = {2.3, 3.6, 4.0, 5.9, 6.1, 7.4, 8.2, 9.3, 1.2};
+Tensor<float> *mat_a = new Tensor<float>(data1, std::vector<int>{3, 3});
+mat_a->print_matrix();
+std::cout << std::endl;
+Tensor<float> *mat_b = new Tensor<float>(data2, std::vector<int>{3, 3});
+mat_b->print_matrix();
+Tensor<float> result = mat_a->log(false);
+std::cout << std::endl;
+result.print_matrix();
+*/
+
+  std::vector<int> shape = {3, 3};
+  Tensor<float> a = Tensor<float>::ones(shape);
+  Tensor<float> b = Tensor<float>::zeros(shape);
+  a.print_matrix();
+  b.print_matrix();
   return 0;
 }
