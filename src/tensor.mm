@@ -145,13 +145,13 @@ public:
   // =====================================================================
   //                            INIT
   // =====================================================================
-  // 1) ones & zeros: ✅
-  // 2) empty:✅
-  // 3) eye: ✅
-  // 4) rand, randn, randint: ❌
-  // 5) linspace, logspace, arange: ❌
-  // 6) clone, tensor: ❌
-  // 7) normal, bernoulli, poisson: ❌
+  // 1) Ones & zeros: ✅
+  // 2) Empty:✅
+  // 3) Eye: ❌
+  // 4) Rand, randn, randint: ❌
+  // 5) Linspace, logspace, arange: ❌
+  // 6) Clone, tensor: ❌
+  // 7) Normal, bernoulli, poisson: ❌
 
   static Tensor ones(std::vector<int> shape, std::string dtype = "float") {
     assert(shape.size() == 2);
@@ -166,20 +166,42 @@ public:
     id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), 2);
     id<MTLBuffer> result =
         device_mps->createEmptyBuffer<T>(shape[0] * shape[1]);
-    device_mps->execute_kernel_init("init_zeros", result, meta);
+    device_mps->execute_kernel_init("init_with_zeros", result, meta);
     return Tensor(result, shape);
   }
   static Tensor eye(int n, std::string dtype = "float") {
     std::vector<int> shape = {n, n};
     id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), 2);
     id<MTLBuffer> result = device_mps->createEmptyBuffer<T>(n * n);
-    device_mps->execute_kernel_init("init_eye", result, meta);
+    device_mps->execute_kernel_init("init_identity", result, meta);
     return Tensor(result, shape);
   }
   static Tensor empty(std::vector<int> shape, std::string dtype = "float") {
     assert(shape.size() == 2);
     id<MTLBuffer> result =
         device_mps->createEmptyBuffer<T>(shape[0] * shape[1]);
+    return Tensor(result, shape);
+  }
+  static Tensor rand(std::vector<int> shape, std::string dtype = "float") {
+    assert(shape.size() == 2);
+    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), 2);
+    id<MTLBuffer> result =
+        device_mps->createEmptyBuffer<T>(shape[0] * shape[1]);
+
+    std::vector<int> seed_vec = {static_cast<int>(clock())};
+    id<MTLBuffer> seed = device_mps->createBuffer(seed_vec.data(), 1);
+    device_mps->execute_kernel_unary("init_rand_uniform", result, seed, meta);
+    return Tensor(result, shape);
+  }
+  static Tensor full(std::vector<int> shape, int n,
+                     std::string dtype = "float") {
+    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), 2);
+    id<MTLBuffer> result =
+        device_mps->createEmptyBuffer<T>(shape[0] * shape[1]);
+
+    std::vector<int> seed_vec = {n};
+    id<MTLBuffer> seed = device_mps->createBuffer(seed_vec.data(), 1);
+    device_mps->execute_kernel_unary("init_full", result, seed, meta);
     return Tensor(result, shape);
   }
 
@@ -338,6 +360,7 @@ public:
       }
       std::cout << std::endl;
     }
+    std::cout << std::endl;
   }
 };
 
@@ -356,12 +379,14 @@ int main() {
       std::cout << std::endl;
       result.print_matrix();
   */
-  std::vector<int> shape = {9, 4};
+  std::vector<int> shape = {3, 3};
   Tensor<float> a = Tensor<float>::ones(shape);
-  Tensor<float> b = Tensor<float>::zeros(shape);
-  Tensor<float> c = Tensor<float>::empty(shape);
+  Tensor<float> b = Tensor<float>::eye(3);
+  Tensor<float> c = Tensor<float>::full(shape, 4);
+  Tensor<float> d = Tensor<float>::zeros(shape);
   a.print_matrix();
+  b.print_matrix();
   c.print_matrix();
-  /*d.print_matrix();*/
+  d.print_matrix();
   return 0;
 }

@@ -1,3 +1,10 @@
+import math
+import random
+
+import numpy as np
+from graphviz import Digraph
+
+
 class Tensor:
 
     def __init__(
@@ -154,15 +161,16 @@ def trace(root):
 def draw_dot(root):
     dot = Digraph(format="png", graph_attr={"rankdir": "LR"})
     nodes, edges = trace(root)
+
     for n in nodes:
         uid = str(id(n))
         dot.node(
             name=uid,
-            label="{ %s | data %.4f | grad %.4f}"
+            label="{ %s | data %s | grad %s}"
             % (
                 n.label,
-                n.data,
-                n.grad,
+                str(n.data),
+                str(n.grad),
             ),
             shape="record",
         )
@@ -174,3 +182,57 @@ def draw_dot(root):
         dot.edge(str(id(n1)), str(id(n2)) + n2.op_)
 
     return dot
+
+
+class Layer:
+    def __init__(self, nin, no_of_neurons):
+        self.nin = nin
+        self.no_of_neurons = no_of_neurons
+        self.w = Tensor(np.random.uniform(-1, 1, (nin, no_of_neurons)))
+        self.b = Tensor(np.random.uniform(-1, 1, no_of_neurons), label=f"{layer}B{idx}")
+
+    def __call__(self, x):
+        act = self.w @ x + self.b
+        act = Tensor(np.sum(act.data), _children=(act,)) + self.b
+        return act.tanh()
+
+
+xs = [
+    [2.0, 3.0, -1.0],
+    [3.0, -1.0, 0.5],
+    [0.5, 1.0, 1.0],
+    [1.0, 1.0, -1.0],
+]
+ys = [1.0, -1.0, -1.0, 1.0]  # desired targets
+
+
+# l = Layer(4)
+# out = l(Tensor(ys, label="X"))
+a = Tensor(np.array([[1, 1], [1, 2]]))  # 2, 2
+b = Tensor(np.array([2, 3]))  # 1, 2
+res = b + 2
+print(res)
+# res.backward()
+# draw_dot(res).view()
+
+
+# x = Tensor(np.array([]), label="x1")
+# # weights w1,w2
+# w1 = Tensor(-3.0, label="w1")
+# w2 = Tensor(1.0, label="w2")
+# # bias of the neuron
+# b = Tensor(6.8813735870195432, label="b")
+# # x1*w1 + x2*w2 + b
+# x1w1 = x1 * w1
+# x1w1.label = "x1*w1"
+# x2w2 = x2 * w2
+# x2w2.label = "x2*w2"
+# x1w1x2w2 = x1w1 + x2w2
+# x1w1x2w2.label = "x1*w1 + x2*w2"
+# n = x1w1x2w2 + b
+# n.label = "n"
+# e = (2 * n).exp()
+# o = (e - 1) / (e + 1)
+# o.label = "o"
+# o.backward()
+# draw_dot(o).view()
