@@ -14,7 +14,6 @@
 #include <unistd.h>
 #include <unordered_map>
 #include <vector>
-
 static NSString *getModuleDirectory() {
   Dl_info info;
   if (dladdr((void *)&getModuleDirectory, &info) != 0 && info.dli_fname) {
@@ -24,7 +23,6 @@ static NSString *getModuleDirectory() {
   }
   return nil;
 }
-
 MPS::MPS() {
   NSError *error = nil;
   this->device = MTLCreateSystemDefaultDevice();
@@ -40,9 +38,7 @@ MPS::MPS() {
     NSLog(@"Error: Failed to load .metallib file");
   }
   dispatch_data_t dispatchData = dispatch_data_create(
-      [libraryData bytes], [libraryData length], dispatch_get_main_queue(),
-      ^{
-      });
+      [libraryData bytes], [libraryData length], NULL, NULL);
   this->library = [device newLibraryWithData:dispatchData error:&error];
   if (!this->library) {
     std::cerr << "Shaders compilation failed "
