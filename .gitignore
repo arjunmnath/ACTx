@@ -95,3 +95,5 @@ backend
 *.metallib
 *.air
 .DS_Store
+
+*.dSYM
