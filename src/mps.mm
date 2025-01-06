@@ -68,7 +68,7 @@ void MPS::_init_pipeline(std::string metal_function_name) {
   id<MTLComputePipelineState> pipelineState =
       [this->device newComputePipelineStateWithFunction:function error:&error];
   if (!pipelineState) {
-    std::cerr << "Failed to create compute pipeline state for"
+    std::cerr << "Failed to create compute pipeline state for "
               << metal_function_name << " : "
               << [[error localizedDescription] UTF8String] << std::endl;
   }
