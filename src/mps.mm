@@ -198,6 +198,17 @@ template <typename T> id<MTLBuffer> MPS::createEmptyBuffer(int size) {
   return buffer;
 }
 
+<MTLBuffer> MPS::clone(id<MTLBuffer> buffer) {
+  NSUInteger bufferSize = buffer.length;
+  id<MTLBuffer> newBuffer =
+      [device newBufferWithLength:bufferSize
+                          options:MTLResourceStorageModeShared];
+  void *originalData = buffer.contents;
+  void *newData = newBuffer.contents;
+  memcpy(newData, originalData, bufferSize);
+  return newBuffer;
+}
+
 template id<MTLBuffer> MPS::createEmptyBuffer<int>(int size);
 template id<MTLBuffer> MPS::createEmptyBuffer<float>(int size);
 template id<MTLBuffer> MPS::createEmptyBuffer<uint8_t>(int size);

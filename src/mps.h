@@ -33,6 +33,7 @@ public:
                              std::vector<int> stride);
   template <typename Type> id<MTLBuffer> createBuffer(Type *data, size_t size);
   template <typename T> id<MTLBuffer> createEmptyBuffer(int size);
+  id<MTLBuffer> clone(id<MTLBuffer> buffer);
 };
 
 #endif
