@@ -102,10 +102,6 @@ A high-performance tensor library that leverages Metal for GPU acceleration, imp
    pip install .
    ```
 
-### Pre-built Binaries
-
-Coming soon...
-
 ## Usage
 
 ### C++/Objective-C++ API
