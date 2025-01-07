@@ -108,43 +108,49 @@ public:
   // 1) Ones & zeros: ✅
   // 2) Empty:✅
   // 3) Eye: ✅
-  // 4) Rand, randn, randint: ✅
-  // 5) Linspace, logspace, arange: ❌
+  // 4) Normal, bernoulli, poisson: ✅
+  // 5) Rand, randn, randint: ✅
   // 6) Clone, tensor: ❌
-  // 7) Normal, bernoulli, poisson: ❌
-
+  // 7) Linspace, logspace, arange: ❌
+  // =====================================================================
   static Tensor ones(std::vector<int> shape, std::string dtype = "float") {
     assert(shape.size() == 2);
-    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), 2);
-    id<MTLBuffer> result =
-        device_mps->createEmptyBuffer<T>(shape[0] * shape[1]);
+    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
+    int size =
+        std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+    id<MTLBuffer> result = device_mps->createEmptyBuffer<T>(size);
     device_mps->execute_kernel_init("init_ones", result, meta);
     return Tensor(result, shape);
   }
   static Tensor zeros(std::vector<int> shape, std::string dtype = "float") {
     assert(shape.size() == 2);
-    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), 2);
-    id<MTLBuffer> result =
-        device_mps->createEmptyBuffer<T>(shape[0] * shape[1]);
+    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
+    int size =
+        std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+    id<MTLBuffer> result = device_mps->createEmptyBuffer<T>(size);
     device_mps->execute_kernel_init("init_with_zeros", result, meta);
     return Tensor(result, shape);
   }
   static Tensor eye(int n, std::string dtype = "float") {
     std::vector<int> shape = {n, n};
-    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), 2);
+    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
     id<MTLBuffer> result = device_mps->createEmptyBuffer<T>(n * n);
     device_mps->execute_kernel_init("init_identity", result, meta);
     return Tensor(result, shape);
   }
   static Tensor empty(std::vector<int> shape, std::string dtype = "float") {
     assert(shape.size() == 2);
-    id<MTLBuffer> result =
-        device_mps->createEmptyBuffer<T>(shape[0] * shape[1]);
+    int size =
+        std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+    id<MTLBuffer> result = device_mps->createEmptyBuffer<T>(size);
+
     return Tensor(result, shape);
   }
   static Tensor full(std::vector<int> shape, int n,
                      std::string dtype = "float") {
-    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), 2);
+    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
+    int size =
+        std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
     id<MTLBuffer> result =
         device_mps->createEmptyBuffer<T>(shape[0] * shape[1]);
 
@@ -161,47 +167,83 @@ public:
 
   // TODO: configure the seed;
   static Tensor rand(std::vector<int> shape, std::string dtype = "float") {
-    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), 2);
-    int n = shape[0] * shape[1];
-    std::vector<T> data(n, 0);
-    for (int i = 0; i < n; i++) {
+    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
+    int size =
+        std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+    std::vector<T> data(size, 0);
+    for (int i = 0; i < size; i++) {
       data[i] = __rand<T>();
     }
-    id<MTLBuffer> result = device_mps->createBuffer<T>(data.data(), n);
+    id<MTLBuffer> result = device_mps->createBuffer<T>(data.data(), size);
     return Tensor(result, shape);
   }
-  static Tensor randn(std::vector<int> shape, float mean = 0, float stddev = 1,
-                      std::string dtype = "float") {
+  static Tensor randn(std::vector<int> shape, std::string dtype = "float") {
     id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), 2);
-    int n = shape[0] * shape[1];
-    std::vector<T> data(n, 0);
-    for (int i = 0; i < n; i++) {
+
+    int size =
+        std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+    std::vector<T> data(size, 0);
+    for (int i = 0; i < size; i++) {
+      data[i] = __randn<T>();
+    }
+    id<MTLBuffer> result = device_mps->createBuffer<T>(data.data(), size);
+    return Tensor(result, shape);
+  }
+  static Tensor normal(std::vector<int> shape, float mean = 0, float stddev = 1,
+                       std::string dtype = "float") {
+    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
+    int size =
+        std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+    std::vector<T> data(size, 0);
+    for (int i = 0; i < size; i++) {
       data[i] = __randn<T>(mean, stddev);
     }
-    id<MTLBuffer> result = device_mps->createBuffer<T>(data.data(), n);
-    return Tensor(result, shape);
-  }
-  static Tensor randint(std::vector<int> shape, int min, int max,
-                        std::string dtype = "float") {
-    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), 2);
-    int n = shape[0] * shape[1];
-    std::vector<T> data(n, 0);
-    for (int i = 0; i < n; i++) {
-      data[i] = __randint(min, max);
-    }
-    id<MTLBuffer> result = device_mps->createBuffer<T>(data.data(), n);
+    id<MTLBuffer> result = device_mps->createBuffer<T>(data.data(), size);
     return Tensor(result, shape);
   }
 
-  // =====================================================================
+  static Tensor randint(std::vector<int> shape, int min, int max,
+                        std::string dtype = "float") {
+    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
+
+    int size =
+        std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+    std::vector<T> data(size, 0);
+    for (int i = 0; i < size; i++) {
+      data[i] = __randint(min, max);
+    }
+    id<MTLBuffer> result = device_mps->createBuffer<T>(data.data(), size);
+    return Tensor(result, shape);
+  }
+  static Tensor poission(Tensor &other, std::string dtype = "float") {
+    id<MTLBuffer> meta =
+        device_mps->createBuffer(other.dims.data(), other.dims.size());
+    int size = other.size;
+    std::vector<T> data(size, 0);
+    for (int i = 0; i < size; i++) {
+      data[i] = __poisson(other.data_ptr[i]);
+    }
+    id<MTLBuffer> result = device_mps->createBuffer<T>(data.data(), size);
+    return Tensor(result, other.dims);
+  }
+
+  static Tensor bernoulli(Tensor &other, std::string dtype = "float") {
+    id<MTLBuffer> meta =
+        device_mps->createBuffer(other.dims.data(), other.dims.size());
+    int size = other.size;
+    std::vector<T> data(size, 0);
+    for (int i = 0; i < size; i++) {
+      data[i] = __bernoulli(other.data_ptr[i]);
+    }
+    id<MTLBuffer> result = device_mps->createBuffer<T>(data.data(), size);
+    return Tensor(result, other.dims);
+  }
 
   // Destructor
   ~Tensor() {
     // Body for destructor
   }
 
-  // =====================================================================
-  // Accessors
   std::vector<int> strides() { return this->stride; }
   template <typename... Args> double getElement(Args... indexes) const {
     std::vector<int> indices = {indexes...};
@@ -307,7 +349,6 @@ public:
     id<MTLBuffer> result;
     if (!inplace) {
       result = device_mps->createEmptyBuffer<T>(this->size);
-      std::cout << result.length << std::endl;
       device_mps->execute_kernel_unary("exp", this->storage, result, meta);
     } else {
       device_mps->execute_kernel_unary("exp", this->storage, this->storage,
@@ -321,10 +362,22 @@ public:
     id<MTLBuffer> result;
     if (!inplace) {
       result = device_mps->createEmptyBuffer<T>(this->size);
-      std::cout << result.length << std::endl;
       device_mps->execute_kernel_unary("log", this->storage, result, meta);
     } else {
       device_mps->execute_kernel_unary("log", this->storage, this->storage,
+                                       meta);
+    }
+    return inplace ? *this : Tensor(result, this->dims);
+  }
+
+  Tensor sqrt(bool inplace) {
+    id<MTLBuffer> meta = device_mps->createBuffer(this->dims.data(), 2);
+    id<MTLBuffer> result;
+    if (!inplace) {
+      result = device_mps->createEmptyBuffer<T>(this->size);
+      device_mps->execute_kernel_unary("sqrt", this->storage, result, meta);
+    } else {
+      device_mps->execute_kernel_unary("sqrt", this->storage, this->storage,
                                        meta);
     }
     return inplace ? *this : Tensor(result, this->dims);
@@ -354,30 +407,16 @@ public:
 };
 
 int main() {
-  /*
-      std::vector<float> data2 = {1.2, 2.3, 3.6, 4.0, 5.9, 6.1, 7.4, 8.2, 9.3};
-      std::vector<uint> conf = {3, 3, 3};
-      std::vector<float> resul(9, 0);
-      std::vector<float> data1 = {2.3, 3.6, 4.0, 5.9, 6.1, 7.4, 8.2, 9.3, 1.2};
-      Tensor<float> *mat_a = new Tensor<float>(data1, std::vector<int>{3, 3});
-      mat_a->print_matrix();
-      std::cout << std::endl;
-      Tensor<float> *mat_b = new Tensor<float>(data2, std::vector<int>{3, 3});
-      mat_b->print_matrix();
-      Tensor<float> result = mat_a->log(false);
-      std::cout << std::endl;
-      result.print_matrix();
-  */
-
   std::vector<float> data2 = {1.2, 2.3, 3.6, 4.0, 5.9, 6.1, 7.4, 8.2, 9.3};
   Tensor<float> *mat_a = new Tensor<float>(data2, std::vector<int>{3, 3});
-  std::vector<int> shape = {3, 3};
+  std::vector<int> shape = {9, 3};
   /*Tensor<float> a = Tensor<float>::ones(shape);*/
   /*Tensor<float> b = Tensor<float>::eye(3);*/
   /*Tensor<float> c = Tensor<float>::full(shape, 4);*/
   /*Tensor<float> d = Tensor<float>::zeros(shape);*/
   /*Tensor<float> e = Tensor<float>::clone(mat_a);*/
-  Tensor<float> f = Tensor<float>::randint(shape, 10, 100);
+  Tensor<float> f = Tensor<float>::randn(shape);
+  Tensor<float> l = Tensor<float>::poission(f);
   /*a.print_matrix();*/
   /*b.print_matrix();*/
   /*c.print_matrix();*/
@@ -385,5 +424,6 @@ int main() {
   /*mat_a->print_matrix();*/
   /*e.print_matrix();*/
   f.print_matrix();
+  l.print_matrix();
   return 0;
 }

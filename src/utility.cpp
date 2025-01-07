@@ -56,3 +56,23 @@ int __randint(int min, int max, int seed = -1) {
   std::uniform_int_distribution<> int_dist(min, max - 1);
   return int_dist(gen);
 }
+
+template <typename T> int __poisson(T p, int seed = -1) {
+  if (-1 == seed) {
+    std::random_device rd;
+    seed = rd();
+  }
+  std::mt19937 gen(seed);
+  std::poisson_distribution<int> poisson(p);
+  return poisson(gen);
+}
+
+template <typename T> int __bernoulli(T p, int seed = -1) {
+  if (-1 == seed) {
+    std::random_device rd;
+    seed = rd();
+  }
+  std::mt19937 gen(seed);
+  std::bernoulli_distribution dist(p);
+  return dist(gen);
+}

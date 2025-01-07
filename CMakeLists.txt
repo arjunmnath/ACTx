@@ -83,7 +83,7 @@ target_link_libraries(out
 
 target_compile_options(out PRIVATE
     -fobjc-arc   
-    -ObjC++      
     -g           
+    # -fsanitize=address
 )
 

@@ -198,7 +198,7 @@ template <typename T> id<MTLBuffer> MPS::createEmptyBuffer(int size) {
   return buffer;
 }
 
-<MTLBuffer> MPS::clone(id<MTLBuffer> buffer) {
+id<MTLBuffer> MPS::clone(id<MTLBuffer> buffer) {
   NSUInteger bufferSize = buffer.length;
   id<MTLBuffer> newBuffer =
       [device newBufferWithLength:bufferSize
