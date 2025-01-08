@@ -1,0 +1,47 @@
+name: Code Formatting Check and Commit (macOS)
+
+on:
+  push:
+    branches:
+      - main
+      - '**/feature/**'
+  pull_request:
+
+jobs:
+  format-check:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Setup for C++ and Objective-C++ (clang-format)
+      - name: Install clang-format
+        run: brew install clang-format
+
+      - name: Run clang-format (C++/Objective-C++)
+        run: |
+          clang-format -i $(find . -name '*.cpp' -or -name '*.h' -or -name '*.mm' -or -name '*.m')
+
+      # Setup for Python (Black)
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Install Black
+        run: pip install black
+
+      - name: Run Black (Python)
+        run: black .
+        
+      # Commit and push the formatted code
+      - name: Commit and push formatted code
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add .
+          git commit -m 'Automated code formatting'
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
