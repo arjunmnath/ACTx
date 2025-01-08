@@ -6,7 +6,8 @@ on:
       - main
       - '**/feature/**'
   pull_request:
-
+permissions:
+  contents: write  
 jobs:
   format-check:
     runs-on: macos-latest
