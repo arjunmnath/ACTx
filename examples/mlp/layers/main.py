@@ -96,4 +96,3 @@ class Dense(Layer):
         )
         return np.dot(gradient, self.weights)
         # return da
-

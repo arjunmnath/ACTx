@@ -2,6 +2,7 @@ import numpy as np
 
 from abc import ABC, abstractmethod as abstract
 
+
 class Activation(ABC):
     @abstract
     def activate(self, x):
@@ -12,13 +13,13 @@ class Activation(ABC):
         pass
 
 
-
 class Sigmoid(Activation):
     def activate(self, x):
-        return 1. / (1. + np.exp(-x))
+        return 1.0 / (1.0 + np.exp(-x))
 
     def gradient(self, x):
-        return x * (1.- x)
+        return x * (1.0 - x)
+
 
 class ReLU(Activation):
     def activate(self, x):
@@ -27,12 +28,13 @@ class ReLU(Activation):
     def gradient(self, x):
         return np.where(x > 0, 1, 0)
 
+
 class dummy(Activation):
     def activate(self, x):
         return x
+
     def gradient(self, x):
         return np.where(x > 0, 1, 0)
-
 
 
 class Softmax(Activation):
