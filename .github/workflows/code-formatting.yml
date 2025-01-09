@@ -6,8 +6,10 @@ on:
       - main
       - '**/feature/**'
   pull_request:
+
 permissions:
   contents: write  
+
 jobs:
   format-check:
     runs-on: macos-latest
@@ -36,13 +38,13 @@ jobs:
       - name: Run Black (Python)
         run: black .
         
-      # Commit and push the formatted code
-      - name: Commit and push formatted code
+      # Check if there are any changes and commit if there are
+      - name: Check for changes and commit if any
         run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add .
-          git commit -m 'Automated code formatting'
-          git push
+          git diff --exit-code || (git config --global user.name 'github-actions[bot]' && \
+            git config --global user.email 'github-actions[bot]@users.noreply.github.com' && \
+            git add . && \
+            git commit -m 'Automated code formatting' && \
+            git push)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
