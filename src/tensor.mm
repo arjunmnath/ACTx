@@ -1,3 +1,4 @@
+#include "tensor.h"
 #include "mps.h"
 #include "utility.cpp"
 #include <MacTypes.h>
@@ -12,418 +13,427 @@
 #include <vector>
 MPS *device_mps = new MPS();
 
-template <typename T> class Tensor {
-private:
-  id<MTLBuffer> storage;
-  std::vector<int> stride;
-  T *data_ptr;
-  int ndim;
-  void _compte_stride() {
-    /*strides[i] = (j=i+1 ∏ len(dims) - 1){shape[j]}*/
-    int value = 1;
-    this->stride.push_back(value);
-    for (uint i = this->ndim - 1; i > 0; i--) {
-      value *= this->dims[i];
-      this->stride.insert(this->stride.begin(), value);
+template <typename T> void Tensor<T>::_compte_stride() {
+  /*strides[i] = (j=i+1 ∏ len(dims) - 1){shape[j]}*/
+  int value = 1;
+  this->stride.push_back(value);
+  for (uint i = this->ndim - 1; i > 0; i--) {
+    value *= this->dims[i];
+    this->stride.insert(this->stride.begin(), value);
+  }
+}
+
+template <typename T>
+int Tensor<T>::_compute_offset(std::vector<int> indexes) const {
+  int n = indexes.size();
+  int offset = 0;
+  assert(n == this->stride.size());
+  for (int i = 0; i < n; i++) {
+    offset += indexes[i] * this->stride[i];
+  }
+  return offset;
+}
+
+template <typename T>
+void Tensor<T>::throw_out_of_bound(std::vector<int> indexes) const {
+  for (int i = 0; i < indexes.size(); i++) {
+    if (indexes[i] >= this->dims[i]) {
+      throw std::out_of_range("");
     }
   }
+}
 
-  int _compute_offset(std::vector<int> indexes) const {
-    int n = indexes.size();
-    int offset = 0;
-    assert(n == this->stride.size());
-    for (int i = 0; i < n; i++) {
-      offset += indexes[i] * this->stride[i];
-    }
-    return offset;
+template <typename T>
+Tensor<T>
+Tensor<T>::_dispatch_kernel_operation(const Tensor *other,
+                                      std::string kernel_function) const {
+  std::vector<int> m = {this->dims[0], this->dims[1], other->dims[1]};
+  id<MTLBuffer> meta = device_mps->createBuffer(m.data(), 3);
+  id<MTLBuffer> result;
+  result = device_mps->createEmptyBuffer<T>(this->size);
+  device_mps->execute_kernel_binary(kernel_function, this->storage,
+                                    other->storage, result, meta);
+  return Tensor(result, this->dims);
+}
+template <typename T>
+Tensor<T>
+Tensor<T>::_dispatch_kernel_operation_inplace(const Tensor *other,
+                                              std::string kernel_function) {
+  std::vector<int> m = {this->dims[0], this->dims[1], other->dims[1]};
+  id<MTLBuffer> meta = device_mps->createBuffer(m.data(), 3);
+  device_mps->execute_kernel_binary(kernel_function, this->storage,
+                                    other->storage, this->storage, meta);
+  return *this;
+}
+
+template <typename T> Tensor<T>::Tensor(std::vector<int> dims) {
+  this->size =
+      std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
+  this->dims = dims;
+  this->ndim = dims.size();
+  this->storage = device_mps->createEmptyBuffer<T>(size);
+  this->data_ptr = (T *)[this->storage contents];
+  this->_compte_stride();
+}
+
+template <typename T>
+Tensor<T>::Tensor(id<MTLBuffer> buffer, std::vector<int> dims) {
+  this->storage = buffer;
+  this->data_ptr = (T *)[this->storage contents];
+  this->dims = dims;
+  this->ndim = dims.size();
+  this->_compte_stride();
+  this->size =
+      std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
+}
+
+template <typename T>
+Tensor<T>::Tensor(std::vector<T> &values, std::vector<int> dims) {
+  this->storage = device_mps->createBuffer(values.data(), values.size());
+  this->data_ptr = (T *)[this->storage contents];
+  this->dims = dims;
+  this->ndim = dims.size();
+  this->_compte_stride();
+  this->size =
+      std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
+}
+
+// =====================================================================
+//                            INIT
+// =====================================================================
+// 1) Ones & zeros: ✅
+// 2) Empty:✅
+// 3) Eye: ✅
+// 4) Normal, bernoulli, poisson: ✅
+// 5) Rand, randn, randint: ✅
+// 6) Clone, tensor: ❌
+// 7) Linspace, logspace, arange: ❌
+// =====================================================================
+
+template <typename T>
+Tensor<T> Tensor<T>::ones(std::vector<int> shape, std::string dtype) {
+  assert(shape.size() == 2);
+  id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
+  int size =
+      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+  id<MTLBuffer> result = device_mps->createEmptyBuffer<T>(size);
+  device_mps->execute_kernel_init("init_ones", result, meta);
+  return Tensor(result, shape);
+}
+
+template <typename T>
+Tensor<T> Tensor<T>::zeros(std::vector<int> shape, std::string dtype) {
+  assert(shape.size() == 2);
+  id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
+  int size =
+      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+  id<MTLBuffer> result = device_mps->createEmptyBuffer<T>(size);
+  device_mps->execute_kernel_init("init_with_zeros", result, meta);
+  return Tensor(result, shape);
+}
+
+template <typename T> Tensor<T> Tensor<T>::eye(int n, std::string dtype) {
+  std::vector<int> shape = {n, n};
+  id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
+  id<MTLBuffer> result = device_mps->createEmptyBuffer<T>(n * n);
+  device_mps->execute_kernel_init("init_identity", result, meta);
+  return Tensor(result, shape);
+}
+template <typename T>
+Tensor<T> Tensor<T>::empty(std::vector<int> shape, std::string dtype) {
+  assert(shape.size() == 2);
+  int size =
+      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+  id<MTLBuffer> result = device_mps->createEmptyBuffer<T>(size);
+
+  return Tensor(result, shape);
+}
+template <typename T>
+Tensor<T> Tensor<T>::full(std::vector<int> shape, int n, std::string dtype) {
+  id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
+  int size =
+      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+  id<MTLBuffer> result = device_mps->createEmptyBuffer<T>(shape[0] * shape[1]);
+
+  std::vector<int> seed_vec = {n};
+  id<MTLBuffer> seed = device_mps->createBuffer(seed_vec.data(), 1);
+  device_mps->execute_kernel_unary("init_full", result, seed, meta);
+  return Tensor(result, shape);
+}
+template <typename T>
+Tensor<T> Tensor<T>::clone(Tensor<T> *other, std::string dtype) {
+  id<MTLBuffer> newBuffer = device_mps->clone(other->storage);
+  return Tensor(newBuffer, other->dims);
+}
+
+// TODO: configure the seed;
+template <typename T>
+Tensor<T> Tensor<T>::rand(std::vector<int> shape, std::string dtype) {
+  id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
+  int size =
+      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+  std::vector<T> data(size, 0);
+  for (int i = 0; i < size; i++) {
+    data[i] = __rand<T>();
   }
+  id<MTLBuffer> result = device_mps->createBuffer<T>(data.data(), size);
+  return Tensor(result, shape);
+}
 
-  void throw_out_of_bound(std::vector<int> indexes) const {
-    for (int i = 0; i < indexes.size(); i++) {
-      if (indexes[i] >= this->dims[i]) {
-        throw std::out_of_range("");
-      }
-    }
+template <typename T>
+Tensor<T> Tensor<T>::randn(std::vector<int> shape, std::string dtype) {
+  id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), 2);
+
+  int size =
+      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+  std::vector<T> data(size, 0);
+  for (int i = 0; i < size; i++) {
+    data[i] = __randn<T>();
   }
+  id<MTLBuffer> result = device_mps->createBuffer<T>(data.data(), size);
+  return Tensor(result, shape);
+}
 
-  Tensor _dispatch_kernel_operation(const Tensor *other,
-                                    std::string kernel_function) const {
-    std::vector<int> m = {this->dims[0], this->dims[1], other->dims[1]};
-    id<MTLBuffer> meta = device_mps->createBuffer(m.data(), 3);
-    id<MTLBuffer> result;
+template <typename T>
+Tensor<T> Tensor<T>::normal(std::vector<int> shape, float mean, float stddev,
+                            std::string dtype) {
+  id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
+  int size =
+      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+  std::vector<T> data(size, 0);
+  for (int i = 0; i < size; i++) {
+    data[i] = __randn<T>(mean, stddev);
+  }
+  id<MTLBuffer> result = device_mps->createBuffer<T>(data.data(), size);
+  return Tensor(result, shape);
+}
+
+template <typename T>
+Tensor<T> Tensor<T>::randint(std::vector<int> shape, int min, int max,
+                             std::string dtype) {
+  id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
+
+  int size =
+      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+  std::vector<T> data(size, 0);
+  for (int i = 0; i < size; i++) {
+    data[i] = __randint(min, max);
+  }
+  id<MTLBuffer> result = device_mps->createBuffer<T>(data.data(), size);
+  return Tensor(result, shape);
+}
+
+template <typename T>
+Tensor<T> Tensor<T>::poission(Tensor &other, std::string dtype) {
+  id<MTLBuffer> meta =
+      device_mps->createBuffer(other.dims.data(), other.dims.size());
+  int size = other.size;
+  std::vector<T> data(size, 0);
+  for (int i = 0; i < size; i++) {
+    data[i] = __poisson(other.data_ptr[i]);
+  }
+  id<MTLBuffer> result = device_mps->createBuffer<T>(data.data(), size);
+  return Tensor(result, other.dims);
+}
+
+template <typename T>
+Tensor<T> Tensor<T>::bernoulli(Tensor &other, std::string dtype) {
+  id<MTLBuffer> meta =
+      device_mps->createBuffer(other.dims.data(), other.dims.size());
+  int size = other.size;
+  std::vector<T> data(size, 0);
+  for (int i = 0; i < size; i++) {
+    data[i] = __bernoulli(other.data_ptr[i]);
+  }
+  id<MTLBuffer> result = device_mps->createBuffer<T>(data.data(), size);
+  return Tensor(result, other.dims);
+}
+
+template <typename T> std::vector<int> Tensor<T>::strides() {
+  return this->stride;
+}
+
+template <typename T>
+template <typename... Args>
+double Tensor<T>::getElement(Args... indexes) const {
+  std::vector<int> indices = {indexes...};
+  this->throw_out_of_bound(indices);
+  int offset = this->_compute_offset(indices);
+  return this->data_ptr[offset];
+}
+
+template <typename T>
+template <typename... Args>
+void Tensor<T>::setElement(T value, Args... indexes) {
+  int indices[] = {indexes...};
+  this->throw_out_of_bound(indices);
+  int offset = this->_compute_offset(indices);
+  this->data_ptr[offset] = value;
+}
+
+// arithemetic Operators
+//
+template <typename T>
+Tensor<T> Tensor<T>::add(const Tensor *other, bool inplace) {
+  assert(this->dims == other->dims && this->dims.size() == 2);
+  return inplace ? this->_dispatch_kernel_operation_inplace(other, "add_matrix")
+                 : this->_dispatch_kernel_operation(other, "add_matrix");
+}
+template <typename T>
+Tensor<T> Tensor<T>::subtract(const Tensor *other, bool inplace) {
+  assert(this->dims == other->dims && this->dims.size() == 2);
+  return inplace ? this->_dispatch_kernel_operation_inplace(other,
+                                                            "subtract_matrix")
+                 : this->_dispatch_kernel_operation(other, "subtract_matrix");
+}
+
+template <typename T>
+Tensor<T> Tensor<T>::elementwise_multiply(const Tensor *other, bool inplace) {
+  assert(this->dims == other->dims && this->dims.size() == 2);
+  return inplace ? this->_dispatch_kernel_operation_inplace(
+                       other, "elementwise_multiply_matrix")
+                 : this->_dispatch_kernel_operation(
+                       other, "elementwise_multiply_matrix");
+}
+
+template <typename T>
+Tensor<T> Tensor<T>::elementwise_divide(const Tensor *other, bool inplace) {
+  assert(this->dims == other->dims && this->dims.size() == 2);
+  return inplace ? this->_dispatch_kernel_operation_inplace(
+                       other, "elementwise_divide_matrix")
+                 : this->_dispatch_kernel_operation(
+                       other, "elementwise_divide_matrix");
+}
+
+template <typename T>
+Tensor<T> Tensor<T>::matrix_multiply(const Tensor *other) const {
+  assert(this->dims[1] == other->dims[0] && this->dims.size() == 2);
+  std::vector<int> m = {this->dims[0], this->dims[1], other->dims[1]};
+  id<MTLBuffer> meta = device_mps->createBuffer(m.data(), 3);
+  id<MTLBuffer> result;
+  result = device_mps->createEmptyBuffer<T>(this->size);
+  device_mps->execute_kernel_binary("matrix_multiply", this->storage,
+                                    other->storage, result, meta);
+  return Tensor(result, this->dims);
+}
+
+template <typename T> Tensor<T> Tensor<T>::pow(float exp, bool inplace) {
+  std::vector<float> e = {exp};
+  id<MTLBuffer> meta = device_mps->createBuffer(this->dims.data(), 3);
+  id<MTLBuffer> exponent = device_mps->createBuffer(e.data(), 1);
+  id<MTLBuffer> result;
+  if (!inplace) {
     result = device_mps->createEmptyBuffer<T>(this->size);
-    device_mps->execute_kernel_binary(kernel_function, this->storage,
-                                      other->storage, result, meta);
-    return Tensor(result, this->dims);
-  }
-  Tensor _dispatch_kernel_operation_inplace(const Tensor *other,
-                                            std::string kernel_function) {
-    std::vector<int> m = {this->dims[0], this->dims[1], other->dims[1]};
-    id<MTLBuffer> meta = device_mps->createBuffer(m.data(), 3);
-    device_mps->execute_kernel_binary(kernel_function, this->storage,
-                                      other->storage, this->storage, meta);
-    return *this;
-  }
-  // =====================================================================
+    device_mps->execute_kernel_binary("elementwise_pow", this->storage,
+                                      exponent, result, meta);
+  } else {
 
-public:
-  // =====================================================================
-  std::vector<int> dims;
-  int size;
+    device_mps->execute_kernel_binary("elementwise_pow", this->storage,
+                                      exponent, this->storage, meta);
+  }
+  return inplace ? *this : Tensor(result, this->dims);
+}
 
-  // =====================================================================
-  Tensor(std::vector<int> dims) {
-    this->size =
-        std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
-    this->dims = dims;
-    this->ndim = dims.size();
-    this->storage = device_mps->createEmptyBuffer<T>(size);
-    this->data_ptr = (T *)[this->storage contents];
-    this->_compte_stride();
-  }
+// Comparison operators
+//
+template <typename T>
+Tensor<T> Tensor<T>::logical_e(const Tensor *other) const {
+  assert(this->dims == other->dims && this->dims.size() == 2);
+  return this->_dispatch_kernel_operation(other, "logical_e");
+}
+template <typename T>
+Tensor<T> Tensor<T>::logical_ne(const Tensor *other) const {
+  assert(this->dims == other->dims && this->dims.size() == 2);
+  return this->_dispatch_kernel_operation(other, "logical_ne");
+}
+template <typename T>
+Tensor<T> Tensor<T>::logical_gt(const Tensor *other) const {
+  assert(this->dims == other->dims && this->dims.size() == 2);
+  return this->_dispatch_kernel_operation(other, "logical_gt");
+}
 
-  Tensor(id<MTLBuffer> buffer, std::vector<int> dims) {
-    this->storage = buffer;
-    this->data_ptr = (T *)[this->storage contents];
-    this->dims = dims;
-    this->ndim = dims.size();
-    this->_compte_stride();
-    this->size =
-        std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
-  }
+template <typename T>
+Tensor<T> Tensor<T>::logical_gte(const Tensor *other) const {
+  assert(this->dims == other->dims && this->dims.size() == 2);
+  return this->_dispatch_kernel_operation(other, "logical_gte");
+}
 
-  Tensor(std::vector<T> &values, std::vector<int> dims) {
-    this->storage = device_mps->createBuffer(values.data(), values.size());
-    this->data_ptr = (T *)[this->storage contents];
-    this->dims = dims;
-    this->ndim = dims.size();
-    this->_compte_stride();
-    this->size =
-        std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
-  }
+template <typename T>
+Tensor<T> Tensor<T>::logical_lt(const Tensor *other) const {
+  assert(this->dims == other->dims && this->dims.size() == 2);
+  return this->_dispatch_kernel_operation(other, "logical_lt");
+}
 
-  // =====================================================================
-  //                            INIT
-  // =====================================================================
-  // 1) Ones & zeros: ✅
-  // 2) Empty:✅
-  // 3) Eye: ✅
-  // 4) Normal, bernoulli, poisson: ✅
-  // 5) Rand, randn, randint: ✅
-  // 6) Clone, tensor: ❌
-  // 7) Linspace, logspace, arange: ❌
-  // =====================================================================
-  static Tensor ones(std::vector<int> shape, std::string dtype = "float") {
-    assert(shape.size() == 2);
-    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
-    int size =
-        std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
-    id<MTLBuffer> result = device_mps->createEmptyBuffer<T>(size);
-    device_mps->execute_kernel_init("init_ones", result, meta);
-    return Tensor(result, shape);
-  }
-  static Tensor zeros(std::vector<int> shape, std::string dtype = "float") {
-    assert(shape.size() == 2);
-    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
-    int size =
-        std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
-    id<MTLBuffer> result = device_mps->createEmptyBuffer<T>(size);
-    device_mps->execute_kernel_init("init_with_zeros", result, meta);
-    return Tensor(result, shape);
-  }
-  static Tensor eye(int n, std::string dtype = "float") {
-    std::vector<int> shape = {n, n};
-    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
-    id<MTLBuffer> result = device_mps->createEmptyBuffer<T>(n * n);
-    device_mps->execute_kernel_init("init_identity", result, meta);
-    return Tensor(result, shape);
-  }
-  static Tensor empty(std::vector<int> shape, std::string dtype = "float") {
-    assert(shape.size() == 2);
-    int size =
-        std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
-    id<MTLBuffer> result = device_mps->createEmptyBuffer<T>(size);
+template <typename T>
+Tensor<T> Tensor<T>::logical_lte(const Tensor *other) const {
+  assert(this->dims == other->dims && this->dims.size() == 2);
+  return this->_dispatch_kernel_operation(other, "logical_lte");
+}
 
-    return Tensor(result, shape);
-  }
-  static Tensor full(std::vector<int> shape, int n,
-                     std::string dtype = "float") {
-    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
-    int size =
-        std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
-    id<MTLBuffer> result =
-        device_mps->createEmptyBuffer<T>(shape[0] * shape[1]);
+// Mathematical operations
 
-    std::vector<int> seed_vec = {n};
-    id<MTLBuffer> seed = device_mps->createBuffer(seed_vec.data(), 1);
-    device_mps->execute_kernel_unary("init_full", result, seed, meta);
-    return Tensor(result, shape);
-  }
-  static Tensor clone(Tensor<T> *other, std::string dtype = "float") {
-
-    id<MTLBuffer> newBuffer = device_mps->clone(other->storage);
-    return Tensor(newBuffer, other->dims);
-  }
-
-  // TODO: configure the seed;
-  static Tensor rand(std::vector<int> shape, std::string dtype = "float") {
-    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
-    int size =
-        std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
-    std::vector<T> data(size, 0);
-    for (int i = 0; i < size; i++) {
-      data[i] = __rand<T>();
-    }
-    id<MTLBuffer> result = device_mps->createBuffer<T>(data.data(), size);
-    return Tensor(result, shape);
-  }
-  static Tensor randn(std::vector<int> shape, std::string dtype = "float") {
-    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), 2);
-
-    int size =
-        std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
-    std::vector<T> data(size, 0);
-    for (int i = 0; i < size; i++) {
-      data[i] = __randn<T>();
-    }
-    id<MTLBuffer> result = device_mps->createBuffer<T>(data.data(), size);
-    return Tensor(result, shape);
-  }
-  static Tensor normal(std::vector<int> shape, float mean = 0, float stddev = 1,
-                       std::string dtype = "float") {
-    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
-    int size =
-        std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
-    std::vector<T> data(size, 0);
-    for (int i = 0; i < size; i++) {
-      data[i] = __randn<T>(mean, stddev);
-    }
-    id<MTLBuffer> result = device_mps->createBuffer<T>(data.data(), size);
-    return Tensor(result, shape);
-  }
-
-  static Tensor randint(std::vector<int> shape, int min, int max,
-                        std::string dtype = "float") {
-    id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
-
-    int size =
-        std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
-    std::vector<T> data(size, 0);
-    for (int i = 0; i < size; i++) {
-      data[i] = __randint(min, max);
-    }
-    id<MTLBuffer> result = device_mps->createBuffer<T>(data.data(), size);
-    return Tensor(result, shape);
-  }
-  static Tensor poission(Tensor &other, std::string dtype = "float") {
-    id<MTLBuffer> meta =
-        device_mps->createBuffer(other.dims.data(), other.dims.size());
-    int size = other.size;
-    std::vector<T> data(size, 0);
-    for (int i = 0; i < size; i++) {
-      data[i] = __poisson(other.data_ptr[i]);
-    }
-    id<MTLBuffer> result = device_mps->createBuffer<T>(data.data(), size);
-    return Tensor(result, other.dims);
-  }
-
-  static Tensor bernoulli(Tensor &other, std::string dtype = "float") {
-    id<MTLBuffer> meta =
-        device_mps->createBuffer(other.dims.data(), other.dims.size());
-    int size = other.size;
-    std::vector<T> data(size, 0);
-    for (int i = 0; i < size; i++) {
-      data[i] = __bernoulli(other.data_ptr[i]);
-    }
-    id<MTLBuffer> result = device_mps->createBuffer<T>(data.data(), size);
-    return Tensor(result, other.dims);
-  }
-
-  // Destructor
-  ~Tensor() {
-    // Body for destructor
-  }
-
-  std::vector<int> strides() { return this->stride; }
-  template <typename... Args> double getElement(Args... indexes) const {
-    std::vector<int> indices = {indexes...};
-    this->throw_out_of_bound(indices);
-    int offset = this->_compute_offset(indices);
-    return this->data_ptr[offset];
-  }
-  template <typename... Args> void setElement(T value, Args... indexes) {
-    int indices[] = {indexes...};
-    this->throw_out_of_bound(indices);
-    int offset = this->_compute_offset(indices);
-    this->data_ptr[offset] = value;
-  }
-
-  // arithemetic Operators
-  Tensor add(const Tensor *other, bool inplace) {
-    assert(this->dims == other->dims && this->dims.size() == 2);
-    return inplace
-               ? this->_dispatch_kernel_operation_inplace(other, "add_matrix")
-               : this->_dispatch_kernel_operation(other, "add_matrix");
-  }
-  Tensor subtract(const Tensor *other, bool inplace) {
-    assert(this->dims == other->dims && this->dims.size() == 2);
-    return inplace ? this->_dispatch_kernel_operation_inplace(other,
-                                                              "subtract_matrix")
-                   : this->_dispatch_kernel_operation(other, "subtract_matrix");
-  }
-
-  Tensor elementwise_multiply(const Tensor *other, bool inplace) {
-    assert(this->dims == other->dims && this->dims.size() == 2);
-    return inplace ? this->_dispatch_kernel_operation_inplace(
-                         other, "elementwise_multiply_matrix")
-                   : this->_dispatch_kernel_operation(
-                         other, "elementwise_multiply_matrix");
-  }
-  Tensor elementwise_divide(const Tensor *other, bool inplace) {
-    assert(this->dims == other->dims && this->dims.size() == 2);
-    return inplace ? this->_dispatch_kernel_operation_inplace(
-                         other, "elementwise_divide_matrix")
-                   : this->_dispatch_kernel_operation(
-                         other, "elementwise_divide_matrix");
-  }
-  Tensor matrix_multiply(const Tensor *other) const {
-    assert(this->dims[1] == other->dims[0] && this->dims.size() == 2);
-    std::vector<int> m = {this->dims[0], this->dims[1], other->dims[1]};
-    id<MTLBuffer> meta = device_mps->createBuffer(m.data(), 3);
-    id<MTLBuffer> result;
+template <typename T> Tensor<T> Tensor<T>::exp(bool inplace) {
+  id<MTLBuffer> meta = device_mps->createBuffer(this->dims.data(), 2);
+  id<MTLBuffer> result;
+  if (!inplace) {
     result = device_mps->createEmptyBuffer<T>(this->size);
-    device_mps->execute_kernel_binary("matrix_multiply", this->storage,
-                                      other->storage, result, meta);
-    return Tensor(result, this->dims);
+    device_mps->execute_kernel_unary("exp", this->storage, result, meta);
+  } else {
+    device_mps->execute_kernel_unary("exp", this->storage, this->storage, meta);
   }
+  return inplace ? *this : Tensor(result, this->dims);
+}
 
-  Tensor pow(float exp, bool inplace) {
-    std::vector<float> e = {exp};
-    id<MTLBuffer> meta = device_mps->createBuffer(this->dims.data(), 3);
-    id<MTLBuffer> exponent = device_mps->createBuffer(e.data(), 1);
-    id<MTLBuffer> result;
-    if (!inplace) {
-      result = device_mps->createEmptyBuffer<T>(this->size);
-      device_mps->execute_kernel_binary("elementwise_pow", this->storage,
-                                        exponent, result, meta);
-    } else {
+template <typename T> Tensor<T> Tensor<T>::log(bool inplace) {
+  id<MTLBuffer> meta = device_mps->createBuffer(this->dims.data(), 2);
+  id<MTLBuffer> result;
+  if (!inplace) {
+    result = device_mps->createEmptyBuffer<T>(this->size);
+    device_mps->execute_kernel_unary("log", this->storage, result, meta);
+  } else {
+    device_mps->execute_kernel_unary("log", this->storage, this->storage, meta);
+  }
+  return inplace ? *this : Tensor(result, this->dims);
+}
 
-      device_mps->execute_kernel_binary("elementwise_pow", this->storage,
-                                        exponent, this->storage, meta);
+template <typename T> bool Tensor<T>::all() {
+  bool allTrue = true;
+
+  for (int i = 0; i < this->size; i++) {
+    if (false == this->data_ptr[i]) {
+      allTrue = false;
     }
-    return inplace ? *this : Tensor(result, this->dims);
   }
+  return allTrue;
+}
 
-  // Comparison operators
-  Tensor logical_e(const Tensor *other) const {
-    assert(this->dims == other->dims && this->dims.size() == 2);
-    return this->_dispatch_kernel_operation(other, "logical_e");
+template <typename T> Tensor<T> Tensor<T>::sqrt(bool inplace) {
+  id<MTLBuffer> meta = device_mps->createBuffer(this->dims.data(), 2);
+  id<MTLBuffer> result;
+  if (!inplace) {
+    result = device_mps->createEmptyBuffer<T>(this->size);
+    device_mps->execute_kernel_unary("sqrt", this->storage, result, meta);
+  } else {
+    device_mps->execute_kernel_unary("sqrt", this->storage, this->storage,
+                                     meta);
   }
-  Tensor logical_ne(const Tensor *other) const {
-    assert(this->dims[1] == other->dims[0] && this->dims.size() == 2);
-    return this->_dispatch_kernel_operation(other, "logical_ne");
-  }
-  Tensor logical_gt(const Tensor *other) const {
-    assert(this->dims[1] == other->dims[0] && this->dims.size() == 2);
-    return this->_dispatch_kernel_operation(other, "logical_gt");
-  }
+  return inplace ? *this : Tensor(result, this->dims);
+}
 
-  Tensor logical_gte(const Tensor *other) const {
-    assert(this->dims[1] == other->dims[0] && this->dims.size() == 2);
-    return this->_dispatch_kernel_operation(other, "logical_gte");
-  }
+template <typename T> Tensor<T> Tensor<T>::transpose() const {}
 
-  Tensor logical_lt(const Tensor *other) const {
-    assert(this->dims[1] == other->dims[0] && this->dims.size() == 2);
-    return this->_dispatch_kernel_operation(other, "logical_lt");
-  }
-
-  Tensor logical_lte(const Tensor *other) const {
-    assert(this->dims[1] == other->dims[0] && this->dims.size() == 2);
-    return this->_dispatch_kernel_operation(other, "logical_lte");
-  }
-
-  // Mathematical operations
-  Tensor exp(bool inplace) {
-    id<MTLBuffer> meta = device_mps->createBuffer(this->dims.data(), 2);
-    id<MTLBuffer> result;
-    if (!inplace) {
-      result = device_mps->createEmptyBuffer<T>(this->size);
-      device_mps->execute_kernel_unary("exp", this->storage, result, meta);
-    } else {
-      device_mps->execute_kernel_unary("exp", this->storage, this->storage,
-                                       meta);
-    }
-    return inplace ? *this : Tensor(result, this->dims);
-  }
-
-  Tensor log(bool inplace) {
-    id<MTLBuffer> meta = device_mps->createBuffer(this->dims.data(), 2);
-    id<MTLBuffer> result;
-    if (!inplace) {
-      result = device_mps->createEmptyBuffer<T>(this->size);
-      device_mps->execute_kernel_unary("log", this->storage, result, meta);
-    } else {
-      device_mps->execute_kernel_unary("log", this->storage, this->storage,
-                                       meta);
-    }
-    return inplace ? *this : Tensor(result, this->dims);
-  }
-
-  Tensor sqrt(bool inplace) {
-    id<MTLBuffer> meta = device_mps->createBuffer(this->dims.data(), 2);
-    id<MTLBuffer> result;
-    if (!inplace) {
-      result = device_mps->createEmptyBuffer<T>(this->size);
-      device_mps->execute_kernel_unary("sqrt", this->storage, result, meta);
-    } else {
-      device_mps->execute_kernel_unary("sqrt", this->storage, this->storage,
-                                       meta);
-    }
-    return inplace ? *this : Tensor(result, this->dims);
-  }
-
-  // Utility methods
-  Tensor transpose() const {
-    // Body for transpose
-  }
-
-  // Input/Output
-  void print() const {
-    T *ptr = (T *)[this->storage contents];
-    std::cout << ptr[0] << std::endl;
-  }
-  void print_matrix() const {
-    assert(this->stride.size() == 2);
-    for (int i = 0; i < this->dims[0]; i++) {
-      for (int j = 0; j < this->dims[1]; j++) {
-        std::cout << this->data_ptr[this->stride[0] * i + this->stride[1] * j]
-                  << " ";
-      }
-      std::cout << std::endl;
+template <typename T> void Tensor<T>::print() const {
+  T *ptr = (T *)[this->storage contents];
+  std::cout << ptr[0] << std::endl;
+}
+template <typename T> void Tensor<T>::print_matrix() const {
+  assert(this->stride.size() == 2);
+  for (int i = 0; i < this->dims[0]; i++) {
+    for (int j = 0; j < this->dims[1]; j++) {
+      std::cout << this->data_ptr[this->stride[0] * i + this->stride[1] * j]
+                << " ";
     }
     std::cout << std::endl;
   }
-};
-
-int main() {
-  std::vector<float> data2 = {1.2, 2.3, 3.6, 4.0, 5.9, 6.1, 7.4, 8.2, 9.3};
-  Tensor<float> *mat_a = new Tensor<float>(data2, std::vector<int>{3, 3});
-  std::vector<int> shape = {9, 3};
-  /*Tensor<float> a = Tensor<float>::ones(shape);*/
-  /*Tensor<float> b = Tensor<float>::eye(3);*/
-  /*Tensor<float> c = Tensor<float>::full(shape, 4);*/
-  /*Tensor<float> d = Tensor<float>::zeros(shape);*/
-  /*Tensor<float> e = Tensor<float>::clone(mat_a);*/
-  Tensor<float> f = Tensor<float>::randn(shape);
-  Tensor<float> l = Tensor<float>::poission(f);
-  /*a.print_matrix();*/
-  /*b.print_matrix();*/
-  /*c.print_matrix();*/
-  /*d.print_matrix();*/
-  /*mat_a->print_matrix();*/
-  /*e.print_matrix();*/
-  f.print_matrix();
-  l.print_matrix();
-  return 0;
+  std::cout << std::endl;
 }

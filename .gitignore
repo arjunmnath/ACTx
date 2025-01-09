@@ -97,3 +97,4 @@ backend
 .DS_Store
 
 *.dSYM
+cmake-build-debug/

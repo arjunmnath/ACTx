@@ -137,7 +137,6 @@ void MPS::execute_kernel_init(std::string func, id<MTLBuffer> A,
   [commandBuffer commit];
   [commandBuffer waitUntilCompleted];
 }
-
 void MPS::execute_kernel_binary(std::string func, id<MTLBuffer> A,
                                 id<MTLBuffer> B, id<MTLBuffer> result,
                                 id<MTLBuffer> meta) {
@@ -190,6 +189,7 @@ template id<MTLBuffer> MPS::createBuffer<int>(int *data, size_t size);
 template id<MTLBuffer> MPS::createBuffer<float>(float *data, size_t size);
 template id<MTLBuffer> MPS::createBuffer<uint8_t>(uint8_t *data, size_t size);
 template id<MTLBuffer> MPS::createBuffer<int8_t>(int8_t *data, size_t size);
+template id<MTLBuffer> MPS::createBuffer<bool>(bool *data, size_t size);
 
 template <typename T> id<MTLBuffer> MPS::createEmptyBuffer(int size) {
   id<MTLBuffer> buffer =
@@ -213,6 +213,7 @@ template id<MTLBuffer> MPS::createEmptyBuffer<int>(int size);
 template id<MTLBuffer> MPS::createEmptyBuffer<float>(int size);
 template id<MTLBuffer> MPS::createEmptyBuffer<uint8_t>(int size);
 template id<MTLBuffer> MPS::createEmptyBuffer<int8_t>(int size);
+template id<MTLBuffer> MPS::createEmptyBuffer<bool>(int size);
 
 std::vector<id<MTLBuffer>> MPS::__dummy_data() {
   const size_t size = 25;
