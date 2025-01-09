@@ -5,7 +5,6 @@ from layers import Flatten, Dense
 from optimizers import SGD
 
 
-
 class TestLayers(unittest.TestCase):
 
     # Tests for Flatten Layer
@@ -42,7 +41,7 @@ class TestLayers(unittest.TestCase):
         self.assertTrue(np.all(dense.weights < 1))
         self.assertTrue(np.all(dense.biases < 1))
 
-    # def test_dense_run_invalid_input(self):
+        # def test_dense_run_invalid_input(self):
         """Test Dense layer with invalid input size"""
         shape = (3, 4)  # Expecting input size of 3
         dense = Dense(shape=shape, activation=ReLU)
@@ -54,7 +53,7 @@ class TestLayers(unittest.TestCase):
         """Test Dense layer without any activation"""
         shape = (2, 3)
         dense = Dense(shape=shape, activation=ReLU)
-        dense.weights = np.array([[1,2], [1, 2], [1,2]])
+        dense.weights = np.array([[1, 2], [1, 2], [1, 2]])
         dense.biases = np.array([1, 1, 1])
         X = np.array([[1, 1]])
         output = dense.run(X)

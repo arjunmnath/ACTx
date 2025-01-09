@@ -18,8 +18,10 @@ from sklearn.model_selection import train_test_split
 # }
 
 model = Model()
-model.compile(input_shape=(28, 28), cost=costs.CrossEntropy, lr=0.001, optimizer=optimizers.Adam)
-model.add('Flatten', 28 * 28)
+model.compile(
+    input_shape=(28, 28), cost=costs.CrossEntropy, lr=0.001, optimizer=optimizers.Adam
+)
+model.add("Flatten", 28 * 28)
 model.add("Dense", 64, activation=activations.Sigmoid)
 model.add("Dense", 10, activation=activations.Softmax)
 
@@ -51,21 +53,22 @@ model.add("Dense", 10, activation=activations.Softmax)
 
 epoch = 50
 model.train()
-X, x = X.astype("float32") / 255, x.astype('float32') / 255
+X, x = X.astype("float32") / 255, x.astype("float32") / 255
 X, x = model.normalize(X), model.normalize(x)
 X_train, X_val, Y_train, Y_val = train_test_split(X, Y, test_size=0.2)
-history = model.fit(X_train, Y_train, validation=(X_val, Y_val), epochs=epoch, batch_size=128)
+history = model.fit(
+    X_train, Y_train, validation=(X_val, Y_val), epochs=epoch, batch_size=128
+)
 model.evaluate(x, y)
 
 
-
 # Plotting the training and validation loss
-plt.plot(list(range(epoch)), history[0], label='Training Loss')
+plt.plot(list(range(epoch)), history[0], label="Training Loss")
 if len(history[1]) == epoch:
-    plt.plot(list(range(epoch)), history[1], label='Validation Loss')
-plt.xlabel('Epochs')
-plt.ylabel('Loss')
-plt.title('Loss per Epoch')
+    plt.plot(list(range(epoch)), history[1], label="Validation Loss")
+plt.xlabel("Epochs")
+plt.ylabel("Loss")
+plt.title("Loss per Epoch")
 plt.legend()
 plt.show()
 

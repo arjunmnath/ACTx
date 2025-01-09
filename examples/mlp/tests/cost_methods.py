@@ -4,6 +4,7 @@ from numpy.testing import assert_array_almost_equal, assert_almost_equal
 
 from costs import SparseCategoricalCE
 
+
 class TestSparseCategoricalCrossentropy(unittest.TestCase):
     def setUp(self):
         """
@@ -11,24 +12,21 @@ class TestSparseCategoricalCrossentropy(unittest.TestCase):
         """
         # Simple case with perfect predictions
         self.y_true_perfect = np.array([0, 1, 2])
-        self.y_pred_perfect = np.array([
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 0.0, 1.0]
-        ])
+        self.y_pred_perfect = np.array(
+            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+        )
 
         # Realistic case with non-perfect predictions
         self.y_true_realistic = np.array([1, 0, 2])
-        self.y_pred_realistic = np.array([
-            [0.1, 0.7, 0.2],
-            [0.8, 0.1, 0.1],
-            [0.1, 0.2, 0.7]
-        ])
+        self.y_pred_realistic = np.array(
+            [[0.1, 0.7, 0.2], [0.8, 0.1, 0.1], [0.1, 0.2, 0.7]]
+        )
 
         # Edge case with very small probabilities
         self.y_true_edge = np.array([0])
         self.y_pred_edge = np.array([[0.0001, 0.9998, 0.0001]])
         self.scce = SparseCategoricalCE()
+
     def test_perfect_predictions(self):
         """
         Test loss and gradient for perfect predictions (should be close to zero)
@@ -50,20 +48,14 @@ class TestSparseCategoricalCrossentropy(unittest.TestCase):
         """
         Test that gradient has correct shape
         """
-        gradient = self.scce.gradient(
-            self.y_true_realistic,
-            self.y_pred_realistic
-        )
+        gradient = self.scce.gradient(self.y_true_realistic, self.y_pred_realistic)
         self.assertEqual(gradient.shape, self.y_pred_realistic.shape)
 
     def test_gradient_perfect_predictions(self):
         """
         Test gradient values for perfect predictions
         """
-        gradient = self.scce.gradient(
-            self.y_true_perfect,
-            self.y_pred_perfect
-        )
+        gradient = self.scce.gradient(self.y_true_perfect, self.y_pred_perfect)
         # For perfect predictions, gradient should be -1/batch_size at correct indices
         expected_gradient = np.zeros_like(self.y_pred_perfect)
         batch_size = len(self.y_true_perfect)
@@ -111,10 +103,7 @@ class TestSparseCategoricalCrossentropy(unittest.TestCase):
         Test that each sample in the batch is processed independently
         """
         y_true = np.array([0, 1])
-        y_pred = np.array([
-            [0.9, 0.1],
-            [0.1, 0.9]
-        ])
+        y_pred = np.array([[0.9, 0.1], [0.1, 0.9]])
 
         # Calculate loss for full batch
         full_batch_loss = self.scce.cost(y_true, y_pred)
@@ -126,5 +115,6 @@ class TestSparseCategoricalCrossentropy(unittest.TestCase):
 
         assert_almost_equal(full_batch_loss, individual_avg_loss, decimal=5)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
