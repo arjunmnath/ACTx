@@ -18,8 +18,6 @@ jobs:
 
     - name: Configure and Build with CMake
       run: |
-        mkdir build
-        cd build
         cmake -DCMAKE_BUILD_TYPE=Test -S . -B build
         cmake --build build
 
