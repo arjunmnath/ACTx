@@ -23,5 +23,6 @@ jobs:
 
     - name: Run Tests
       run: |
+        if: ${{ runner.os == 'macOS' && env.METAL_AVAILABLE == 'true' }}
         cd build
         ctest --output-on-failure
