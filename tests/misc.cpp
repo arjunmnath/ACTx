@@ -8,12 +8,15 @@ void test_empty_tensor() {
   std::vector<float> data2 = {};
   std::vector<int> shape = {};
 
-  Tensor<float> tensor1 = Tensor<float>(data1, shape);
-  Tensor<float> tensor2 = Tensor<float>(data2, shape);
+  try {
+    Tensor<float> tensor1 = Tensor<float>(data1, shape);
+    Tensor<float> tensor2 = Tensor<float>(data2, shape);
 
-  Tensor<float> result = tensor1.add(&tensor2, false);
+    assert(false && "empty tensor created was allowed");
+  } catch (const std::runtime_error &e) {
 
-  assert(result.size == 0 && "Result of adding empty tensors should be empty");
+    assert(true && "ok");
+  }
 }
 
 int main() {

@@ -92,6 +92,9 @@ Tensor<T>::Tensor(id<MTLBuffer> buffer, std::vector<int> dims) {
 
 template <typename T>
 Tensor<T>::Tensor(std::vector<T> &values, std::vector<int> dims) {
+  if (values.size() == 0) {
+    throw std::runtime_error("values expected");
+  }
   this->storage = device_mps->createBuffer(values.data(), values.size());
   this->data_ptr = (T *)[this->storage contents];
   this->dims = dims;
@@ -311,11 +314,15 @@ Tensor<T> Tensor<T>::mul(const Tensor *other, bool inplace) {
                        other, "elementwise_multiply_matrix");
 }
 
+// TODO: fix this division by zero checking
 template <typename T>
 Tensor<T> Tensor<T>::div(const Tensor *other, bool inplace) {
-  if (this->dims != other->dims || this->dims.size() != 2) {
+  Tensor<T> zeros = Tensor<T>::zeros(other->dims);
+  if (other->logical_e(&zeros).any() || this->dims != other->dims ||
+      this->dims.size() != 2) {
     throw std::runtime_error("shape contraint issue");
   }
+
   return inplace ? this->_dispatch_kernel_operation_inplace(
                        other, "elementwise_divide_matrix")
                  : this->_dispatch_kernel_operation(
@@ -323,17 +330,16 @@ Tensor<T> Tensor<T>::div(const Tensor *other, bool inplace) {
 }
 
 template <typename T> Tensor<T> Tensor<T>::matmul(const Tensor *other) const {
-  if (this->dims[1] != other->dims[0] || this->dims.size() != 2) {
+  if (this->dims[1] != other->dims[0]) {
     throw std::runtime_error("shape contraint issue");
   }
-
   std::vector<int> m = {this->dims[0], this->dims[1], other->dims[1]};
   id<MTLBuffer> meta = device_mps->createBuffer(m.data(), 3);
   id<MTLBuffer> result;
   result = device_mps->createEmptyBuffer<T>(this->dims[0] * other->dims[1]);
   device_mps->execute_kernel_binary("matrix_multiply", this->storage,
                                     other->storage, result, meta);
-  return Tensor(result, this->dims);
+  return Tensor(result, std::vector<int>{this->dims[0], other->dims[1]});
 }
 
 template <typename T> Tensor<T> Tensor<T>::pow(float exp, bool inplace) {
@@ -439,6 +445,15 @@ template <typename T> bool Tensor<T>::all() {
     }
   }
   return allTrue;
+}
+template <typename T> bool Tensor<T>::any() {
+  bool anyTrue = false;
+  for (int i = 0; i < this->size; i++) {
+    if (this->data_ptr[i]) {
+      anyTrue = true;
+    }
+  }
+  return anyTrue;
 }
 
 template <typename T> Tensor<T> Tensor<T>::sqrt(bool inplace) {

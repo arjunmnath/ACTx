@@ -71,7 +71,10 @@ public:
   // Mathematical operations
   Tensor exp(bool inplace);
   Tensor log(bool inplace);
+
+    // TODO: modify this to have a numpy like behaviour 
   bool all();
+  bool any();
   Tensor sqrt(bool inplace);
 
   // Utility methods
