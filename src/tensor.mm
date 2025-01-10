@@ -12,7 +12,7 @@
 #include <sys/types.h>
 #include <vector>
 MPS *device_mps = new MPS();
-
+// TODO: use better error time;
 template <typename T> void Tensor<T>::_compte_stride() {
   /*strides[i] = (j=i+1 ∏ len(dims) - 1){shape[j]}*/
   int value = 1;
@@ -27,7 +27,10 @@ template <typename T>
 int Tensor<T>::_compute_offset(std::vector<int> indexes) const {
   int n = indexes.size();
   int offset = 0;
-  assert(n == this->stride.size());
+  if (n != this->stride.size()) {
+    throw std::runtime_error("indexes size mismatch");
+  }
+
   for (int i = 0; i < n; i++) {
     offset += indexes[i] * this->stride[i];
   }
@@ -112,7 +115,9 @@ Tensor<T>::Tensor(std::vector<T> &values, std::vector<int> dims) {
 
 template <typename T>
 Tensor<T> Tensor<T>::ones(std::vector<int> shape, std::string dtype) {
-  assert(shape.size() == 2);
+  if (shape.size() != 2) {
+    throw std::runtime_error("shape contraint failed");
+  }
   id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
   int size =
       std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
@@ -123,7 +128,9 @@ Tensor<T> Tensor<T>::ones(std::vector<int> shape, std::string dtype) {
 
 template <typename T>
 Tensor<T> Tensor<T>::zeros(std::vector<int> shape, std::string dtype) {
-  assert(shape.size() == 2);
+  if (shape.size() != 2) {
+    throw std::runtime_error("shape contraint failed");
+  }
   id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
   int size =
       std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
@@ -141,7 +148,9 @@ template <typename T> Tensor<T> Tensor<T>::eye(int n, std::string dtype) {
 }
 template <typename T>
 Tensor<T> Tensor<T>::empty(std::vector<int> shape, std::string dtype) {
-  assert(shape.size() == 2);
+  if (shape.size() != 2) {
+    throw std::runtime_error("shape contraint failed");
+  }
   int size =
       std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
   id<MTLBuffer> result = device_mps->createEmptyBuffer<T>(size);
@@ -275,21 +284,27 @@ void Tensor<T>::setElement(T value, Args... indexes) {
 //
 template <typename T>
 Tensor<T> Tensor<T>::add(const Tensor *other, bool inplace) {
-  assert(this->dims == other->dims && this->dims.size() == 2);
+  if (this->dims != other->dims || this->dims.size() != 2) {
+    throw std::runtime_error("shape contraint issue");
+  }
   return inplace ? this->_dispatch_kernel_operation_inplace(other, "add_matrix")
                  : this->_dispatch_kernel_operation(other, "add_matrix");
 }
 template <typename T>
-Tensor<T> Tensor<T>::subtract(const Tensor *other, bool inplace) {
-  assert(this->dims == other->dims && this->dims.size() == 2);
+Tensor<T> Tensor<T>::sub(const Tensor *other, bool inplace) {
+  if (this->dims != other->dims || this->dims.size() != 2) {
+    throw std::runtime_error("shape contraint issue");
+  }
   return inplace ? this->_dispatch_kernel_operation_inplace(other,
                                                             "subtract_matrix")
                  : this->_dispatch_kernel_operation(other, "subtract_matrix");
 }
 
 template <typename T>
-Tensor<T> Tensor<T>::elementwise_multiply(const Tensor *other, bool inplace) {
-  assert(this->dims == other->dims && this->dims.size() == 2);
+Tensor<T> Tensor<T>::mul(const Tensor *other, bool inplace) {
+  if (this->dims != other->dims || this->dims.size() != 2) {
+    throw std::runtime_error("shape contraint issue");
+  }
   return inplace ? this->_dispatch_kernel_operation_inplace(
                        other, "elementwise_multiply_matrix")
                  : this->_dispatch_kernel_operation(
@@ -297,21 +312,25 @@ Tensor<T> Tensor<T>::elementwise_multiply(const Tensor *other, bool inplace) {
 }
 
 template <typename T>
-Tensor<T> Tensor<T>::elementwise_divide(const Tensor *other, bool inplace) {
-  assert(this->dims == other->dims && this->dims.size() == 2);
+Tensor<T> Tensor<T>::div(const Tensor *other, bool inplace) {
+  if (this->dims != other->dims || this->dims.size() != 2) {
+    throw std::runtime_error("shape contraint issue");
+  }
   return inplace ? this->_dispatch_kernel_operation_inplace(
                        other, "elementwise_divide_matrix")
                  : this->_dispatch_kernel_operation(
                        other, "elementwise_divide_matrix");
 }
 
-template <typename T>
-Tensor<T> Tensor<T>::matrix_multiply(const Tensor *other) const {
-  assert(this->dims[1] == other->dims[0] && this->dims.size() == 2);
+template <typename T> Tensor<T> Tensor<T>::matmul(const Tensor *other) const {
+  if (this->dims[1] != other->dims[0] || this->dims.size() != 2) {
+    throw std::runtime_error("shape contraint issue");
+  }
+
   std::vector<int> m = {this->dims[0], this->dims[1], other->dims[1]};
   id<MTLBuffer> meta = device_mps->createBuffer(m.data(), 3);
   id<MTLBuffer> result;
-  result = device_mps->createEmptyBuffer<T>(this->size);
+  result = device_mps->createEmptyBuffer<T>(this->dims[0] * other->dims[1]);
   device_mps->execute_kernel_binary("matrix_multiply", this->storage,
                                     other->storage, result, meta);
   return Tensor(result, this->dims);
@@ -338,35 +357,50 @@ template <typename T> Tensor<T> Tensor<T>::pow(float exp, bool inplace) {
 //
 template <typename T>
 Tensor<T> Tensor<T>::logical_e(const Tensor *other) const {
-  assert(this->dims == other->dims && this->dims.size() == 2);
+  if (this->dims != other->dims || this->dims.size() != 2) {
+    throw std::runtime_error("shape contraint failed");
+  }
+
   return this->_dispatch_kernel_operation(other, "logical_e");
 }
 template <typename T>
 Tensor<T> Tensor<T>::logical_ne(const Tensor *other) const {
-  assert(this->dims == other->dims && this->dims.size() == 2);
+  if (this->dims != other->dims || this->dims.size() != 2) {
+    throw std::runtime_error("shape contraint failed");
+  }
+
   return this->_dispatch_kernel_operation(other, "logical_ne");
 }
 template <typename T>
 Tensor<T> Tensor<T>::logical_gt(const Tensor *other) const {
-  assert(this->dims == other->dims && this->dims.size() == 2);
+  if (this->dims != other->dims || this->dims.size() != 2) {
+    throw std::runtime_error("shape contraint failed");
+  }
+
   return this->_dispatch_kernel_operation(other, "logical_gt");
 }
 
 template <typename T>
 Tensor<T> Tensor<T>::logical_gte(const Tensor *other) const {
-  assert(this->dims == other->dims && this->dims.size() == 2);
+  if (this->dims != other->dims || this->dims.size() != 2) {
+    throw std::runtime_error("shape contraint failed");
+  }
   return this->_dispatch_kernel_operation(other, "logical_gte");
 }
 
 template <typename T>
 Tensor<T> Tensor<T>::logical_lt(const Tensor *other) const {
-  assert(this->dims == other->dims && this->dims.size() == 2);
+  if (this->dims != other->dims || this->dims.size() != 2) {
+    throw std::runtime_error("shape contraint failed");
+  }
   return this->_dispatch_kernel_operation(other, "logical_lt");
 }
 
 template <typename T>
 Tensor<T> Tensor<T>::logical_lte(const Tensor *other) const {
-  assert(this->dims == other->dims && this->dims.size() == 2);
+  if (this->dims != other->dims || this->dims.size() != 2) {
+    throw std::runtime_error("shape contraint failed");
+  }
   return this->_dispatch_kernel_operation(other, "logical_lte");
 }
 

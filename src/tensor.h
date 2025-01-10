@@ -54,10 +54,10 @@ public:
 
   // arithmetic operators
   Tensor add(const Tensor *other, bool inplace);
-  Tensor subtract(const Tensor *other, bool inplace);
-  Tensor elementwise_multiply(const Tensor *other, bool inplace);
-  Tensor elementwise_divide(const Tensor *other, bool inplace);
-  Tensor matrix_multiply(const Tensor *other) const;
+  Tensor sub(const Tensor *other, bool inplace);
+  Tensor mul(const Tensor *other, bool inplace);
+  Tensor div(const Tensor *other, bool inplace);
+  Tensor matmul(const Tensor *other) const;
   Tensor pow(float exp, bool inplace);
 
   // Comparison operators
