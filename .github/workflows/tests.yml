@@ -23,6 +23,9 @@ jobs:
 
     - name: Run Tests
       run: |
-        if: ${{ runner.os == 'macOS' && env.METAL_AVAILABLE == 'true' }}
-        cd build
-        ctest --output-on-failure
+          cd build
+          if [ "$RUN_METAL_TESTS" = "true" ]; then
+            ctest --output-on-failure
+          else
+            echo "Skipping Metal tests on GitHub Actions runner"
+          fi
