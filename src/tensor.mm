@@ -161,14 +161,14 @@ Tensor<T> Tensor<T>::empty(std::vector<int> shape, std::string dtype) {
   return Tensor(result, shape);
 }
 template <typename T>
-Tensor<T> Tensor<T>::full(std::vector<int> shape, int n, std::string dtype) {
+Tensor<T> Tensor<T>::full(std::vector<int> shape, T n, std::string dtype) {
   id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
   int size =
       std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
   id<MTLBuffer> result = device_mps->createEmptyBuffer<T>(shape[0] * shape[1]);
 
-  std::vector<int> seed_vec = {n};
-  id<MTLBuffer> seed = device_mps->createBuffer(seed_vec.data(), 1);
+  std::vector<T> value = {n};
+  id<MTLBuffer> seed = device_mps->createBuffer(value.data(), 1);
   device_mps->execute_kernel_unary("init_full", result, seed, meta);
   return Tensor(result, shape);
 }

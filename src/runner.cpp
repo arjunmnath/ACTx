@@ -5,20 +5,12 @@
 using namespace std;
 
 int main() {
-  std::vector<float> data2 = {1.2, 2.3, 3.6, 4.0, 5.9, 6.1, 7.4, 8.2, 9.3};
-  Tensor<float> *mat_a = new Tensor<float>(data2, std::vector<int>{3, 3});
-  std::vector<int> shape = {9, 3};
   /*Tensor<float> a = Tensor<float>::ones(shape);*/
   /*Tensor<float> b = Tensor<float>::eye(3);*/
   /*Tensor<float> c = Tensor<float>::full(shape, 4);*/
   /*Tensor<float> d = Tensor<float>::zeros(shape);*/
   /*Tensor<float> e = Tensor<float>::clone(mat_a);*/
-  Tensor<float> f = Tensor<float>::randn(shape);
-  Tensor<float> j = Tensor<float>::randn(shape);
   /*Tensor<float> l = Tensor<float>::poission(f);*/
-  Tensor<float> re = f.logical_gte(&f);
-  re.print_matrix();
-  std::cout << re.all() << std::endl;
   /*a.print_matrix();*/
   /*b.print_matrix();*/
   /*c.print_matrix();*/
@@ -27,5 +19,18 @@ int main() {
   /*e.print_matrix();*/
   /*f.print_matrix();*/
   /*l.print_matrix();*/
+
+  std::vector<int> shape = {1000, 1000};
+  Tensor<float> mat_a = Tensor<float>::full(shape, 2);
+  Tensor<float> mat_b = Tensor<float>::full(shape, 2);
+  Tensor<float> mat_c = Tensor<float>::full(shape, 1);
+  Tensor<float> mat_d = Tensor<float>::full(shape, 0.1f);
+  mat_c.exp(true);
+  for (int i = 0; i < 10000; i++) {
+    mat_a.mul(&mat_b, true);
+    mat_a.div(&mat_c, true);
+    mat_a.add(&mat_d, true);
+  }
+  mat_a.print_matrix();
   return 0;
 }

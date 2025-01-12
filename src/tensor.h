@@ -35,7 +35,7 @@ public:
   static Tensor zeros(std::vector<int> shape, std::string dtype = "float");
   static Tensor eye(int n, std::string dtype = "float");
   static Tensor empty(std::vector<int> shape, std::string dtype = "float");
-  static Tensor full(std::vector<int> shape, int n,
+  static Tensor full(std::vector<int> shape, T n,
                      std::string dtype = "float");
   static Tensor clone(Tensor<T> *other, std::string dtype = "float");
   static Tensor rand(std::vector<int> shape, std::string dtype = "float");
