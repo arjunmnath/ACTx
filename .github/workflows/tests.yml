@@ -18,12 +18,14 @@ jobs:
 
     - name: Configure and Build with CMake
       run: |
-        mkdir build
-        cd build
         cmake -DCMAKE_BUILD_TYPE=Test -S . -B build
         cmake --build build
 
     - name: Run Tests
       run: |
-        cd build
-        ctest --output-on-failure
+          cd build
+          if [ "$RUN_METAL_TESTS" = "true" ]; then
+            ctest --output-on-failure
+          else
+            echo "Skipping Metal tests on GitHub Actions runner"
+          fi
