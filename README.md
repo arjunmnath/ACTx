@@ -2,14 +2,14 @@
 
 A high-performance tensor library that leverages Metal for GPU acceleration, implements dynamic compute graphs for automatic differentiation (autograd), and provides Python bindings for ease of use in machine learning and scientific computing. 
 
-**Note**: This project is primarily designed for learning and educational purposes. While it is capable of performing basic tensor operations and gradient computation, it is **not intended for production-level model building**. However, with further development, it could be used for simple model building tasks.
+**Note**: This project is primarily designed for learning and educational purposes. While it is capable of performing basic tensor operations and gradient computation, it is **not intended for production-level model building**.
 
 ## Features
 
 - **GPU Acceleration**: Utilizes Metal for efficient tensor computation on macOS devices.
 - **Dynamic Compute Graphs**: Implements dynamic computation graphs for automatic differentiation, similar to autograd, enabling gradient computation for machine learning tasks.
 - **Python Bindings**: Provides Python bindings for seamless integration with Python-based workflows.
-- **High Performance**: Optimized for both CPU and GPU execution, ensuring maximum performance across platforms.
+- **High Performance**: Optimized for both CPU and GPU execution, ensuring maximum performance across Metal enabled devices.
 - **Educational Focus**: Aimed at helping users understand the underlying concepts of tensor operations, autograd, and GPU acceleration.
 
 ## Requirements
@@ -18,7 +18,7 @@ A high-performance tensor library that leverages Metal for GPU acceleration, imp
 - Xcode 12+ with Command Line Tools
 - Python 3.x (for Python bindings)
 - CMake 3.x or higher (for building the project)
-
+<!--
 ## Project Structure
 
 ```
@@ -77,24 +77,21 @@ A high-performance tensor library that leverages Metal for GPU acceleration, imp
 ├── README.md
 ├── setup.py
 └── setup.cfg
-```
-
+``` -->
 ## Installation
 
 ### From Source
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/metal-tensor-library.git
-   cd metal-tensor-library
+   git clone https://github.com/arjunmnath/MetalGraphs.git
+   cd MetalGraphs
    ```
 
 2. Build the C++/Objective-C++ library:
    ```bash
-   mkdir build
-   cd build
-   cmake ..
-   make
+   cmake -DCMAKE_BUILD_TYPE=Debug -S . -B build
+   cmake --build build;
    ```
 
 3. Install Python bindings:
@@ -118,7 +115,7 @@ int main() {
     
     // Compute gradients
     result.backward();
-    
+
     // Access the gradients
     MetalTensor grad = tensor1.grad();
     grad.print();
@@ -172,5 +169,5 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 ## Acknowledgements
 
 - Metal framework for GPU acceleration
-- Python bindings via [pybind11](https://pybind11.readthedocs.io/)
-- Inspired by various tensor libraries such as NumPy and TensorFlow, and automatic differentiation systems like autograd.
+- Python bindings via [c-api](https://docs.python.org/3/c-api/)
+- Inspired by various tensor libraries such as NumPy and PyTorch, and automatic differentiation systems like autograd.
