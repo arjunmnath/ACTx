@@ -98,3 +98,5 @@ backend
 
 *.dSYM
 cmake-build-debug/
+
+Testing/

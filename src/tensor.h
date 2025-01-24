@@ -1,6 +1,7 @@
 #ifndef TENSOR_H
 #define TENSOR_H
 
+#include <tuple>
 #ifdef __OBJC__
 #import <Foundation/Foundation.h>
 #endif
@@ -13,6 +14,7 @@ private:
   id<MTLBuffer> storage;
   std::vector<int> stride;
   T *data_ptr;
+  bool requires_grad;
   int ndim;
   void _compte_stride();
   int _compute_offset(std::vector<int> indexes) const;
@@ -23,20 +25,29 @@ private:
   Tensor _dispatch_kernel_operation_inplace(const Tensor *other,
                                             std::string kernel_function);
 
+  int _compute_broadcast_index(int flat_index,
+                               const std::vector<int> &source_shape,
+                               const std::vector<int> &target_shape) const;
+
 public:
   std::vector<int> dims;
   int size;
-  Tensor(std::vector<int> dims);
-  Tensor(id<MTLBuffer> buffer, std::vector<int> dims);
-  Tensor(std::vector<T> &values, std::vector<int> dims);
+  Tensor(std::vector<int> dims, bool requires_grad = false);
+  Tensor(id<MTLBuffer> buffer, std::vector<int> dims,
+         bool requires_grad = false);
+  Tensor(std::vector<T> &values, std::vector<int> dims,
+         bool requires_grad = false);
+
+  // TODO: put this is private
+  std::tuple<std::vector<int>, std::vector<int>, std::vector<int>>
+  _compute_broadcast_shape(const Tensor *other) const;
 
   // initialization methods
   static Tensor ones(std::vector<int> shape, std::string dtype = "float");
   static Tensor zeros(std::vector<int> shape, std::string dtype = "float");
   static Tensor eye(int n, std::string dtype = "float");
   static Tensor empty(std::vector<int> shape, std::string dtype = "float");
-  static Tensor full(std::vector<int> shape, T n,
-                     std::string dtype = "float");
+  static Tensor full(std::vector<int> shape, T n, std::string dtype = "float");
   static Tensor clone(Tensor<T> *other, std::string dtype = "float");
   static Tensor rand(std::vector<int> shape, std::string dtype = "float");
   static Tensor randn(std::vector<int> shape, std::string dtype = "float");
@@ -72,7 +83,7 @@ public:
   Tensor exp(bool inplace);
   Tensor log(bool inplace);
 
-    // TODO: modify this to have a numpy like behaviour 
+  // TODO: modify this to have a numpy like behaviour
   bool all();
   bool any();
   Tensor sqrt(bool inplace);

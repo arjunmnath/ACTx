@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <sys/types.h>
 #include <vector>
+
 MPS *device_mps = new MPS();
 // TODO: use better error time;
 template <typename T> void Tensor<T>::_compte_stride() {
@@ -35,6 +36,76 @@ int Tensor<T>::_compute_offset(std::vector<int> indexes) const {
     offset += indexes[i] * this->stride[i];
   }
   return offset;
+}
+
+template <typename T>
+int Tensor<T>::_compute_broadcast_index(
+    int flat_index, const std::vector<int> &source_shape,
+    const std::vector<int> &target_shape) const {
+  int source_rank = source_shape.size();
+  int target_rank = target_shape.size();
+  int source_index = 0;
+  int stride = 1;
+
+  for (int i = target_rank - 1; i >= 0; --i) {
+    int target_dim = target_shape[i];
+    int coord = (flat_index % target_dim);
+
+    if (i >= target_rank - source_rank) {
+      int source_dim = source_shape[i - (target_rank - source_rank)];
+      if (source_dim > 1) {
+        source_index += coord * stride;
+      }
+    }
+
+    flat_index /= target_dim;
+    if (i >= target_rank - source_rank) {
+      stride *= (source_shape[i - (target_rank - source_rank)] > 1
+                     ? source_shape[i - (target_rank - source_rank)]
+                     : 1);
+    }
+  }
+
+  return source_index;
+}
+
+template <typename T>
+std::tuple<std::vector<int>, std::vector<int>, std::vector<int>>
+Tensor<T>::_compute_broadcast_shape(const Tensor<T> *other) const {
+  int max_rank = std::max(other->dims.size(), this->dims.size());
+
+  std::vector<int> rev_shape1 = this->dims;
+  std::vector<int> rev_shape2 = other->dims;
+
+  std::reverse(rev_shape1.begin(), rev_shape1.end());
+  std::reverse(rev_shape2.begin(), rev_shape2.end());
+
+  rev_shape1.resize(max_rank, 1);
+  rev_shape2.resize(max_rank, 1);
+
+  std::vector<int> result(max_rank);
+  std::vector<int> broadcast_axis1, broadcast_axis2;
+
+  int dim1, dim2;
+  for (int i = 0; i < max_rank; i++) {
+    dim1 = rev_shape1[i];
+    dim2 = rev_shape2[i];
+    if (dim1 == dim2) {
+      result[i] = dim1;
+    } else if (dim1 == 1) {
+      result[i] = dim2;
+      broadcast_axis1.push_back(i);
+    } else if (dim2 == 1) {
+      result[i] = dim1;
+      broadcast_axis2.push_back(i);
+    } else {
+      throw std::invalid_argument("Shapes not broadcastable");
+    }
+  }
+  std::reverse(result.begin(), result.end());
+  std::reverse(broadcast_axis1.begin(), broadcast_axis1.end());
+  std::reverse(broadcast_axis2.begin(), broadcast_axis2.end());
+  return {result, broadcast_axis1, broadcast_axis2};
 }
 
 template <typename T>
@@ -69,7 +140,8 @@ Tensor<T>::_dispatch_kernel_operation_inplace(const Tensor *other,
   return *this;
 }
 
-template <typename T> Tensor<T>::Tensor(std::vector<int> dims) {
+template <typename T>
+Tensor<T>::Tensor(std::vector<int> dims, bool requires_grad) {
   this->size =
       std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
   this->dims = dims;
@@ -77,10 +149,12 @@ template <typename T> Tensor<T>::Tensor(std::vector<int> dims) {
   this->storage = device_mps->createEmptyBuffer<T>(size);
   this->data_ptr = (T *)[this->storage contents];
   this->_compte_stride();
+  this->requires_grad = requires_grad;
 }
 
 template <typename T>
-Tensor<T>::Tensor(id<MTLBuffer> buffer, std::vector<int> dims) {
+Tensor<T>::Tensor(id<MTLBuffer> buffer, std::vector<int> dims,
+                  bool requires_grad) {
   this->storage = buffer;
   this->data_ptr = (T *)[this->storage contents];
   this->dims = dims;
@@ -88,10 +162,13 @@ Tensor<T>::Tensor(id<MTLBuffer> buffer, std::vector<int> dims) {
   this->_compte_stride();
   this->size =
       std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
+
+  this->requires_grad = requires_grad;
 }
 
 template <typename T>
-Tensor<T>::Tensor(std::vector<T> &values, std::vector<int> dims) {
+Tensor<T>::Tensor(std::vector<T> &values, std::vector<int> dims,
+                  bool requires_grad) {
   if (values.size() == 0) {
     throw std::runtime_error("values expected");
   }
@@ -102,6 +179,8 @@ Tensor<T>::Tensor(std::vector<T> &values, std::vector<int> dims) {
   this->_compte_stride();
   this->size =
       std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
+
+  this->requires_grad = requires_grad;
 }
 
 // =====================================================================
