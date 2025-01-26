@@ -27,6 +27,11 @@ public:
       id<MTLBuffer> lshape, id<MTLBuffer> rshape, id<MTLBuffer> target,
       id<MTLBuffer> ranks);
 
+  void execute_kernel_unary_with_broadcast(
+      std::string func, id<MTLBuffer> A, id<MTLBuffer> B, id<MTLBuffer> result,
+      id<MTLBuffer> lshape, id<MTLBuffer> rshape, id<MTLBuffer> target,
+      id<MTLBuffer> ranks);
+
   void execute_kernel_unary(std::string func, id<MTLBuffer> A,
                             id<MTLBuffer> result, id<MTLBuffer> meta);
 

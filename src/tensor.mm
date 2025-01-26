@@ -14,6 +14,10 @@
 
 MPS *device_mps = new MPS();
 // TODO: use better error time;
+
+// ================================================================
+// COMPUTES
+// ================================================================
 template <typename T> void Tensor<T>::_compte_stride() {
   /*strides[i] = (j=i+1 ∏ len(dims) - 1){shape[j]}*/
   int value = 1;
@@ -37,7 +41,6 @@ int Tensor<T>::_compute_offset(std::vector<int> indexes) const {
   }
   return offset;
 }
-
 template <typename T>
 int Tensor<T>::_compute_broadcast_index(
     int flat_index, const std::vector<int> &source_shape,
@@ -70,7 +73,7 @@ int Tensor<T>::_compute_broadcast_index(
 }
 
 template <typename T>
-std::tuple<std::vector<int>, std::vector<int>, std::vector<int>>
+std::vector<int>
 Tensor<T>::_compute_broadcast_shape(const Tensor<T> *other) const {
   int max_rank = std::max(other->dims.size(), this->dims.size());
 
@@ -84,29 +87,21 @@ Tensor<T>::_compute_broadcast_shape(const Tensor<T> *other) const {
   rev_shape2.resize(max_rank, 1);
 
   std::vector<int> result(max_rank);
-  std::vector<int> broadcast_axis1, broadcast_axis2;
 
   int dim1, dim2;
   for (int i = 0; i < max_rank; i++) {
     dim1 = rev_shape1[i];
     dim2 = rev_shape2[i];
-    if (dim1 == dim2) {
-      result[i] = dim1;
-    } else if (dim1 == 1) {
-      result[i] = dim2;
-      broadcast_axis1.push_back(i);
-    } else if (dim2 == 1) {
-      result[i] = dim1;
-      broadcast_axis2.push_back(i);
+    if (dim1 == dim2 || dim1 == 1 || dim2 == 1) {
+      result[i] = std::max(dim1, dim2);
     } else {
       throw std::invalid_argument("Shapes not broadcastable");
     }
   }
   std::reverse(result.begin(), result.end());
-  std::reverse(broadcast_axis1.begin(), broadcast_axis1.end());
-  std::reverse(broadcast_axis2.begin(), broadcast_axis2.end());
-  return {result, broadcast_axis1, broadcast_axis2};
+  return result;
 }
+// ================================================================
 
 template <typename T>
 void Tensor<T>::throw_out_of_bound(std::vector<int> indexes) const {
@@ -117,32 +112,41 @@ void Tensor<T>::throw_out_of_bound(std::vector<int> indexes) const {
   }
 }
 
+// ================================================================
+//  KERNEL DISPATCHES
+// ================================================================
 template <typename T>
 Tensor<T>
 Tensor<T>::_dispatch_kernel_operation(const Tensor *other,
                                       std::string kernel_function) const {
-  std::vector<int> m = {this->dims[0], this->dims[1], other->dims[1]};
-  id<MTLBuffer> meta = device_mps->createBuffer(m.data(), 3);
+
+  auto result_shape = this->_compute_broadcast_shape(other);
+
   id<MTLBuffer> result;
-  result = device_mps->createEmptyBuffer<T>(this->size);
-  device_mps->execute_kernel_binary(kernel_function, this->storage,
-                                    other->storage, result, meta);
-  return Tensor(result, this->dims);
+  result = device_mps->createEmptyBuffer<T>(std::accumulate(
+      result_shape.begin(), result_shape.end(), 1, std::multiplies<int>()));
+  id<MTLBuffer> lshape =
+      device_mps->createBuffer(this->dims.data(), this->dims.size());
+  id<MTLBuffer> rshape =
+      device_mps->createBuffer(other->dims.data(), other->dims.size());
+  id<MTLBuffer> target =
+      device_mps->createBuffer(result_shape.data(), result_shape.size());
+
+  std::vector<int> _ranks = {static_cast<int>(this->dims.size()),
+                             static_cast<int>(other->dims.size()),
+                             static_cast<int>(result_shape.size())};
+  id<MTLBuffer> ranks = device_mps->createBuffer(_ranks.data(), _ranks.size());
+  device_mps->execute_kernel_binary_with_broadcast(
+      kernel_function, this->storage, other->storage, result, lshape, rshape,
+      target, ranks);
+  return Tensor(result, result_shape);
 }
+
 template <typename T>
 Tensor<T>
 Tensor<T>::_dispatch_kernel_operation_inplace(const Tensor *other,
                                               std::string kernel_function) {
-  if (this->dims == other->dims) {
-
-    std::cout << "dispatching kernel" << std::endl;
-    std::vector<int> m = {this->dims[0], this->dims[1], other->dims[1]};
-    id<MTLBuffer> meta = device_mps->createBuffer(m.data(), 3);
-    device_mps->execute_kernel_binary(kernel_function, this->storage,
-                                      other->storage, this->storage, meta);
-    return *this;
-  }
-  auto [result_shape, _, __] = this->_compute_broadcast_shape(other);
+  auto result_shape = this->_compute_broadcast_shape(other);
   id<MTLBuffer> lshape =
       device_mps->createBuffer(this->dims.data(), this->dims.size());
   id<MTLBuffer> rshape =
@@ -161,6 +165,7 @@ Tensor<T>::_dispatch_kernel_operation_inplace(const Tensor *other,
   return *this;
 }
 
+// ================================================================
 template <typename T>
 Tensor<T>::Tensor(std::vector<int> dims, bool requires_grad) {
   this->size =
@@ -218,27 +223,21 @@ Tensor<T>::Tensor(std::vector<T> &values, std::vector<int> dims,
 
 template <typename T>
 Tensor<T> Tensor<T>::ones(std::vector<int> shape, std::string dtype) {
-  if (shape.size() != 2) {
-    throw std::runtime_error("shape contraint failed");
-  }
   id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
   int size =
       std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
   id<MTLBuffer> result = device_mps->createEmptyBuffer<T>(size);
-  device_mps->execute_kernel_init("init_ones", result, meta);
+  device_mps->execute_kernel_init("__ones__", result, meta);
   return Tensor(result, shape);
 }
 
 template <typename T>
 Tensor<T> Tensor<T>::zeros(std::vector<int> shape, std::string dtype) {
-  if (shape.size() != 2) {
-    throw std::runtime_error("shape contraint failed");
-  }
   id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
   int size =
       std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
   id<MTLBuffer> result = device_mps->createEmptyBuffer<T>(size);
-  device_mps->execute_kernel_init("init_with_zeros", result, meta);
+  device_mps->execute_kernel_init("__zeros__", result, meta);
   return Tensor(result, shape);
 }
 
@@ -246,14 +245,11 @@ template <typename T> Tensor<T> Tensor<T>::eye(int n, std::string dtype) {
   std::vector<int> shape = {n, n};
   id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
   id<MTLBuffer> result = device_mps->createEmptyBuffer<T>(n * n);
-  device_mps->execute_kernel_init("init_identity", result, meta);
+  device_mps->execute_kernel_init("__eye__", result, meta);
   return Tensor(result, shape);
 }
 template <typename T>
 Tensor<T> Tensor<T>::empty(std::vector<int> shape, std::string dtype) {
-  if (shape.size() != 2) {
-    throw std::runtime_error("shape contraint failed");
-  }
   int size =
       std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
   id<MTLBuffer> result = device_mps->createEmptyBuffer<T>(size);
@@ -269,7 +265,7 @@ Tensor<T> Tensor<T>::full(std::vector<int> shape, T n, std::string dtype) {
 
   std::vector<T> value = {n};
   id<MTLBuffer> seed = device_mps->createBuffer(value.data(), 1);
-  device_mps->execute_kernel_unary("init_full", result, seed, meta);
+  device_mps->execute_kernel_unary("__full__", result, seed, meta);
   return Tensor(result, shape);
 }
 template <typename T>
@@ -387,51 +383,35 @@ void Tensor<T>::setElement(T value, Args... indexes) {
 //
 template <typename T>
 Tensor<T> Tensor<T>::add(const Tensor *other, bool inplace) {
-  /*
-if (this->dims != other->dims || this->dims.size() != 2) {
-  throw std::runtime_error("shape contraint issue");
-}
-*/
-  return inplace ? this->_dispatch_kernel_operation_inplace(other, "add_matrix")
-                 : this->_dispatch_kernel_operation(other, "add_matrix");
+  return inplace ? this->_dispatch_kernel_operation_inplace(other, "__add__")
+                 : this->_dispatch_kernel_operation(other, "__add__");
 }
 template <typename T>
 Tensor<T> Tensor<T>::sub(const Tensor *other, bool inplace) {
-  if (this->dims != other->dims || this->dims.size() != 2) {
-    throw std::runtime_error("shape contraint issue");
-  }
-  return inplace ? this->_dispatch_kernel_operation_inplace(other,
-                                                            "subtract_matrix")
-                 : this->_dispatch_kernel_operation(other, "subtract_matrix");
+  return inplace ? this->_dispatch_kernel_operation_inplace(other, "__sub__")
+                 : this->_dispatch_kernel_operation(other, "__sub__");
 }
 
 template <typename T>
 Tensor<T> Tensor<T>::mul(const Tensor *other, bool inplace) {
-  if (this->dims != other->dims || this->dims.size() != 2) {
-    throw std::runtime_error("shape contraint issue");
-  }
-  return inplace ? this->_dispatch_kernel_operation_inplace(
-                       other, "elementwise_multiply_matrix")
-                 : this->_dispatch_kernel_operation(
-                       other, "elementwise_multiply_matrix");
+  return inplace ? this->_dispatch_kernel_operation_inplace(other, "__mul__")
+                 : this->_dispatch_kernel_operation(other, "__mul__");
 }
 
 // TODO: fix this division by zero checking
 template <typename T>
 Tensor<T> Tensor<T>::div(const Tensor *other, bool inplace) {
   Tensor<T> zeros = Tensor<T>::zeros(other->dims);
-  if (other->logical_e(&zeros).any() || this->dims != other->dims ||
-      this->dims.size() != 2) {
-    throw std::runtime_error("shape contraint issue");
+  if (other->logical_e(&zeros).any()) {
+    throw std::runtime_error("division by zero");
   }
 
-  return inplace ? this->_dispatch_kernel_operation_inplace(
-                       other, "elementwise_divide_matrix")
-                 : this->_dispatch_kernel_operation(
-                       other, "elementwise_divide_matrix");
+  return inplace ? this->_dispatch_kernel_operation_inplace(other, "__div__")
+                 : this->_dispatch_kernel_operation(other, "__div__");
 }
 
 template <typename T> Tensor<T> Tensor<T>::matmul(const Tensor *other) const {
+  throw std::logic_error("not implemented");
   if (this->dims[1] != other->dims[0]) {
     throw std::runtime_error("shape contraint issue");
   }

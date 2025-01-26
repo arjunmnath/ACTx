@@ -92,7 +92,6 @@ void MPS::execute_kernel_unary(std::string func, id<MTLBuffer> A,
   [computeEncoder setComputePipelineState:pipelineState];
   [computeEncoder setBuffer:A offset:0 atIndex:0];
   [computeEncoder setBuffer:result offset:0 atIndex:1];
-  [computeEncoder setBuffer:meta offset:0 atIndex:2];
   NSUInteger threadExecutionWidth = pipelineState.threadExecutionWidth;
   size_t threadsPerThreadgroup = threadExecutionWidth;
   size_t threadgroups =
@@ -125,7 +124,6 @@ void MPS::execute_kernel_init(std::string func, id<MTLBuffer> A,
   }
   [computeEncoder setComputePipelineState:pipelineState];
   [computeEncoder setBuffer:A offset:0 atIndex:0];
-  [computeEncoder setBuffer:meta offset:0 atIndex:1];
   NSUInteger threadExecutionWidth = pipelineState.threadExecutionWidth;
   size_t threadsPerThreadgroup = threadExecutionWidth;
   size_t threadgroups =
@@ -181,7 +179,7 @@ void MPS::execute_kernel_binary_with_broadcast(
     std::string func, id<MTLBuffer> A, id<MTLBuffer> B, id<MTLBuffer> result,
     id<MTLBuffer> lshape, id<MTLBuffer> rshape, id<MTLBuffer> target,
     id<MTLBuffer> ranks) {
-  std::string metal_function_name = "add_broadcast";
+  std::string metal_function_name = func;
   if (!pipelines[metal_function_name]) {
     this->_init_pipeline(metal_function_name);
   }
@@ -230,14 +228,6 @@ id<MTLBuffer> MPS::createBuffer(Type *data, size_t size) {
                                options:MTLResourceStorageModeShared];
   return buffer;
 }
-template id<MTLBuffer> MPS::createBuffer<int>(int *data, size_t size);
-template id<MTLBuffer> MPS::createBuffer<float>(float *data, size_t size);
-template id<MTLBuffer> MPS::createBuffer<uint8_t>(uint8_t *data, size_t size);
-template id<MTLBuffer> MPS::createBuffer<int8_t>(int8_t *data, size_t size);
-template id<MTLBuffer> MPS::createBuffer<bool>(bool *data, size_t size);
-template id<MTLBuffer> MPS::createBuffer<int const>(int const *data,
-                                                    size_t size);
-
 template <typename T> id<MTLBuffer> MPS::createEmptyBuffer(int size) {
   id<MTLBuffer> buffer =
       [this->device newBufferWithLength:sizeof(T) * size
@@ -256,63 +246,25 @@ id<MTLBuffer> MPS::clone(id<MTLBuffer> buffer) {
   return newBuffer;
 }
 
+// type definitions
 template id<MTLBuffer> MPS::createEmptyBuffer<int>(int size);
 template id<MTLBuffer> MPS::createEmptyBuffer<float>(int size);
 template id<MTLBuffer> MPS::createEmptyBuffer<uint8_t>(int size);
 template id<MTLBuffer> MPS::createEmptyBuffer<int8_t>(int size);
 template id<MTLBuffer> MPS::createEmptyBuffer<bool>(int size);
 
-std::vector<id<MTLBuffer>> MPS::__dummy_data() {
-  const size_t size = 25;
-  std::vector<float> a(size);
-  std::vector<float> b(size);
-  std::vector<float> result(size, 0.0f);
-
-  uint32_t M = 5;
-  uint32_t N = 5;
-  uint32_t P = 5;
-
-  // Initialize arrays with random data
-  uint32_t k = size;
-  for (size_t i = 0; i < size; ++i) {
-    a[i] = static_cast<float>(k);
-    b[i] = static_cast<float>(size - k);
-    k--;
-  }
-  std::vector<id<MTLBuffer>> buffers;
-  std::vector<uint> constants = {M, N, P};
-  buffers.push_back(this->createBuffer(a.data(), size));
-  buffers.push_back(this->createBuffer(b.data(), size));
-  buffers.push_back(this->createBuffer(result.data(), size));
-  buffers.push_back(this->createBuffer(constants.data(), constants.size()));
-
-  return buffers;
-}
-
-void MPS::print_buffer_contents(std::vector<id<MTLBuffer>> buffers,
-                                std::vector<int> stride) {
-  float *a = (float *)[buffers[0] contents];
-  float *b = (float *)[buffers[1] contents];
-  float *gpuResult = (float *)[buffers[2] contents];
-  uint *meta = (uint *)[buffers[3] contents];
-  uint M = meta[0];
-  uint N = meta[1];
-  for (uint i = 0; i < M; i++) {
-    for (uint j = 0; j < N; j++) {
-      std::cout << std::setw(2) << std::setfill('0')
-                << a[i * stride[0] + j * stride[1]] << " ";
-    }
-    std::cout << "\t";
-    for (uint j = 0; j < N; j++) {
-      std::cout << std::setw(2) << std::setfill('0')
-                << b[i * stride[0] + j * stride[1]] << " ";
-    }
-    std::cout << "\t";
-    for (uint j = 0; j < N; j++) {
-      std::cout << std::setw(2) << std::setfill('0')
-                << gpuResult[i * stride[0] + j * stride[1]] << " ";
-    }
-    std::cout << "\n";
-  }
-  std::cout << std::endl;
-}
+template id<MTLBuffer> MPS::createBuffer<int>(int *data, size_t size);
+template id<MTLBuffer> MPS::createBuffer<float>(float *data, size_t size);
+template id<MTLBuffer> MPS::createBuffer<uint8_t>(uint8_t *data, size_t size);
+template id<MTLBuffer> MPS::createBuffer<int8_t>(int8_t *data, size_t size);
+template id<MTLBuffer> MPS::createBuffer<bool>(bool *data, size_t size);
+template id<MTLBuffer> MPS::createBuffer<int const>(int const *data,
+                                                    size_t size);
+template id<MTLBuffer> MPS::createBuffer<const float>(const float *data,
+                                                      size_t size);
+template id<MTLBuffer> MPS::createBuffer<const uint8_t>(const uint8_t *data,
+                                                        size_t size);
+template id<MTLBuffer> MPS::createBuffer<const int8_t>(const int8_t *data,
+                                                       size_t size);
+template id<MTLBuffer> MPS::createBuffer<const bool>(const bool *data,
+                                                     size_t size);
