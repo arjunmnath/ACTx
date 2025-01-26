@@ -177,6 +177,51 @@ void MPS::execute_kernel_binary(std::string func, id<MTLBuffer> A,
   [commandBuffer waitUntilCompleted];
 }
 
+void MPS::execute_kernel_binary_with_broadcast(
+    std::string func, id<MTLBuffer> A, id<MTLBuffer> B, id<MTLBuffer> result,
+    id<MTLBuffer> lshape, id<MTLBuffer> rshape, id<MTLBuffer> target,
+    id<MTLBuffer> ranks) {
+  std::string metal_function_name = "add_broadcast";
+  if (!pipelines[metal_function_name]) {
+    this->_init_pipeline(metal_function_name);
+  }
+  id<MTLComputePipelineState> pipelineState = pipelines[metal_function_name];
+
+  id<MTLCommandBuffer> commandBuffer = [this->commandQueue commandBuffer];
+  if (!commandBuffer) {
+    std::cerr << "Failed to create command buffer." << std::endl;
+    exit(1);
+  }
+
+  id<MTLComputeCommandEncoder> computeEncoder =
+      [commandBuffer computeCommandEncoder];
+  if (!computeEncoder) {
+    std::cerr << "Failed to create compute command encoder." << std::endl;
+    exit(1);
+  }
+
+  [computeEncoder setComputePipelineState:pipelineState];
+  [computeEncoder setBuffer:A offset:0 atIndex:0];
+  [computeEncoder setBuffer:B offset:0 atIndex:1];
+  [computeEncoder setBuffer:result offset:0 atIndex:2];
+  [computeEncoder setBuffer:lshape offset:0 atIndex:3];
+  [computeEncoder setBuffer:rshape offset:0 atIndex:4];
+  [computeEncoder setBuffer:target offset:0 atIndex:5];
+  [computeEncoder setBuffer:ranks offset:0 atIndex:6];
+
+  NSUInteger threadExecutionWidth = pipelineState.threadExecutionWidth;
+  size_t threadsPerThreadgroup = threadExecutionWidth;
+  size_t threadgroups =
+      (std::min(A.length, B.length) + threadsPerThreadgroup - 1) /
+      threadsPerThreadgroup;
+  [computeEncoder
+       dispatchThreadgroups:MTLSizeMake(threadgroups, 1, 1)
+      threadsPerThreadgroup:MTLSizeMake(threadsPerThreadgroup, 1, 1)];
+  [computeEncoder endEncoding];
+  [commandBuffer commit];
+  [commandBuffer waitUntilCompleted];
+}
+
 template <typename Type>
 id<MTLBuffer> MPS::createBuffer(Type *data, size_t size) {
   id<MTLBuffer> buffer =
@@ -190,6 +235,8 @@ template id<MTLBuffer> MPS::createBuffer<float>(float *data, size_t size);
 template id<MTLBuffer> MPS::createBuffer<uint8_t>(uint8_t *data, size_t size);
 template id<MTLBuffer> MPS::createBuffer<int8_t>(int8_t *data, size_t size);
 template id<MTLBuffer> MPS::createBuffer<bool>(bool *data, size_t size);
+template id<MTLBuffer> MPS::createBuffer<int const>(int const *data,
+                                                    size_t size);
 
 template <typename T> id<MTLBuffer> MPS::createEmptyBuffer(int size) {
   id<MTLBuffer> buffer =

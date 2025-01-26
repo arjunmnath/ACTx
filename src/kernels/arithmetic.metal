@@ -1,4 +1,5 @@
 #include <metal_stdlib>
+#include "./broadcast.metal"
 using namespace metal;
 kernel void add_matrix(device float *A [[buffer(0)]],
                        device float *B [[buffer(1)]],

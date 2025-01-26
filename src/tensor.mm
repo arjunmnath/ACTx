@@ -133,10 +133,31 @@ template <typename T>
 Tensor<T>
 Tensor<T>::_dispatch_kernel_operation_inplace(const Tensor *other,
                                               std::string kernel_function) {
-  std::vector<int> m = {this->dims[0], this->dims[1], other->dims[1]};
-  id<MTLBuffer> meta = device_mps->createBuffer(m.data(), 3);
-  device_mps->execute_kernel_binary(kernel_function, this->storage,
-                                    other->storage, this->storage, meta);
+  if (this->dims == other->dims) {
+
+    std::cout << "dispatching kernel" << std::endl;
+    std::vector<int> m = {this->dims[0], this->dims[1], other->dims[1]};
+    id<MTLBuffer> meta = device_mps->createBuffer(m.data(), 3);
+    device_mps->execute_kernel_binary(kernel_function, this->storage,
+                                      other->storage, this->storage, meta);
+    return *this;
+  }
+  auto [result_shape, _, __] = this->_compute_broadcast_shape(other);
+  id<MTLBuffer> lshape =
+      device_mps->createBuffer(this->dims.data(), this->dims.size());
+  id<MTLBuffer> rshape =
+      device_mps->createBuffer(other->dims.data(), other->dims.size());
+  id<MTLBuffer> target =
+      device_mps->createBuffer(result_shape.data(), result_shape.size());
+
+  std::vector<int> _ranks = {static_cast<int>(this->dims.size()),
+                             static_cast<int>(other->dims.size()),
+                             static_cast<int>(result_shape.size())};
+  id<MTLBuffer> ranks = device_mps->createBuffer(_ranks.data(), _ranks.size());
+  device_mps->execute_kernel_binary_with_broadcast(
+      kernel_function, this->storage, other->storage, this->storage, lshape,
+      rshape, target, ranks);
+  this->dims = result_shape;
   return *this;
 }
 
@@ -366,9 +387,11 @@ void Tensor<T>::setElement(T value, Args... indexes) {
 //
 template <typename T>
 Tensor<T> Tensor<T>::add(const Tensor *other, bool inplace) {
-  if (this->dims != other->dims || this->dims.size() != 2) {
-    throw std::runtime_error("shape contraint issue");
-  }
+  /*
+if (this->dims != other->dims || this->dims.size() != 2) {
+  throw std::runtime_error("shape contraint issue");
+}
+*/
   return inplace ? this->_dispatch_kernel_operation_inplace(other, "add_matrix")
                  : this->_dispatch_kernel_operation(other, "add_matrix");
 }
