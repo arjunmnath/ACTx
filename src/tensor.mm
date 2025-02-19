@@ -15,9 +15,9 @@
 MPS *device_mps = new MPS();
 // TODO: use better error time;
 
-// ================================================================
+// ================================================================================================================================
 // COMPUTES
-// ================================================================
+// ================================================================================================================================
 template <typename T> void Tensor<T>::_compte_stride() {
   /*strides[i] = (j=i+1 ∏ len(dims) - 1){shape[j]}*/
   int value = 1;
@@ -101,7 +101,7 @@ Tensor<T>::_compute_broadcast_shape(const Tensor<T> *other) const {
   std::reverse(result.begin(), result.end());
   return result;
 }
-// ================================================================
+// ================================================================================================================================
 
 template <typename T>
 void Tensor<T>::throw_out_of_bound(std::vector<int> indexes) const {
@@ -111,10 +111,9 @@ void Tensor<T>::throw_out_of_bound(std::vector<int> indexes) const {
     }
   }
 }
-
-// ================================================================
+// ================================================================================================================================
 //  KERNEL DISPATCHES
-// ================================================================
+// ================================================================================================================================
 template <typename T>
 Tensor<T>
 Tensor<T>::_dispatch_kernel_operation(const Tensor *other,
@@ -164,8 +163,9 @@ Tensor<T>::_dispatch_kernel_operation_inplace(const Tensor *other,
   this->dims = result_shape;
   return *this;
 }
-
-// ================================================================
+// ================================================================================================================================
+// CONSTRUCTORS
+// ================================================================================================================================
 template <typename T>
 Tensor<T>::Tensor(std::vector<int> dims, bool requires_grad) {
   this->size =
@@ -209,9 +209,9 @@ Tensor<T>::Tensor(std::vector<T> &values, std::vector<int> dims,
   this->requires_grad = requires_grad;
 }
 
-// =====================================================================
+// ================================================================================================================================
 //                            INIT
-// =====================================================================
+// ================================================================================================================================
 // 1) Ones & zeros: ✅
 // 2) Empty:✅
 // 3) Eye: ✅
@@ -219,8 +219,7 @@ Tensor<T>::Tensor(std::vector<T> &values, std::vector<int> dims,
 // 5) Rand, randn, randint: ✅
 // 6) Clone, tensor: ❌
 // 7) Linspace, logspace, arange: ❌
-// =====================================================================
-
+// ================================================================================================================================
 template <typename T>
 Tensor<T> Tensor<T>::ones(std::vector<int> shape, std::string dtype) {
   id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size());
@@ -357,6 +356,9 @@ Tensor<T> Tensor<T>::bernoulli(Tensor &other, std::string dtype) {
   return Tensor(result, other.dims);
 }
 
+// ================================================================================================================================
+// GETTERS & SETTERS
+// ================================================================================================================================
 template <typename T> std::vector<int> Tensor<T>::strides() {
   return this->stride;
 }
@@ -378,9 +380,9 @@ void Tensor<T>::setElement(T value, Args... indexes) {
   int offset = this->_compute_offset(indices);
   this->data_ptr[offset] = value;
 }
-
-// arithemetic Operators
-//
+// ================================================================================================================================
+// Arithemetic
+// ================================================================================================================================
 template <typename T>
 Tensor<T> Tensor<T>::add(const Tensor *other, bool inplace) {
   return inplace ? this->_dispatch_kernel_operation_inplace(other, "__add__")
@@ -405,11 +407,10 @@ Tensor<T> Tensor<T>::div(const Tensor *other, bool inplace) {
   if (other->logical_e(&zeros).any()) {
     throw std::runtime_error("division by zero");
   }
-
   return inplace ? this->_dispatch_kernel_operation_inplace(other, "__div__")
                  : this->_dispatch_kernel_operation(other, "__div__");
 }
-
+/*
 template <typename T> Tensor<T> Tensor<T>::matmul(const Tensor *other) const {
   throw std::logic_error("not implemented");
   if (this->dims[1] != other->dims[0]) {
@@ -419,10 +420,11 @@ template <typename T> Tensor<T> Tensor<T>::matmul(const Tensor *other) const {
   id<MTLBuffer> meta = device_mps->createBuffer(m.data(), 3);
   id<MTLBuffer> result;
   result = device_mps->createEmptyBuffer<T>(this->dims[0] * other->dims[1]);
-  device_mps->execute_kernel_binary("matrix_multiply", this->storage,
+  device_mps->execute_kernel_binary("__matmul__", this->storage, other->storage,
                                     other->storage, result, meta);
   return Tensor(result, std::vector<int>{this->dims[0], other->dims[1]});
 }
+*/
 
 template <typename T> Tensor<T> Tensor<T>::pow(float exp, bool inplace) {
   std::vector<float> e = {exp};

@@ -8,7 +8,7 @@ kernel void __ones__(device float *A [[buffer(0)]],
 
 }
 kernel void __full__(device float *A [[buffer(0)]],
-                      constant uint &value [[buffer(1)]],
+                      constant float &value [[buffer(1)]],
                       uint tid [[thread_position_in_grid]]) {
 
     A[tid] = value;
