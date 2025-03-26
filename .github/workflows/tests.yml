@@ -2,11 +2,8 @@ name: Build and Test on Mac
 
 on:
   push:
-    branches:
-      - '**' 
-  pull_request:
-    branches:
-      - '**' 
+    tags:
+      - 'v*.*.*'
 
 jobs:
   build-and-test:
