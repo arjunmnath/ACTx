@@ -92,5 +92,3 @@ kernel void logical_lte(device float *A [[buffer(0)]],
     C[row * N + col] = A[row * N + col] <= B[row * N + col];
   }
 }
-
-

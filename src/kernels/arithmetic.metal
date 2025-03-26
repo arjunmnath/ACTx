@@ -81,5 +81,3 @@ kernel void matrix_multiply(device float *A [[buffer(0)]],
     C[row * P + col] = sum;
   }
 }
-
-

@@ -42,8 +42,8 @@ kernel void log(device float *A [[buffer(0)]], device float *C [[buffer(1)]],
 }
 
 kernel void sqrt(device float *A [[buffer(0)]], device float *C [[buffer(1)]],
-                constant uint2 &dims [[buffer(2)]],
-                uint tid [[thread_position_in_grid]]) {
+                 constant uint2 &dims [[buffer(2)]],
+                 uint tid [[thread_position_in_grid]]) {
   uint M = dims.x;
   uint N = dims.y;
   uint row = tid / N;
@@ -52,6 +52,3 @@ kernel void sqrt(device float *A [[buffer(0)]], device float *C [[buffer(1)]],
     C[row * N + col] = sqrt(A[row * N + col]);
   }
 }
-
-
-
