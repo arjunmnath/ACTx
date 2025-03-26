@@ -99,6 +99,14 @@ A high-performance tensor library that leverages Metal for GPU acceleration, imp
    pip install .
    ```
 
+
+### From PyPi
+
+```bash
+pip install metalgraph
+```
+
+> 🚧 Not yet deployed on pypi.
 ## Usage
 
 ### C++/Objective-C++ API
