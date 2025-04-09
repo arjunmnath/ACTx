@@ -121,7 +121,6 @@ kernel void tensor_matrix_multiply(
         B_index += grid_pos[i] * B_shape[i];
       }
     }
-
     // Multiply and accumulate
     result += A[A_index] * B[B_index];
   }
@@ -129,7 +128,4 @@ kernel void tensor_matrix_multiply(
   // Store result
   C[global_output_index] = result;
 }
-<<<<<<< HEAD
 */
-=======
->>>>>>> 8b618e770f9be163373da27121b9674577bb14b4
