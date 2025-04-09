@@ -1,32 +1,19 @@
 #include <metal_stdlib>
 using namespace metal;
 
-kernel void init_ones(device float *A [[buffer(0)]],
-                      constant uint2 &dims [[buffer(1)]],
+kernel void __ones__(device float *A [[buffer(0)]],
                       uint tid [[thread_position_in_grid]]) {
 
-  uint M = dims.x;
-  uint N = dims.y;
-  uint row = tid / N;
-  uint col = tid % N;
-  if (row < M && col < N) {
-    A[row * N + col] = 1;
-  }
+  A[tid] = 1;
+
 }
-kernel void init_full(device float *A [[buffer(0)]],
-                      constant uint &value [[buffer(1)]],
-                      constant uint2 &dims [[buffer(2)]],
+kernel void __full__(device float *A [[buffer(0)]],
+                      constant float &value [[buffer(1)]],
                       uint tid [[thread_position_in_grid]]) {
 
-  uint M = dims.x;
-  uint N = dims.y;
-  uint row = tid / N;
-  uint col = tid % N;
-  if (row < M && col < N) {
-    A[row * N + col] = value;
-  }
+    A[tid] = value;
 }
-kernel void init_identity(device float *A [[buffer(0)]],
+kernel void __eye__(device float *A [[buffer(0)]],
                           constant uint2 &dims [[buffer(1)]],
                           uint tid [[thread_position_in_grid]]) {
 
@@ -38,15 +25,8 @@ kernel void init_identity(device float *A [[buffer(0)]],
     A[row * n + col] = 1;
   }
 }
-kernel void init_with_zeros(device float *A [[buffer(0)]],
-                            constant uint2 &dims [[buffer(1)]],
+kernel void __zeros__(device float *A [[buffer(0)]],
                             uint tid [[thread_position_in_grid]]) {
 
-  uint M = dims.x;
-  uint N = dims.y;
-  uint row = tid / N;
-  uint col = tid % N;
-  if (row < M && col < N) {
-    A[row * N + col] = 0;
-  }
+    A[tid] = 0;
 }

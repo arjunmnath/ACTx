@@ -1,83 +1,131 @@
+#include "./broadcast.metal"
 #include <metal_stdlib>
 using namespace metal;
-kernel void add_matrix(device float *A [[buffer(0)]],
-                       device float *B [[buffer(1)]],
-                       device float *C [[buffer(2)]],
-                       constant uint2 &dims [[buffer(3)]],
-                       uint tid [[thread_position_in_grid]]) {
 
-  uint M = dims.x;
-  uint N = dims.y;
-  uint row = tid / N;
-  uint col = tid % N;
-  if (row < M && col < N) {
-    C[row * N + col] = A[row * N + col] + B[row * N + col];
-  }
+kernel void
+__add__(device float *A [[buffer(0)]], device float *B [[buffer(1)]],
+        device float *C [[buffer(2)]], constant int *lshape [[buffer(3)]],
+        constant int *rshape [[buffer(4)]], constant int *target [[buffer(5)]],
+        constant int *ranks [[buffer(6)]],
+        uint tid [[thread_position_in_grid]]) {
+  int flat_index = tid;
+  int lrank = ranks[0];
+  int rrank = ranks[1];
+  int trank = ranks[2];
+  int lindex =
+      compute_broadcast_index(flat_index, lshape, target, lrank, trank);
+  int rindex =
+      compute_broadcast_index(flat_index, rshape, target, rrank, trank);
+  C[flat_index] = A[lindex] + B[rindex];
 }
 
-kernel void subtract_matrix(device float *A [[buffer(0)]],
-                            device float *B [[buffer(1)]],
-                            device float *C [[buffer(2)]],
-                            constant uint2 &dims
-                            [[buffer(3)]], // buffer for M, N, P
-                            uint tid [[thread_position_in_grid]]) {
-
-  uint M = dims.x;
-  uint N = dims.y;
-  uint row = tid / N;
-  uint col = tid % N;
-  if (row < M && col < N) {
-    C[row * N + col] = A[row * N + col] - B[row * N + col];
-  }
+kernel void
+__sub__(device float *A [[buffer(0)]], device float *B [[buffer(1)]],
+        device float *C [[buffer(2)]], constant int *lshape [[buffer(3)]],
+        constant int *rshape [[buffer(4)]], constant int *target [[buffer(5)]],
+        constant int *ranks [[buffer(6)]],
+        uint tid [[thread_position_in_grid]]) {
+  int flat_index = tid;
+  int lrank = ranks[0];
+  int rrank = ranks[1];
+  int trank = ranks[2];
+  int lindex =
+      compute_broadcast_index(flat_index, lshape, target, lrank, trank);
+  int rindex =
+      compute_broadcast_index(flat_index, rshape, target, rrank, trank);
+  C[flat_index] = A[lindex] - B[rindex];
 }
 
-kernel void elementwise_divide_matrix(device float *A [[buffer(0)]],
-                                      device float *B [[buffer(1)]],
-                                      device float *C [[buffer(2)]],
-                                      constant uint2 &dims [[buffer(3)]],
-                                      uint tid [[thread_position_in_grid]]) {
-
-  uint M = dims.x;
-  uint N = dims.y;
-  uint row = tid / N;
-  uint col = tid % N;
-  if (row < M && col < N) {
-    C[row * N + col] = A[row * N + col] / B[row * N + col];
-  }
+kernel void
+__div__(device float *A [[buffer(0)]], device float *B [[buffer(1)]],
+        device float *C [[buffer(2)]], constant int *lshape [[buffer(3)]],
+        constant int *rshape [[buffer(4)]], constant int *target [[buffer(5)]],
+        constant int *ranks [[buffer(6)]],
+        uint tid [[thread_position_in_grid]]) {
+  int flat_index = tid;
+  int lrank = ranks[0];
+  int rrank = ranks[1];
+  int trank = ranks[2];
+  int lindex =
+      compute_broadcast_index(flat_index, lshape, target, lrank, trank);
+  int rindex =
+      compute_broadcast_index(flat_index, rshape, target, rrank, trank);
+  C[flat_index] = A[lindex] / B[rindex];
 }
 
-kernel void elementwise_multiply_matrix(device float *A [[buffer(0)]],
-                                        device float *B [[buffer(1)]],
-                                        device float *C [[buffer(2)]],
-                                        constant uint2 &dims [[buffer(3)]],
-                                        uint tid [[thread_position_in_grid]]) {
-
-  uint M = dims.x;
-  uint N = dims.y;
-  uint row = tid / N;
-  uint col = tid % N;
-  if (row < M && col < N) {
-    C[row * N + col] = A[row * N + col] * B[row * N + col];
-  }
+kernel void
+__mul__(device float *A [[buffer(0)]], device float *B [[buffer(1)]],
+        device float *C [[buffer(2)]], constant int *lshape [[buffer(3)]],
+        constant int *rshape [[buffer(4)]], constant int *target [[buffer(5)]],
+        constant int *ranks [[buffer(6)]],
+        uint tid [[thread_position_in_grid]]) {
+  int flat_index = tid;
+  int lrank = ranks[0];
+  int rrank = ranks[1];
+  int trank = ranks[2];
+  int lindex =
+      compute_broadcast_index(flat_index, lshape, target, lrank, trank);
+  int rindex =
+      compute_broadcast_index(flat_index, rshape, target, rrank, trank);
+  C[flat_index] = A[lindex] * B[rindex];
 }
 
-kernel void matrix_multiply(device float *A [[buffer(0)]],
-                            device float *B [[buffer(1)]],
-                            device float *C [[buffer(2)]],
-                            constant uint3 &dims [[buffer(3)]],
-                            uint tid [[thread_position_in_grid]]) {
+// FIX: matmul algorithm to match n dimensional tensors
+kernel void __matmul__(
+    device float *A [[buffer(0)]], device float *B [[buffer(1)]],
+    device float *C [[buffer(2)]], constant int *lshape [[buffer(3)]],
+    constant int *rshape [[buffer(4)]], constant int *target [[buffer(5)]],
+    constant int *ranks [[buffer(6)]], uint tid [[thread_position_in_grid]]) {
+  int flat_index = tid;
+  int lrank = ranks[0];
+  int rrank = ranks[1];
+  int trank = ranks[2];
+  int lindex =
+      compute_broadcast_index(flat_index, lshape, target, lrank, trank);
+  int rindex =
+      compute_broadcast_index(flat_index, rshape, target, rrank, trank);
+  C[flat_index] = A[lindex] * B[rindex];
+}
+/*
+kernel void tensor_matrix_multiply(
+    device float *A [[buffer(0)]],       // Left tensor
+    device float *B [[buffer(1)]],       // Right tensor
+    device float *C [[buffer(2)]],       // Output tensor
+    constant int *A_shape [[buffer(3)]], // Shape of left tensor
+    constant int *B_shape [[buffer(4)]], // Shape of right tensor
+    constant int *C_shape [[buffer(5)]], // Shape of output tensor
+    constant int rank [[buffer(6)]],     // Tensor rank
+    uint3 grid_pos [[thread_position_in_grid]]) {
+  // Compute global output index
+  int global_output_index = 0;
+  for (int i = 0; i < rank; i++) {
+    global_output_index += grid_pos[i] * C_shape[i];
+  }
 
-  uint M = dims.x;
-  uint N = dims.y;
-  uint P = dims.z;
-  uint row = tid / P;
-  uint col = tid % P;
+  // Initialize result
+  float result = 0.0f;
 
-  if (row < M && col < P) {
-    float sum = 0.0;
-    for (uint k = 0; k < N; k++) {
-      sum += A[row * N + k] * B[k * P + col];
+  // Hardcoded matrix multiplication for last two dimensions
+  for (int k = 0; k < A_shape[rank - 1]; k++) {
+    // Compute source indices for A and B
+    int A_index = 0, B_index = 0;
+    for (int i = 0; i < rank; i++) {
+      if (i == rank - 2) {
+        A_index += grid_pos[i] * A_shape[i];
+        B_index += grid_pos[i] * B_shape[i];
+      } else if (i == rank - 1) {
+        A_index += k;
+        B_index += k * B_shape[i];
+      } else {
+        A_index += grid_pos[i] * A_shape[i];
+        B_index += grid_pos[i] * B_shape[i];
+      }
     }
-    C[row * P + col] = sum;
+    // Multiply and accumulate
+    result += A[A_index] * B[B_index];
   }
+
+  // Store result
+  C[global_output_index] = result;
 }
+*/

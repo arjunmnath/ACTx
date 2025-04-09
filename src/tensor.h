@@ -18,16 +18,18 @@ private:
   int ndim;
   void _compte_stride();
   int _compute_offset(std::vector<int> indexes) const;
-  void throw_out_of_bound(std::vector<int> indexes) const;
-
-  Tensor _dispatch_kernel_operation(const Tensor *other,
-                                    std::string kernel_function) const;
-  Tensor _dispatch_kernel_operation_inplace(const Tensor *other,
-                                            std::string kernel_function);
+  std::vector<int> _compute_broadcast_shape(const Tensor *other) const;
 
   int _compute_broadcast_index(int flat_index,
                                const std::vector<int> &source_shape,
                                const std::vector<int> &target_shape) const;
+  void throw_out_of_bound(std::vector<int> indexes) const;
+
+  Tensor _dispatch_kernel_operation(const Tensor *other,
+                                    std::string kernel_function) const;
+
+  Tensor _dispatch_kernel_operation_inplace(const Tensor *other,
+                                            std::string kernel_function);
 
 public:
   std::vector<int> dims;
@@ -39,8 +41,6 @@ public:
          bool requires_grad = false);
 
   // TODO: put this is private
-  std::tuple<std::vector<int>, std::vector<int>, std::vector<int>>
-  _compute_broadcast_shape(const Tensor *other) const;
 
   // initialization methods
   static Tensor ones(std::vector<int> shape, std::string dtype = "float");

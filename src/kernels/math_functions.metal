@@ -1,11 +1,12 @@
+#include "./broadcast.metal"
 #include <metal_stdlib>
 using namespace metal;
 
-kernel void elementwise_pow(device float *A [[buffer(0)]],
-                            device float *B [[buffer(1)]],
-                            device float *C [[buffer(2)]],
-                            constant uint2 &dims [[buffer(3)]],
-                            uint tid [[thread_position_in_grid]]) {
+kernel void __pow__(device float *A [[buffer(0)]],
+                    device float *B [[buffer(1)]],
+                    device float *C [[buffer(2)]],
+                    constant uint2 &dims [[buffer(3)]],
+                    uint tid [[thread_position_in_grid]]) {
 
   uint M = dims.x;
   uint N = dims.y;
