@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebGPU Matrix Demo</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      textarea {
+        width: 100%;
+        height: 100px;
+        font-family: monospace;
+      }
+      button {
+        padding: 10px 15px;
+        margin: 10px 0;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+      .matrix-container {
+        display: flex;
+        justify-content: space-between;
+      }
+      .matrix {
+        width: 30%;
+      }
+      .result {
+        margin-top: 20px;
+        padding: 10px;
+        background-color: #f0f0f0;
+      }
+      #status {
+        padding: 10px;
+        margin: 10px 0;
+        background-color: #f0f0f0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>WebGPU Matrix Addition Demo</h1>
+
+    <div id="status">WebGPU Status: Initializing...</div>
+
+    <div class="matrix-container">
+      <div class="matrix">
+        <h3>Matrix A</h3>
+        <textarea id="matrixA">[[1, 2, 3], [4, 5, 6], [7, 8, 9]]</textarea>
+      </div>
+      <div class="matrix">
+        <h3>Matrix B</h3>
+        <textarea id="matrixB">[[9, 8, 7], [6, 5, 4], [3, 2, 1]]</textarea>
+      </div>
+    </div>
+
+    <button id="addButton" disabled>Add Matrices</button>
+
+    <div class="result">
+      <h3>Result:</h3>
+      <pre id="result">Initializing WebAssembly module...</pre>
+    </div>
+
+    <script type="module">
+      // Import the WebAssembly module
+      import Module from "./build/matrix.js";
+      import { MatrixWrapper, Matrix } from "./matrix.js";
+
+      // Wait for the module to initialize
+      Module()
+        .then(function (module) {
+          window.Module = module;
+          console.log("WebAssembly module loaded");
+
+          // Initialize WebGPU from C++
+          module.initializeWebGPU();
+
+          // Update status based on WebGPU availability
+          setTimeout(() => {
+            const statusElem = document.getElementById("status");
+
+            if (window.gpuDevice) {
+              statusElem.textContent =
+                "WebGPU Status: Enabled - Using GPU acceleration";
+              statusElem.style.backgroundColor = "#ccffcc";
+            } else {
+              statusElem.textContent =
+                "WebGPU Status: Disabled - Using CPU fallback";
+              statusElem.style.backgroundColor = "#ffcccc";
+            }
+
+            document.getElementById("result").textContent =
+              "Ready for matrix operations";
+            document.getElementById("addButton").disabled = false;
+          }, 500); // Give some time for async WebGPU initialization
+
+          // Set up the add button
+          document
+            .getElementById("addButton")
+            .addEventListener("click", function () {
+              try {
+                // Parse matrices from textareas
+                const matrixAInput = [
+                  [1, 2, 3],
+                  [4, 5, 6],
+                  [7, 8, 9],
+                ];
+                const matrixBInput = [
+                  [9, 8, 7],
+                  [6, 5, 4],
+                  [3, 2, 1],
+                ];
+
+                // Create matrix objects
+                const matA = Matrix(matrixAInput);
+                const matB = Matrix(matrixBInput);
+
+                // Perform addition
+                const matC = matA.add(matB);
+
+                // Display result
+                document.getElementById("result").textContent = JSON.stringify(
+                  matC.toArray(),
+                  null,
+                  2,
+                );
+
+                // Clean up
+                matA.destroy();
+                matB.destroy();
+                matC.destroy();
+              } catch (e) {
+                document.getElementById("result").textContent =
+                  "Error: " + e.message;
+                console.error("Matrix operation error:", e);
+              }
+            });
+        })
+        .catch(function (e) {
+          document.getElementById("result").textContent =
+            "Error loading WebAssembly module: " + e.message;
+          console.error("Module loading error:", e);
+        });
+    </script>
+  </body>
+</html>

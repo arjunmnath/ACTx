@@ -27,6 +27,7 @@ private:
 
   Tensor _dispatch_kernel_operation(const Tensor *other,
                                     std::string kernel_function) const;
+
   Tensor _dispatch_kernel_operation_inplace(const Tensor *other,
                                             std::string kernel_function);
 

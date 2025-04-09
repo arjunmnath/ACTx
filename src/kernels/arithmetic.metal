@@ -129,4 +129,7 @@ kernel void tensor_matrix_multiply(
   // Store result
   C[global_output_index] = result;
 }
+<<<<<<< HEAD
 */
+=======
+>>>>>>> 8b618e770f9be163373da27121b9674577bb14b4

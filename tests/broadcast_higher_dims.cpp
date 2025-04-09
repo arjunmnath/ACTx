@@ -15,6 +15,7 @@ int main() {
 
   std::vector<float> exp = {11, 21, 32, 42};
   Tensor<float> expected = Tensor<float>(exp, shape2);
-  assert(result.logical_e(&expected).all() && "Higher-dimensional broadcasting failed!");
+  assert(result.logical_e(&expected).all() &&
+         "Higher-dimensional broadcasting failed!");
   return 0;
 }

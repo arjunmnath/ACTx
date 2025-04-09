@@ -99,6 +99,14 @@ A high-performance tensor library that leverages Metal for GPU acceleration, imp
    pip install .
    ```
 
+
+### From PyPi
+
+```bash
+pip install metalgraph
+```
+
+> 🚧 Not yet deployed on pypi.
 ## Usage
 
 ### C++/Objective-C++ API
@@ -153,14 +161,7 @@ No documentation understand it yourself 🤷🏻‍♂️
 
 
 ## Contributing
-
-We welcome contributions to this project! To contribute, please fork the repository and submit a pull request with your changes. Make sure to follow the code style and add tests for new features or bug fixes.
-
-1. Fork the repository
-2. Create a new branch
-3. Make your changes
-4. Run tests to verify your changes
-5. Submit a pull request
+Contributions are welcome! Please read our [Contributions Guide](CONTRIBUTING.md) before submitting a pull request. If you encounter any issues, feel free to open an issue in the repository.
 
 ## License
 

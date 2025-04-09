@@ -24,7 +24,7 @@ jobs:
 
       - name: Run clang-format (C++/Objective-C++)
         run: |
-          clang-format -i $(find . -name '*.cpp' -or -name '*.h' -or -name '*.mm' -or -name '*.m' or -name '*.metal')
+            clang-format -i $(find . -name '*.cpp' -o -name '*.h' -o -name '*.mm' -o -name '*.m' -o -name '*.metal')
 
       # Setup for Python (Black)
       - name: Set up Python

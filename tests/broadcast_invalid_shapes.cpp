@@ -15,7 +15,7 @@ int main() {
   try {
     Tensor<float> result = tensor1.add(&tensor2, false);
     assert(false && "Incompatible shapes did not throw an error!");
-  } catch (const std::invalid_argument& e) {
+  } catch (const std::invalid_argument &e) {
     assert(true && "Incompatible shapes correctly threw an error.");
   }
   return 0;
