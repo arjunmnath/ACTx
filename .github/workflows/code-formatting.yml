@@ -37,7 +37,6 @@ jobs:
 
       - name: Run Black (Python)
         run: black .
-              
       - name: Check for changes and commit if any
         run: |
           git diff --exit-code || (
