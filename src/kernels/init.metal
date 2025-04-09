@@ -2,20 +2,19 @@
 using namespace metal;
 
 kernel void __ones__(device float *A [[buffer(0)]],
-                      uint tid [[thread_position_in_grid]]) {
+                     uint tid [[thread_position_in_grid]]) {
 
   A[tid] = 1;
-
 }
 kernel void __full__(device float *A [[buffer(0)]],
-                      constant float &value [[buffer(1)]],
-                      uint tid [[thread_position_in_grid]]) {
+                     constant float &value [[buffer(1)]],
+                     uint tid [[thread_position_in_grid]]) {
 
-    A[tid] = value;
+  A[tid] = value;
 }
 kernel void __eye__(device float *A [[buffer(0)]],
-                          constant uint2 &dims [[buffer(1)]],
-                          uint tid [[thread_position_in_grid]]) {
+                    constant uint2 &dims [[buffer(1)]],
+                    uint tid [[thread_position_in_grid]]) {
 
   uint m = dims.x;
   uint n = dims.y;
@@ -26,7 +25,7 @@ kernel void __eye__(device float *A [[buffer(0)]],
   }
 }
 kernel void __zeros__(device float *A [[buffer(0)]],
-                            uint tid [[thread_position_in_grid]]) {
+                      uint tid [[thread_position_in_grid]]) {
 
-    A[tid] = 0;
+  A[tid] = 0;
 }
