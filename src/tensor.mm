@@ -410,7 +410,7 @@ Tensor<T> Tensor<T>::div(const Tensor *other, bool inplace) {
   return inplace ? this->_dispatch_kernel_operation_inplace(other, "__div__")
                  : this->_dispatch_kernel_operation(other, "__div__");
 }
-/*
+// TODO: multiple quick fixed has be done retest this method
 template <typename T> Tensor<T> Tensor<T>::matmul(const Tensor *other) const {
   throw std::logic_error("not implemented");
   if (this->dims[1] != other->dims[0]) {
@@ -421,10 +421,9 @@ template <typename T> Tensor<T> Tensor<T>::matmul(const Tensor *other) const {
   id<MTLBuffer> result;
   result = device_mps->createEmptyBuffer<T>(this->dims[0] * other->dims[1]);
   device_mps->execute_kernel_binary("__matmul__", this->storage, other->storage,
-                                    other->storage, result, meta);
+                                    other->storage, result);
   return Tensor(result, std::vector<int>{this->dims[0], other->dims[1]});
 }
-*/
 
 template <typename T> Tensor<T> Tensor<T>::pow(float exp, bool inplace) {
   std::vector<float> e = {exp};
