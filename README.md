@@ -1,9 +1,10 @@
 # Metal Accelerated Tensor Library with Compute Graphs
 
-A high-performance tensor library that leverages Metal for GPU acceleration, implements dynamic compute graphs for automatic differentiation (autograd), and provides Python bindings for ease of use in machine learning and scientific computing. 
+> "What I cannot create, I do not understand." - Richard Feynman
 
-**Note**: This project is primarily designed for learning and educational purposes. While it is capable of performing basic tensor operations and gradient computation, it is **not intended for production-level model building**.
+Driven by this philosophy, this high-performance tensor library was built as a hands-on learning project. It leverages Metal for GPU acceleration, implements dynamic compute graphs for automatic differentiation (autograd), and provides Python bindings for ease of use in machine learning and scientific computing.
 
+**Note**:  While capable of basic tensor operations and gradient computation, this project is intended primarily for educational purposes and is **not intended for production-level model building**.
 ## Features
 
 - **GPU Acceleration**: Utilizes Metal for efficient tensor computation on macOS devices.
