@@ -1,6 +1,6 @@
 # Class Diagram
 
-![draftv1](design/draft1.svg)
+![draftv1](draft.svg)
 
 
 
