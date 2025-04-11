@@ -10,11 +10,10 @@ int main() {
 
   Tensor<float> tensor1 = Tensor<float>::ones(shape1);
   Tensor<float> tensor2 = Tensor<float>::ones(shape2);
-  Tensor<float> result = tensor1.add(&tensor2, true);
+  Tensor<float> result = tensor1.add(&tensor2, false);
   result.print_matrix();
-  /*std::vector<float> exp = {4, 6, 5, 7};*/
-  /*Tensor<float> expected = Tensor<float>(exp, shape2);*/
-  /*assert(result.logical_e(&expected).all() && "Broadcasting addition
-   * failed!");*/
+  std::vector<float> exp = {4, 6, 5, 7};
+  Tensor<float> expected = Tensor<float>(exp, shape2);
+  assert(result.logical_e(&expected).all() && "Broadcasting addition failed!");
   return 0;
 }
