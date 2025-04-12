@@ -1,6 +1,6 @@
 # Class Diagram
 
-![draftv1](draft-bg-white.svg)
+![draftv1](https://github.com/arjunmnath/MetalGraphs/blob/main/design/draft.svg)
 
 
 
