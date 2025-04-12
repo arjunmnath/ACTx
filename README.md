@@ -90,12 +90,25 @@ Driven by this philosophy, this high-performance tensor library was built as a h
    ```
 
 2. Build the C++/Objective-C++ library:
+   > Debug build
    ```bash
    cmake -DCMAKE_BUILD_TYPE=Debug -S . -B build
-   cmake --build build;
+   cmake --build build
+   ```
+   > Release build
+   ```bash
+   cmake -DCMAKE_BUILD_TYPE=Release -S . -B build
+   cmake --build build
+   ```
+   > Test build
+   ```bash
+   cmake -DCMAKE_BUILD_TYPE=Test -S . -B build
+   cmake --build build
+   cd build
+   ctest --parallel $(nproc) --progress --output-on-failure 
    ```
 
-3. Install Python bindings:
+4. Install Python bindings:
    ```bash
    pip install .
    ```
