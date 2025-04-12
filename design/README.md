@@ -375,4 +375,231 @@ Tensor C = A.add(B);  // Dispatches to CPU::add via Dispatcher → OpRegistry
 ### Conclusion:
 By incorporating optimizations like memory pooling, JIT compilation, operator fusion, advanced slicing, and thread safety improvements, the system could become much more efficient and versatile. Additionally, features like multi-device support, sparse tensor operations, and seamless cross-device computation would significantly improve the flexibility and scalability of the framework, making it more aligned with state-of-the-art tensor computation libraries.
 
+# Tensor & TensorBase Design
+
+Below is the **hybrid blueprint** combining templates for performance with an internal `DType` variable for flexibility.
+
+### Overview:
+- **Template classes** (`Tensor<T>`) for type-specific behavior and performance.
+- **Base class** (`TensorBase`) to provide a common interface for all tensor types.
+- **`DType` enum** to handle dynamic dispatch based on runtime data type.
+
+---
+
+## 1. **`DType` Enum** (Defines supported types)
+
+```cpp
+enum class DType {
+    INT8, INT16, INT32, INT64,
+    FLOAT16, FLOAT32, FLOAT64
+};
+```
+
+---
+
+## 2. **`TensorBase` Class** (Common interface for all tensor types)
+
+```cpp
+class TensorBase {
+public:
+    virtual ~TensorBase() {}
+
+    // Common interface methods
+    virtual DType dtype() const = 0; // Get the data type
+    virtual DeviceType device_type() const = 0; // Get device type (CPU, GPU, etc.)
+    virtual Layout layout() const = 0; // Get memory layout (shape, strides)
+
+    // Optional: common tensor operations (virtual)
+    virtual void add(const TensorBase& other, TensorBase& result) const = 0;
+    virtual void sub(const TensorBase& other, TensorBase& result) const = 0;
+    virtual void mul(const TensorBase& other, TensorBase& result) const = 0;
+    virtual void div(const TensorBase& other, TensorBase& result) const = 0;
+};
+```
+
+---
+
+## 3. **`Tensor<T>` Class** (Concrete class for specific types)
+
+```cpp
+template<typename T>
+class Tensor : public TensorBase {
+public:
+    Layout layout;
+    DType dtype_value = get_dtype<T>(); // Using helper to assign dtype
+    Device* device;
+    DeviceType device_type;
+    Memory<T>* storage;
+
+    // Constructor, assign dtype from template type
+    Tensor(Device* device, DeviceType dtype, Layout layout)
+        : device(device), device_type(dtype), layout(layout) {
+            // allocate memory or set up layout here
+    }
+
+    // Type-specific method implementations
+    DType dtype() const override { return dtype_value; }
+    DeviceType device_type() const override { return device_type; }
+    Layout layout() const override { return layout; }
+
+    // Specific ops on template data type
+    void add(const TensorBase& other, TensorBase& result) const override {
+        // Implement add for specific dtype
+    }
+
+    void sub(const TensorBase& other, TensorBase& result) const override {
+        // Implement sub for specific dtype
+    }
+
+    void mul(const TensorBase& other, TensorBase& result) const override {
+        // Implement mul for specific dtype
+    }
+
+    void div(const TensorBase& other, TensorBase& result) const override {
+        // Implement div for specific dtype
+    }
+
+private:
+    // Helper function to get the correct DType from template type
+    template<typename T>
+    DType get_dtype() const {
+        if constexpr (std::is_same<T, int8_t>::value) return DType::INT8;
+        else if constexpr (std::is_same<T, int16_t>::value) return DType::INT16;
+        else if constexpr (std::is_same<T, int32_t>::value) return DType::INT32;
+        else if constexpr (std::is_same<T, int64_t>::value) return DType::INT64;
+        else if constexpr (std::is_same<T, float>::value) return DType::FLOAT32;
+        else if constexpr (std::is_same<T, double>::value) return DType::FLOAT64;
+        else return DType::FLOAT32; // Default (you can expand for others)
+    }
+};
+```
+
+---
+
+## 4. **`OpRegister` Class** (For runtime operation dispatch)
+
+```cpp
+class OpRegister {
+public:
+    using Func = std::function<void(const TensorBase&, const TensorBase&, TensorBase&)>;
+
+    void register_op(const std::string& op_name, DType dtype, DeviceType device_type, Func func) {
+        op_map[op_name][dtype][device_type] = func;
+    }
+
+    Func get_op(const std::string& op_name, DType dtype, DeviceType device_type) {
+        return op_map[op_name][dtype][device_type];
+    }
+
+private:
+    std::map<std::string, std::map<DType, std::map<DeviceType, Func>>> op_map;
+};
+```
+
+### Example Operation Registration:
+
+```cpp
+OpRegister op_register;
+
+// Register a function for the add operation on CPU and FLOAT32
+op_register.register_op("add", DType::FLOAT32, DeviceType::CPU, 
+    [](const TensorBase& a, const TensorBase& b, TensorBase& result) {
+        // Perform addition (example)
+        const Tensor<float>& ta = static_cast<const Tensor<float>&>(a);
+        const Tensor<float>& tb = static_cast<const Tensor<float>&>(b);
+        Tensor<float>& tr = static_cast<Tensor<float>&>(result);
+        
+        // Element-wise add
+        tr.storage->data = ta.storage->data + tb.storage->data;
+    });
+```
+
+---
+
+## 5. **`GraphNode` Class** (For storing the computation graph)
+
+```cpp
+class GraphNode {
+public:
+    std::string op_name;
+    std::vector<TensorBase*> inputs;
+    std::vector<TensorBase*> outputs;
+
+    std::function<void()> compute; // Operation lambda
+
+    GraphNode(const std::string& name, const std::vector<TensorBase*>& in, const std::vector<TensorBase*>& out)
+        : op_name(name), inputs(in), outputs(out) {
+            for (auto* t : outputs) {
+                t->producer = this;
+            }
+        }
+
+    void execute() {
+        if (compute) compute();
+    }
+};
+```
+
+---
+
+## 6. **Graph Class** (Manage computation nodes and execution)
+
+```cpp
+class Graph {
+public:
+    std::vector<GraphNode*> nodes;
+
+    void add_node(GraphNode* node) {
+        nodes.push_back(node);
+    }
+
+    void execute() {
+        for (auto* node : nodes) {
+            node->execute();  // Run node computations in topological order
+        }
+    }
+};
+```
+
+---
+
+## 🏗️ **Example Workflow**
+
+```cpp
+// Create Tensors
+Tensor<float>* a = new Tensor<float>(device, DeviceType::CPU, Layout{2, 3});
+Tensor<float>* b = new Tensor<float>(device, DeviceType::CPU, Layout{2, 3});
+Tensor<float>* result = new Tensor<float>(device, DeviceType::CPU, Layout{2, 3});
+
+// Register operation (Add)
+OpRegister op_register;
+op_register.register_op("add", DType::FLOAT32, DeviceType::CPU, 
+    [](const TensorBase& a, const TensorBase& b, TensorBase& result) {
+        const Tensor<float>& ta = static_cast<const Tensor<float>&>(a);
+        const Tensor<float>& tb = static_cast<const Tensor<float>&>(b);
+        Tensor<float>& tr = static_cast<Tensor<float>&>(result);
+        tr.storage->data = ta.storage->data + tb.storage->data;
+    });
+
+// Create GraphNode for add
+auto node = new GraphNode("add", {a, b}, {result});
+node->compute = [=]() {
+    auto add_func = op_register.get_op("add", DType::FLOAT32, DeviceType::CPU);
+    add_func(*a, *b, *result);  // Execute add operation
+};
+
+// Create graph and add node
+Graph g;
+g.add_node(node);
+
+// Execute computation
+g.execute();
+```
+
+---
+
+## 🛠️ **Key Takeaways**
+- **Performance:** Type-specific operations (`Tensor<T>`) with compile-time safety.
+- **Flexibility:** `TensorBase*` allows handling multiple tensor types dynamically in `GraphNode` and `OpRegister`.
+- **Runtime dispatching:** `OpRegister` stores operations for each combination of `DType` and `DeviceType`, enabling seamless execution across different backends.
 
