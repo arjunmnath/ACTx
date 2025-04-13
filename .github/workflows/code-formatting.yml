@@ -3,8 +3,7 @@ name: Code Formatting Check and Commit (macOS)
 on:
   push:
     branches:
-      - main
-      - '**/feature/**'
+      - '**'
   pull_request:
 
 permissions:
@@ -39,7 +38,7 @@ jobs:
         run: black .
         
       - name: Check for changes and commit if any
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.ref != 'refs/heads/main'
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'

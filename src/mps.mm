@@ -266,4 +266,5 @@ template id<MTLBuffer> MPS::createBuffer<const uint8_t>(const uint8_t *data,
                                                         size_t size);
 template id<MTLBuffer> MPS::createBuffer<const int8_t>(const int8_t *data,
                                                        size_t size);
-template id<MTLBuffer>MPS::createBuffer<const bool>(const bool *data, size_t size);
+template id<MTLBuffer> MPS::createBuffer<const bool>(const bool *data,
+                                                     size_t size);
