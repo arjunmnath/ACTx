@@ -5,8 +5,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_OSX_ARCHITECTURES "arm64")
 
+include_directories("${CMAKE_SOURCE_DIR}/include")
 # Directories
-set(METAL_SOURCE_DIR "${CMAKE_SOURCE_DIR}/include/kernels")
+set(METAL_SOURCE_DIR "${CMAKE_SOURCE_DIR}/src/kernels")
 set(METAL_BUILD_DIR "${CMAKE_BINARY_DIR}/build")
 set(METAL_LIB_NAME "kernels.metallib")
 set(TEST_DIR "${CMAKE_SOURCE_DIR}/tests")
@@ -70,13 +71,11 @@ if(NOT FOUNDATION_FRAMEWORK OR NOT METAL_FRAMEWORK)
   message(FATAL_ERROR "Required frameworks not found!")
 endif()
 set(COMMON_LIBRARIES ${FOUNDATION_FRAMEWORK} ${METAL_FRAMEWORK})
-include_directories("${CMAKE_SOURCE_DIR}/include")
-
 # Build configurations
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Debug build selected")
-  set(SOURCE_FILES "${CMAKE_SOURCE_DIR}/include/mps.mm"
-                   "${CMAKE_SOURCE_DIR}/include/runner.cpp")
+  set(SOURCE_FILES "${CMAKE_SOURCE_DIR}/src/mps.mm"
+                   "${CMAKE_SOURCE_DIR}/src/runner.cpp")
   add_executable(out ${SOURCE_FILES})
   target_link_libraries(out PRIVATE ${COMMON_LIBRARIES})
   target_compile_options(out PRIVATE -DDEBUG_BUILD -g -O0 -ObjC++ -fobjc-arc)
@@ -87,7 +86,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Test")
   enable_testing()
   foreach(TEST_SOURCE ${TEST_SOURCES})
     get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
-    set(SOURCE_FILES "${CMAKE_SOURCE_DIR}/include/mps.mm" ${TEST_SOURCE})
+    set(SOURCE_FILES "${CMAKE_SOURCE_DIR}/src/mps.mm" ${TEST_SOURCE})
     add_executable(${TEST_NAME} ${SOURCE_FILES})
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
     target_link_libraries(${TEST_NAME} PRIVATE ${COMMON_LIBRARIES})
@@ -96,8 +95,8 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Test")
 
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
   message(STATUS "Release build selected")
-  set(SOURCE_FILES "${CMAKE_SOURCE_DIR}/include/mps.mm"
-                   "${CMAKE_SOURCE_DIR}/include/tensor.mm")
+  set(SOURCE_FILES "${CMAKE_SOURCE_DIR}/src/mps.mm"
+                   "${CMAKE_SOURCE_DIR}/src/tensor.mm")
   add_executable(out ${SOURCE_FILES})
   target_link_libraries(out PRIVATE ${COMMON_LIBRARIES})
   target_compile_options(out PRIVATE -DRELEASE_BUILD -O3 -DNDEBUG -ObjC++
