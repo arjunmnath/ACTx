@@ -37,6 +37,8 @@ public:
   Tensor(id<MTLBuffer> buffer, std::vector<int> dims,
          bool requires_grad = false);
 
+  Tensor(std::vector<float> &values, std::vector<int> dims,
+         bool requires_grad = false);
   template <typename T>
   Tensor(std::vector<T> &values, std::vector<int> dims,
          bool requires_grad = false);

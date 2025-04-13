@@ -165,6 +165,7 @@ Tensor::Tensor(std::vector<int> dims, bool requires_grad) {
   this->ndim = dims.size();
   this->storage = device_mps->createEmptyBuffer<float>(size);
   this->_compte_stride();
+  this->data_ptr = (float *)[this->storage contents];
   this->requires_grad = requires_grad;
 }
 
@@ -174,14 +175,14 @@ Tensor::Tensor(id<MTLBuffer> buffer, std::vector<int> dims,
   this->dims = dims;
   this->ndim = dims.size();
   this->_compte_stride();
+  this->data_ptr = (float *)[this->storage contents];
   this->size =
       std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
 
   this->requires_grad = requires_grad;
 }
 
-template <typename T>
-Tensor::Tensor(std::vector<T> &values, std::vector<int> dims,
+Tensor::Tensor(std::vector<float> &values, std::vector<int> dims,
                bool requires_grad) {
   if (values.size() == 0) {
     throw std::runtime_error("values expected");
@@ -189,6 +190,7 @@ Tensor::Tensor(std::vector<T> &values, std::vector<int> dims,
   this->storage = device_mps->createBuffer(values.data(), values.size());
   this->dims = dims;
   this->ndim = dims.size();
+  this->data_ptr = (float *)[this->storage contents];
   this->_compte_stride();
   this->size =
       std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
