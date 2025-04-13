@@ -18,7 +18,6 @@ private:
   std::unordered_map<std::string, id<MTLComputePipelineState>> pipelines;
   std::string name = "mps";
 
-
 public:
   MPS();
   void _init_pipeline(std::string metal_function_name);
