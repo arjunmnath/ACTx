@@ -12,7 +12,7 @@
 #include <sys/types.h>
 #include <vector>
 
-MPS *device_mps = new MPS();
+MPSHandler *device_mps = new MPSHandler();
 // TODO: use better error time;
 
 // ================================================================================================================================

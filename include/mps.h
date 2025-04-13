@@ -1,5 +1,4 @@
-#ifndef MPS_H
-#define MPS_H
+#pragma once
 
 #ifdef __OBJC__
 #import <Foundation/Foundation.h>
@@ -10,7 +9,8 @@
 #include <sys/types.h>
 #include <unordered_map>
 #include <vector>
-class MPS {
+
+class MPSHandler {
 private:
   id<MTLDevice> device;
   id<MTLLibrary> library;
@@ -18,7 +18,7 @@ private:
   std::unordered_map<std::string, id<MTLComputePipelineState>> pipelines;
 
 public:
-  MPS();
+  MPSHandler();
   void _init_pipeline(std::string metal_function_name);
   void execute_kernel_binary(std::string func, id<MTLBuffer> A, id<MTLBuffer> B,
                              id<MTLBuffer> result, id<MTLBuffer> meta);
@@ -45,5 +45,3 @@ public:
   template <typename T> id<MTLBuffer> createEmptyBuffer(int size);
   id<MTLBuffer> clone(id<MTLBuffer> buffer);
 };
-
-#endif

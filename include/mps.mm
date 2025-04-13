@@ -23,7 +23,7 @@ static NSString *getModuleDirectory() {
   }
   return nil;
 }
-MPS::MPS() {
+MPSHandler::MPSHandler() {
   NSError *error = nil;
   this->device = MTLCreateSystemDefaultDevice();
   if (!this->device) {
@@ -52,7 +52,7 @@ MPS::MPS() {
   }
 }
 
-void MPS::_init_pipeline(std::string metal_function_name) {
+void MPSHandler::_init_pipeline(std::string metal_function_name) {
   NSError *error = nil;
   id<MTLFunction> function = [this->library
       newFunctionWithName:[NSString stringWithUTF8String:metal_function_name
@@ -70,7 +70,7 @@ void MPS::_init_pipeline(std::string metal_function_name) {
   }
   pipelines[metal_function_name] = pipelineState;
 }
-void MPS::execute_kernel_unary(std::string func, id<MTLBuffer> A,
+void MPSHandler::execute_kernel_unary(std::string func, id<MTLBuffer> A,
                                id<MTLBuffer> result, id<MTLBuffer> meta) {
   std::string metal_function_name = func;
   if (!pipelines[metal_function_name]) {
@@ -103,7 +103,7 @@ void MPS::execute_kernel_unary(std::string func, id<MTLBuffer> A,
   [commandBuffer commit];
   [commandBuffer waitUntilCompleted];
 }
-void MPS::execute_kernel_init(std::string func, id<MTLBuffer> A,
+void MPSHandler::execute_kernel_init(std::string func, id<MTLBuffer> A,
                               id<MTLBuffer> meta) {
   std::string metal_function_name = func;
   if (!pipelines[metal_function_name]) {
@@ -135,7 +135,7 @@ void MPS::execute_kernel_init(std::string func, id<MTLBuffer> A,
   [commandBuffer commit];
   [commandBuffer waitUntilCompleted];
 }
-void MPS::execute_kernel_binary(std::string func, id<MTLBuffer> A,
+void MPSHandler::execute_kernel_binary(std::string func, id<MTLBuffer> A,
                                 id<MTLBuffer> B, id<MTLBuffer> result,
                                 id<MTLBuffer> meta) {
   std::string metal_function_name = func;
@@ -175,7 +175,7 @@ void MPS::execute_kernel_binary(std::string func, id<MTLBuffer> A,
   [commandBuffer waitUntilCompleted];
 }
 
-void MPS::execute_kernel_binary_with_broadcast(
+void MPSHandler::execute_kernel_binary_with_broadcast(
     std::string func, id<MTLBuffer> A, id<MTLBuffer> B, id<MTLBuffer> result,
     id<MTLBuffer> lshape, id<MTLBuffer> rshape, id<MTLBuffer> target,
     id<MTLBuffer> ranks) {
@@ -221,21 +221,21 @@ void MPS::execute_kernel_binary_with_broadcast(
 }
 
 template <typename Type>
-id<MTLBuffer> MPS::createBuffer(Type *data, size_t size) {
+id<MTLBuffer> MPSHandler::createBuffer(Type *data, size_t size) {
   id<MTLBuffer> buffer =
       [this->device newBufferWithBytes:data
                                 length:sizeof(Type) * size
                                options:MTLResourceStorageModeShared];
   return buffer;
 }
-template <typename T> id<MTLBuffer> MPS::createEmptyBuffer(int size) {
+template <typename T> id<MTLBuffer> MPSHandler::createEmptyBuffer(int size) {
   id<MTLBuffer> buffer =
       [this->device newBufferWithLength:sizeof(T) * size
                                 options:MTLResourceStorageModeShared];
   return buffer;
 }
 
-id<MTLBuffer> MPS::clone(id<MTLBuffer> buffer) {
+id<MTLBuffer> MPSHandler::clone(id<MTLBuffer> buffer) {
   NSUInteger bufferSize = buffer.length;
   id<MTLBuffer> newBuffer =
       [device newBufferWithLength:bufferSize
@@ -247,24 +247,24 @@ id<MTLBuffer> MPS::clone(id<MTLBuffer> buffer) {
 }
 
 // type definitions
-template id<MTLBuffer> MPS::createEmptyBuffer<int>(int size);
-template id<MTLBuffer> MPS::createEmptyBuffer<float>(int size);
-template id<MTLBuffer> MPS::createEmptyBuffer<uint8_t>(int size);
-template id<MTLBuffer> MPS::createEmptyBuffer<int8_t>(int size);
-template id<MTLBuffer> MPS::createEmptyBuffer<bool>(int size);
+template id<MTLBuffer> MPSHandler::createEmptyBuffer<int>(int size);
+template id<MTLBuffer> MPSHandler::createEmptyBuffer<float>(int size);
+template id<MTLBuffer> MPSHandler::createEmptyBuffer<uint8_t>(int size);
+template id<MTLBuffer> MPSHandler::createEmptyBuffer<int8_t>(int size);
+template id<MTLBuffer> MPSHandler::createEmptyBuffer<bool>(int size);
 
-template id<MTLBuffer> MPS::createBuffer<int>(int *data, size_t size);
-template id<MTLBuffer> MPS::createBuffer<float>(float *data, size_t size);
-template id<MTLBuffer> MPS::createBuffer<uint8_t>(uint8_t *data, size_t size);
-template id<MTLBuffer> MPS::createBuffer<int8_t>(int8_t *data, size_t size);
-template id<MTLBuffer> MPS::createBuffer<bool>(bool *data, size_t size);
-template id<MTLBuffer> MPS::createBuffer<int const>(int const *data,
+template id<MTLBuffer> MPSHandler::createBuffer<int>(int *data, size_t size);
+template id<MTLBuffer> MPSHandler::createBuffer<float>(float *data, size_t size);
+template id<MTLBuffer> MPSHandler::createBuffer<uint8_t>(uint8_t *data, size_t size);
+template id<MTLBuffer> MPSHandler::createBuffer<int8_t>(int8_t *data, size_t size);
+template id<MTLBuffer> MPSHandler::createBuffer<bool>(bool *data, size_t size);
+template id<MTLBuffer> MPSHandler::createBuffer<int const>(int const *data,
                                                     size_t size);
-template id<MTLBuffer> MPS::createBuffer<const float>(const float *data,
+template id<MTLBuffer> MPSHandler::createBuffer<const float>(const float *data,
                                                       size_t size);
-template id<MTLBuffer> MPS::createBuffer<const uint8_t>(const uint8_t *data,
+template id<MTLBuffer> MPSHandler::createBuffer<const uint8_t>(const uint8_t *data,
                                                         size_t size);
-template id<MTLBuffer> MPS::createBuffer<const int8_t>(const int8_t *data,
+template id<MTLBuffer> MPSHandler::createBuffer<const int8_t>(const int8_t *data,
                                                        size_t size);
-template id<MTLBuffer> MPS::createBuffer<const bool>(const bool *data,
+template id<MTLBuffer> MPSHandler::createBuffer<const bool>(const bool *data,
                                                      size_t size);
