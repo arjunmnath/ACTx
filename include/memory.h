@@ -11,8 +11,8 @@ private:
     DeviceType _type;
 
 public:
-    void aquire_lock();
+    void acquire_lock();
     void release_lock();
-    void guared_lock();
+    void guarded_lock();
 };
 
