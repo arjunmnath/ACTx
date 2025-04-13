@@ -1,5 +1,4 @@
-#ifndef TENSOR_H
-#define TENSOR_H
+#pragma once
 
 #include <tuple>
 #ifdef __OBJC__
@@ -9,11 +8,11 @@
 #include <Metal/Metal.h>
 #include <sys/types.h>
 #include <vector>
-template <typename T> class Tensor {
+class Tensor {
 private:
   id<MTLBuffer> storage;
   std::vector<int> stride;
-  T *data_ptr;
+  float *data_ptr;
   bool requires_grad;
   int ndim;
   void _compte_stride();
@@ -37,18 +36,20 @@ public:
   Tensor(std::vector<int> dims, bool requires_grad = false);
   Tensor(id<MTLBuffer> buffer, std::vector<int> dims,
          bool requires_grad = false);
+
+  template <typename T>
   Tensor(std::vector<T> &values, std::vector<int> dims,
          bool requires_grad = false);
-
-  // TODO: put this is private
 
   // initialization methods
   static Tensor ones(std::vector<int> shape, std::string dtype = "float");
   static Tensor zeros(std::vector<int> shape, std::string dtype = "float");
   static Tensor eye(int n, std::string dtype = "float");
   static Tensor empty(std::vector<int> shape, std::string dtype = "float");
+
+  template <typename T>
   static Tensor full(std::vector<int> shape, T n, std::string dtype = "float");
-  static Tensor clone(Tensor<T> *other, std::string dtype = "float");
+  static Tensor clone(Tensor *other, std::string dtype = "float");
   static Tensor rand(std::vector<int> shape, std::string dtype = "float");
   static Tensor randn(std::vector<int> shape, std::string dtype = "float");
   static Tensor normal(std::vector<int> shape, float mean = 0, float stddev = 1,
@@ -61,7 +62,7 @@ public:
   // getters & setters
   std::vector<int> strides();
   template <typename... Args> double getElement(Args... indexes) const;
-  template <typename... Args> void setElement(T value, Args... indexes);
+  template <typename... Args> void setElement(float value, Args... indexes);
 
   // arithmetic operators
   Tensor add(const Tensor *other, bool inplace);
@@ -95,4 +96,3 @@ public:
   void print() const;
   void print_matrix() const;
 };
-#endif

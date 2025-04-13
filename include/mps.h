@@ -4,21 +4,23 @@
 #import <Foundation/Foundation.h>
 #endif
 
+#include "device.h"
 #include <Metal/Metal.h>
 #include <string>
 #include <sys/types.h>
 #include <unordered_map>
 #include <vector>
-
-class MPSHandler {
+class MPS : Device {
 private:
   id<MTLDevice> device;
   id<MTLLibrary> library;
   id<MTLCommandQueue> commandQueue;
   std::unordered_map<std::string, id<MTLComputePipelineState>> pipelines;
+  std::string name = "mps";
+
 
 public:
-  MPSHandler();
+  MPS();
   void _init_pipeline(std::string metal_function_name);
   void execute_kernel_binary(std::string func, id<MTLBuffer> A, id<MTLBuffer> B,
                              id<MTLBuffer> result, id<MTLBuffer> meta);
