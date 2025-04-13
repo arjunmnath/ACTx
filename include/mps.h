@@ -1,21 +1,23 @@
-#ifndef MPS_H
-#define MPS_H
+#pragma once
 
 #ifdef __OBJC__
 #import <Foundation/Foundation.h>
 #endif
 
+#include "device.h"
 #include <Metal/Metal.h>
 #include <string>
 #include <sys/types.h>
 #include <unordered_map>
 #include <vector>
-class MPS {
+class MPS : Device {
 private:
   id<MTLDevice> device;
   id<MTLLibrary> library;
   id<MTLCommandQueue> commandQueue;
   std::unordered_map<std::string, id<MTLComputePipelineState>> pipelines;
+  std::string name = "mps";
+
 
 public:
   MPS();
@@ -45,5 +47,3 @@ public:
   template <typename T> id<MTLBuffer> createEmptyBuffer(int size);
   id<MTLBuffer> clone(id<MTLBuffer> buffer);
 };
-
-#endif

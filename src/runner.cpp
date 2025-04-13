@@ -8,10 +8,10 @@ int main() {
   std::vector<int> shape1 = {3, 4};
   std::vector<int> shape2 = {1};
 
-  Tensor<float> tensor1 = Tensor<float>::ones(shape1);
-  Tensor<float> tensor2 = Tensor<float>::ones(shape2);
+  Tensor tensor1 = Tensor::ones(shape1);
+  Tensor tensor2 = Tensor::ones(shape2);
   tensor2.print_matrix();
-  Tensor<float> result = tensor1.add(&tensor2, false);
+  Tensor result = tensor1.add(&tensor2, false);
   result.print_matrix();
   return 0;
 }
