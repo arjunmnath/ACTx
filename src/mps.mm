@@ -231,7 +231,6 @@ id<MTLBuffer> MPS::createBuffer(Type *data, size_t size) {
 }
 id<MTLBuffer> MPS::createEmptyBuffer(int size, DType type) {
 
-    
   id<MTLBuffer> buffer =
       [this->device newBufferWithLength:sizeof(T) * size
                                 options:MTLResourceStorageModeShared];
