@@ -1,4 +1,4 @@
-#include "tensor.mm"
+#include "tensor.h"
 #include <Foundation/Foundation.h>
 #include <cassert>
 #include <vector>
@@ -9,11 +9,11 @@ int main() {
   std::vector<int> shape1 = {3};
   std::vector<int> shape2 = {2};
 
-  Tensor<float> tensor1 = Tensor<float>(data1, shape1);
-  Tensor<float> tensor2 = Tensor<float>(data2, shape2);
+  Tensor tensor1 = Tensor(data1, shape1);
+  Tensor tensor2 = Tensor(data2, shape2);
 
   try {
-    Tensor<float> result = tensor1.add(&tensor2, false);
+    Tensor result = tensor1.add(&tensor2, false);
     assert(false && "Incompatible shapes did not throw an error!");
   } catch (const std::invalid_argument &e) {
     assert(true && "Incompatible shapes correctly threw an error.");

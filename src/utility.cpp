@@ -1,3 +1,6 @@
+#include "utility.h"
+#include "types.h"
+#include <cstdint>
 #include <iostream>
 #include <random>
 
@@ -27,7 +30,7 @@ bool operator==(const std::vector<T> &lhs, const std::vector<T> &rhs) {
 
   return true;
 }
-template <typename T> T __rand(int seed = -1) {
+template <typename T> T __rand(int seed) {
   if (-1 == seed) {
     std::random_device rd;
     seed = rd();
@@ -37,8 +40,7 @@ template <typename T> T __rand(int seed = -1) {
   return static_cast<T>(uniform_dist(gen));
 }
 
-template <typename T>
-T __randn(float mean = 0, float stddev = 1, int seed = -1) {
+template <typename T> T __randn(float mean, float stddev, int seed) {
   if (-1 == seed) {
     std::random_device rd;
     seed = rd();
@@ -47,7 +49,7 @@ T __randn(float mean = 0, float stddev = 1, int seed = -1) {
   std::normal_distribution<T> normal(mean, stddev);
   return static_cast<T>(normal(gen));
 }
-int __randint(int min, int max, int seed = -1) {
+int __randint(int min, int max, int seed) {
   if (-1 == seed) {
     std::random_device rd;
     seed = rd();
@@ -57,7 +59,7 @@ int __randint(int min, int max, int seed = -1) {
   return int_dist(gen);
 }
 
-template <typename T> int __poisson(T p, int seed = -1) {
+template <typename T> int __poisson(T p, int seed) {
   if (-1 == seed) {
     std::random_device rd;
     seed = rd();
@@ -67,7 +69,7 @@ template <typename T> int __poisson(T p, int seed = -1) {
   return poisson(gen);
 }
 
-template <typename T> int __bernoulli(T p, int seed = -1) {
+template <typename T> int __bernoulli(T p, int seed) {
   if (-1 == seed) {
     std::random_device rd;
     seed = rd();
@@ -75,4 +77,28 @@ template <typename T> int __bernoulli(T p, int seed = -1) {
   std::mt19937 gen(seed);
   std::bernoulli_distribution dist(p);
   return dist(gen);
+}
+
+int getDTypeSize(DType type) {
+  switch (type) {
+  case DType::int8:
+    return 1;
+    break;
+  case DType::float16:
+  case DType::int16:
+    return 2;
+    break;
+
+  case DType::float32:
+  case DType::int32:
+    return 4;
+    break;
+  case DType::float64:
+  case DType::int64:
+    return 8;
+    break;
+  default:
+    throw std::invalid_argument("not implemented");
+    break;
+  }
 }

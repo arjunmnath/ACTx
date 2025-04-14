@@ -10,7 +10,7 @@ private:
   std::string _name;
 
 public:
-  Memory<DeviceType> alloc();
+  Memory alloc();
   void sync();
   std::string name() { return this->_name; }
 

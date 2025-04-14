@@ -1,4 +1,4 @@
-#include "tensor.mm"
+#include "tensor.h"
 #include <Foundation/Foundation.h>
 #include <cassert>
 #include <vector>
@@ -9,11 +9,11 @@ void test_matmul_shape_mismatch() {
   std::vector<int> shape1 = {2, 2};
   std::vector<int> shape2 = {3, 1};
 
-  Tensor<float> tensor1 = Tensor<float>(data1, shape1);
-  Tensor<float> tensor2 = Tensor<float>(data2, shape2);
+  Tensor tensor1 = Tensor(data1, shape1);
+  Tensor tensor2 = Tensor(data2, shape2);
 
   try {
-    Tensor<float> result = tensor1.matmul(&tensor2);
+    Tensor result = tensor1.matmul(&tensor2);
     assert(false && "Matrix multiplication with mismatched shapes should throw "
                     "an exception");
   } catch (const std::runtime_error &e) {
@@ -27,11 +27,11 @@ void test_matmul_operations() {
   std::vector<int> shape1 = {2, 2};
   std::vector<int> shape2 = {1, 2};
 
-  Tensor<float> tensor1 = Tensor<float>(data1, shape1);
-  Tensor<float> tensor2 = Tensor<float>(data2, shape2);
+  Tensor tensor1 = Tensor(data1, shape1);
+  Tensor tensor2 = Tensor(data2, shape2);
 
   try {
-    Tensor<float> result = tensor1.add(&tensor2, false);
+    Tensor result = tensor1.add(&tensor2, false);
     assert(false && "Shape mismatch should throw an exception");
   } catch (const std::runtime_error &e) {
     assert(true && "Caught expected shape mismatch exception");

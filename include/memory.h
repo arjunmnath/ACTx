@@ -1,13 +1,39 @@
 #pragma once
 
+#ifdef __OBJC__
+#import <Foundation/Foundation.h>
+#endif
+
 #include "device_type.h"
+#include <Metal/Metal.h>
 #include <mutex>
 #include <string>
-template <typename T> class Memory {
+/*#include <webgpu/webgpu.h>*/
+
+union Storage {
+  id<MTLBuffer> metal;
+  void *cpu;
+  Storage() {}
+  ~Storage() {}
+};
+class Memory {
 private:
-  T memory;
+  Storage *memory;
   std::mutex _lock;
   DeviceType _type;
+  Memory(DeviceType type) {
+    this->_type = type;
+    switch (type) {
+    case DeviceType::MPS:
+      memory = new Storage;
+      // TODO: memory assignment logic pending
+      break;
+    case DeviceType::CPU:
+      break;
+    case DeviceType::WEBGPU:
+      break;
+    }
+  }
 
 public:
   void acquire_lock();
