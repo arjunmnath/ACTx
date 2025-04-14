@@ -1,5 +1,6 @@
 #pragma once
 
+#include "types.h"
 #ifdef __OBJC__
 #import <Foundation/Foundation.h>
 #endif
@@ -43,6 +44,6 @@ public:
   void print_buffer_contents(std::vector<id<MTLBuffer>> buffers,
                              std::vector<int> stride);
   template <typename Type> id<MTLBuffer> createBuffer(Type *data, size_t size);
-  template <typename T> id<MTLBuffer> createEmptyBuffer(int size);
+  id<MTLBuffer> createEmptyBuffer(int size, DType type);
   id<MTLBuffer> clone(id<MTLBuffer> buffer);
 };

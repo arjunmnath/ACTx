@@ -1,4 +1,5 @@
 #include "mps.h"
+#include "types.h"
 #import <Foundation/Foundation.h>
 #include <Metal/Metal.h>
 #include <cassert>
@@ -228,7 +229,9 @@ id<MTLBuffer> MPS::createBuffer(Type *data, size_t size) {
                                options:MTLResourceStorageModeShared];
   return buffer;
 }
-template <typename T> id<MTLBuffer> MPS::createEmptyBuffer(int size) {
+id<MTLBuffer> MPS::createEmptyBuffer(int size, DType type) {
+
+    
   id<MTLBuffer> buffer =
       [this->device newBufferWithLength:sizeof(T) * size
                                 options:MTLResourceStorageModeShared];
@@ -245,26 +248,3 @@ id<MTLBuffer> MPS::clone(id<MTLBuffer> buffer) {
   memcpy(newData, originalData, bufferSize);
   return newBuffer;
 }
-
-// type definitions
-template id<MTLBuffer> MPS::createEmptyBuffer<int>(int size);
-template id<MTLBuffer> MPS::createEmptyBuffer<float>(int size);
-template id<MTLBuffer> MPS::createEmptyBuffer<uint8_t>(int size);
-template id<MTLBuffer> MPS::createEmptyBuffer<int8_t>(int size);
-template id<MTLBuffer> MPS::createEmptyBuffer<bool>(int size);
-
-template id<MTLBuffer> MPS::createBuffer<int>(int *data, size_t size);
-template id<MTLBuffer> MPS::createBuffer<float>(float *data, size_t size);
-template id<MTLBuffer> MPS::createBuffer<uint8_t>(uint8_t *data, size_t size);
-template id<MTLBuffer> MPS::createBuffer<int8_t>(int8_t *data, size_t size);
-template id<MTLBuffer> MPS::createBuffer<bool>(bool *data, size_t size);
-template id<MTLBuffer> MPS::createBuffer<int const>(int const *data,
-                                                    size_t size);
-template id<MTLBuffer> MPS::createBuffer<const float>(const float *data,
-                                                      size_t size);
-template id<MTLBuffer> MPS::createBuffer<const uint8_t>(const uint8_t *data,
-                                                        size_t size);
-template id<MTLBuffer> MPS::createBuffer<const int8_t>(const int8_t *data,
-                                                       size_t size);
-template id<MTLBuffer> MPS::createBuffer<const bool>(const bool *data,
-                                                     size_t size);
