@@ -406,7 +406,6 @@ Tensor Tensor::matmul(const Tensor *other) const {
   std::vector<int> m = {this->dims[0], this->dims[1], other->dims[1]};
   id<MTLBuffer> meta = device_mps->createBuffer(m.data(), 3, this->dtype);
   id<MTLBuffer> result;
-  // TODO: fix fixed float
   result = device_mps->createEmptyBuffer(this->dims[0] * other->dims[1],
                                          this->dtype);
   device_mps->execute_kernel_binary("__matmul__", this->storage, other->storage,
