@@ -1,4 +1,0 @@
-/Users/arjunmnath/dev/MetalGraphs/CMakeFiles/compile_metal.dir
-/Users/arjunmnath/dev/MetalGraphs/CMakeFiles/out.dir
-/Users/arjunmnath/dev/MetalGraphs/CMakeFiles/edit_cache.dir
-/Users/arjunmnath/dev/MetalGraphs/CMakeFiles/rebuild_cache.dir
