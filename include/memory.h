@@ -26,7 +26,7 @@ private:
     switch (type) {
     case DeviceType::MPS:
       memory = new Storage;
-      memory->metal = ;
+      // TODO: memory assignment logic pending
       break;
     case DeviceType::CPU:
       break;

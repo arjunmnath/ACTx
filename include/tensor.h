@@ -1,5 +1,6 @@
 #pragma once
 
+#include "types.h"
 #include <tuple>
 #ifdef __OBJC__
 #import <Foundation/Foundation.h>
@@ -14,6 +15,7 @@ private:
   std::vector<int> stride;
   float *data_ptr;
   bool requires_grad;
+  DType dtype;
   int ndim;
   void _compte_stride();
   int _compute_offset(std::vector<int> indexes) const;
@@ -44,22 +46,22 @@ public:
          bool requires_grad = false);
 
   // initialization methods
-  static Tensor ones(std::vector<int> shape, std::string dtype = "float");
-  static Tensor zeros(std::vector<int> shape, std::string dtype = "float");
-  static Tensor eye(int n, std::string dtype = "float");
-  static Tensor empty(std::vector<int> shape, std::string dtype = "float");
+  static Tensor ones(std::vector<int> shape, DType dtype = DType::float32);
+  static Tensor zeros(std::vector<int> shape, DType dtype = DType::float32);
+  static Tensor eye(int n, DType dtype = DType::float32);
+  static Tensor empty(std::vector<int> shape, DType dtype = DType::float32);
 
   template <typename T>
-  static Tensor full(std::vector<int> shape, T n, std::string dtype = "float");
-  static Tensor clone(Tensor *other, std::string dtype = "float");
-  static Tensor rand(std::vector<int> shape, std::string dtype = "float");
-  static Tensor randn(std::vector<int> shape, std::string dtype = "float");
+  static Tensor full(std::vector<int> shape, T n, DType dtype = DType::float32);
+  static Tensor clone(Tensor *other);
+  static Tensor rand(std::vector<int> shape, DType dtype);
+  static Tensor randn(std::vector<int> shape, DType dtype = DType::float32);
   static Tensor normal(std::vector<int> shape, float mean = 0, float stddev = 1,
-                       std::string dtype = "float");
+                       DType dtype = DType::float32);
   static Tensor randint(std::vector<int> shape, int min, int max,
-                        std::string dtype = "float");
-  static Tensor poission(Tensor &other, std::string dtype = "float");
-  static Tensor bernoulli(Tensor &other, std::string dtype = "float");
+                        DType dtype = DType::float32);
+  static Tensor poission(Tensor &other, DType dtype = DType::float32);
+  static Tensor bernoulli(Tensor &other, DType dtype = DType::float32);
 
   // getters & setters
   std::vector<int> strides();

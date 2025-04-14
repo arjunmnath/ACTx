@@ -65,7 +65,6 @@ int main() {
   test_float64();
   test_int64();
   test_invalid_type();
-
   std::cout << "All tests passed!" << std::endl;
 
   return 0;
