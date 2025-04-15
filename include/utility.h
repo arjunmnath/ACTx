@@ -20,6 +20,6 @@ float __randn(float mean = 0, float stddev = 1, int seed = -1);
 int __randint(int min, int max, int seed = -1);
 int __poisson(void *p, int seed = -1);
 
-int __bernoulli(void *p, int seed = -1);
+int __bernoulli(float p, int seed = -1);
 
 int getDTypeSize(DType type);
