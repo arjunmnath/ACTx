@@ -4,6 +4,7 @@
 #include <iostream>
 #include <random>
 
+// TODO: FIX THE HARD CODED TYPE MANAGEMENT IN bernoulli poisson etc
 template <typename T>
 std::ostream &operator<<(std::ostream &os, const std::vector<T> &vec) {
   os << "[";
@@ -40,7 +41,7 @@ float __rand(int seed) {
   return static_cast<float>(uniform_dist(gen));
 }
 
-float  __randn(float mean, float stddev, int seed) {
+float __randn(float mean, float stddev, int seed) {
   if (-1 == seed) {
     std::random_device rd;
     seed = rd();
@@ -59,23 +60,23 @@ int __randint(int min, int max, int seed) {
   return int_dist(gen);
 }
 
-int __poisson(void * p, int seed) {
+int __poisson(void *p, int seed) {
   if (-1 == seed) {
     std::random_device rd;
     seed = rd();
   }
   std::mt19937 gen(seed);
-  std::poisson_distribution<int> poisson(*static_cast<float*>(p));
+  std::poisson_distribution<int> poisson(*static_cast<float *>(p));
   return poisson(gen);
 }
 
-int __bernoulli(void * p, int seed) {
+int __bernoulli(void *p, int seed) {
   if (-1 == seed) {
     std::random_device rd;
     seed = rd();
   }
   std::mt19937 gen(seed);
-    std::bernoulli_distribution dist(*static_cast<float*>(p));
+  std::bernoulli_distribution dist(*static_cast<float *>(p));
   return dist(gen);
 }
 
