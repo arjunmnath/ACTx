@@ -50,7 +50,7 @@ void test_int64() {
 void test_invalid_type() {
   try {
     int result = getDTypeSize(static_cast<DType>(999));
-    assert(false && "Division by invalid DType should throw an exception");
+    assert(false && "Invalid DType should throw an exception");
   } catch (const std::invalid_argument &e) {
     assert(true && "Caught expected exception for invalid DType");
   }

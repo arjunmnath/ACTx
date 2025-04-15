@@ -17,5 +17,4 @@ int main() {
   Tensor expected = Tensor(exp, shape);
   assert(result.logical_e(&expected).all() && "Addition failed!");
   return 0;
-
 }
