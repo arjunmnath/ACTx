@@ -60,23 +60,23 @@ int __randint(int min, int max, int seed) {
   return int_dist(gen);
 }
 
-int __poisson(void *p, int seed) {
+int __poisson(float mean, int seed) {
   if (-1 == seed) {
     std::random_device rd;
     seed = rd();
   }
   std::mt19937 gen(seed);
-  std::poisson_distribution<int> poisson(*static_cast<float *>(p));
+  std::poisson_distribution<int> poisson(mean);
   return poisson(gen);
 }
 
-int __bernoulli(void *p, int seed) {
+int __bernoulli(float p, int seed) {
   if (-1 == seed) {
     std::random_device rd;
     seed = rd();
   }
   std::mt19937 gen(seed);
-  std::bernoulli_distribution dist(*static_cast<float *>(p));
+  std::bernoulli_distribution dist(p);
   return dist(gen);
 }
 

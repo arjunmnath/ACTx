@@ -335,7 +335,7 @@ Tensor Tensor::poission(Tensor &other, DType dtype) {
   std::vector<float> data(size, 0);
   for (int i = 0; i < size; i++) {
     // TODO: fix this concrete tempalte type
-    data[i] = __poisson(&other.data_ptr[i]);
+    data[i] = __poisson(other.data_ptr[i]);
   }
   id<MTLBuffer> result = device_mps->createBuffer(data.data(), size, dtype);
   return Tensor(result, other.dims);
@@ -347,7 +347,7 @@ Tensor Tensor::bernoulli(Tensor &other, DType dtype) {
   std::vector<float> data(size, 0);
   for (int i = 0; i < size; i++) {
     // TODO: fix this concrete tempalte type
-    data[i] = __bernoulli(&other.data_ptr[i]);
+    data[i] = __bernoulli(other.data_ptr[i]);
   }
   id<MTLBuffer> result = device_mps->createBuffer(data.data(), size, dtype);
   return Tensor(result, other.dims);
