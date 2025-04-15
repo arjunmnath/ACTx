@@ -4,6 +4,7 @@
 #include <iostream>
 #include <random>
 
+// TODO: FIX THE HARD CODED TYPE MANAGEMENT IN bernoulli poisson etc
 template <typename T>
 std::ostream &operator<<(std::ostream &os, const std::vector<T> &vec) {
   os << "[";
@@ -30,24 +31,24 @@ bool operator==(const std::vector<T> &lhs, const std::vector<T> &rhs) {
 
   return true;
 }
-template <typename T> T __rand(int seed) {
+float __rand(int seed) {
   if (-1 == seed) {
     std::random_device rd;
     seed = rd();
   }
   std::mt19937 gen(seed);
-  std::uniform_real_distribution<T> uniform_dist(0, 1);
-  return static_cast<T>(uniform_dist(gen));
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+  return static_cast<float>(uniform_dist(gen));
 }
 
-template <typename T> T __randn(float mean, float stddev, int seed) {
+float __randn(float mean, float stddev, int seed) {
   if (-1 == seed) {
     std::random_device rd;
     seed = rd();
   }
   std::mt19937 gen(seed);
-  std::normal_distribution<T> normal(mean, stddev);
-  return static_cast<T>(normal(gen));
+  std::normal_distribution<float> normal(mean, stddev);
+  return static_cast<float>(normal(gen));
 }
 int __randint(int min, int max, int seed) {
   if (-1 == seed) {
@@ -59,17 +60,17 @@ int __randint(int min, int max, int seed) {
   return int_dist(gen);
 }
 
-template <typename T> int __poisson(T p, int seed) {
+int __poisson(float mean, int seed) {
   if (-1 == seed) {
     std::random_device rd;
     seed = rd();
   }
   std::mt19937 gen(seed);
-  std::poisson_distribution<int> poisson(p);
+  std::poisson_distribution<int> poisson(mean);
   return poisson(gen);
 }
 
-template <typename T> int __bernoulli(T p, int seed) {
+int __bernoulli(float p, int seed) {
   if (-1 == seed) {
     std::random_device rd;
     seed = rd();

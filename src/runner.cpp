@@ -1,4 +1,4 @@
-#include "tensor.mm"
+#include "tensor.h"
 #include <Foundation/Foundation.h>
 #include <cassert>
 #include <iostream>
