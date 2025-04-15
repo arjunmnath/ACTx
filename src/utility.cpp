@@ -30,24 +30,24 @@ bool operator==(const std::vector<T> &lhs, const std::vector<T> &rhs) {
 
   return true;
 }
-template <typename T> T __rand(int seed) {
+float __rand(int seed) {
   if (-1 == seed) {
     std::random_device rd;
     seed = rd();
   }
   std::mt19937 gen(seed);
-  std::uniform_real_distribution<T> uniform_dist(0, 1);
-  return static_cast<T>(uniform_dist(gen));
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+  return static_cast<float>(uniform_dist(gen));
 }
 
-template <typename T> T __randn(float mean, float stddev, int seed) {
+float  __randn(float mean, float stddev, int seed) {
   if (-1 == seed) {
     std::random_device rd;
     seed = rd();
   }
   std::mt19937 gen(seed);
-  std::normal_distribution<T> normal(mean, stddev);
-  return static_cast<T>(normal(gen));
+  std::normal_distribution<float> normal(mean, stddev);
+  return static_cast<float>(normal(gen));
 }
 int __randint(int min, int max, int seed) {
   if (-1 == seed) {
@@ -59,23 +59,23 @@ int __randint(int min, int max, int seed) {
   return int_dist(gen);
 }
 
-template <typename T> int __poisson(T p, int seed) {
+int __poisson(void * p, int seed) {
   if (-1 == seed) {
     std::random_device rd;
     seed = rd();
   }
   std::mt19937 gen(seed);
-  std::poisson_distribution<int> poisson(p);
+  std::poisson_distribution<int> poisson(*static_cast<float*>(p));
   return poisson(gen);
 }
 
-template <typename T> int __bernoulli(T p, int seed) {
+int __bernoulli(void * p, int seed) {
   if (-1 == seed) {
     std::random_device rd;
     seed = rd();
   }
   std::mt19937 gen(seed);
-  std::bernoulli_distribution dist(p);
+    std::bernoulli_distribution dist(*static_cast<float*>(p));
   return dist(gen);
 }
 

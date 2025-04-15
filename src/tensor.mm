@@ -1,7 +1,7 @@
 #include "tensor.h"
 #include "mps.h"
 #include "types.h"
-#include "utility.cpp"
+#include "utility.h"
 #include <MacTypes.h>
 #include <Metal/Metal.h>
 #include <cassert>
@@ -283,7 +283,7 @@ Tensor Tensor::rand(std::vector<int> shape, DType dtype) {
       std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
   std::vector<float> data(size, 0);
   for (int i = 0; i < size; i++) {
-    data[i] = __rand<float>();
+    data[i] = __rand();
   }
   id<MTLBuffer> result = device_mps->createBuffer(data.data(), size, dtype);
   return Tensor(result, shape);
@@ -296,7 +296,7 @@ Tensor Tensor::randn(std::vector<int> shape, DType dtype) {
       std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
   std::vector<float> data(size, 0);
   for (int i = 0; i < size; i++) {
-    data[i] = __randn<float>();
+    data[i] = __randn();
   }
   id<MTLBuffer> result = device_mps->createBuffer(data.data(), size, dtype);
   return Tensor(result, shape);
@@ -310,7 +310,7 @@ Tensor Tensor::normal(std::vector<int> shape, float mean, float stddev,
       std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
   std::vector<float> data(size, 0);
   for (int i = 0; i < size; i++) {
-    data[i] = __randn<float>(mean, stddev);
+    data[i] = __randn(mean, stddev);
   }
   id<MTLBuffer> result = device_mps->createBuffer(data.data(), size, dtype);
   return Tensor(result, shape);
@@ -335,7 +335,8 @@ Tensor Tensor::poission(Tensor &other, DType dtype) {
   int size = other.size;
   std::vector<float> data(size, 0);
   for (int i = 0; i < size; i++) {
-    data[i] = __poisson(other.data_ptr[i]);
+    // TODO: fix this concrete tempalte type
+    data[i] = __poisson(&other.data_ptr[i]);
   }
   id<MTLBuffer> result = device_mps->createBuffer(data.data(), size, dtype);
   return Tensor(result, other.dims);
@@ -346,7 +347,8 @@ Tensor Tensor::bernoulli(Tensor &other, DType dtype) {
   int size = other.size;
   std::vector<float> data(size, 0);
   for (int i = 0; i < size; i++) {
-    data[i] = __bernoulli(other.data_ptr[i]);
+    // TODO: fix this concrete tempalte type
+    data[i] = __bernoulli(&other.data_ptr[i]);
   }
   id<MTLBuffer> result = device_mps->createBuffer(data.data(), size, dtype);
   return Tensor(result, other.dims);

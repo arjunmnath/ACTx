@@ -15,6 +15,29 @@ set(TEST_DIR "${CMAKE_SOURCE_DIR}/tests")
 # Files
 file(GLOB METAL_SOURCES "${METAL_SOURCE_DIR}/*.metal")
 file(GLOB TEST_SOURCES "${TEST_DIR}/*.cpp")
+file(GLOB ALL_SOURCES "${CMAKE_SOURCE_DIR}/src/*.cpp"
+     "${CMAKE_SOURCE_DIR}/src/*.mm")
+
+# command source files
+set(COMMAN_SOURCES ${ALL_SOURCES})
+list(REMOVE_ITEM COMMAN_SOURCES "${CMAKE_SOURCE_DIR}/src/runner.cpp"
+     "${CMAKE_SOURCE_DIR}/src/wrapper.cpp")
+# DEBUG and RELEASE specific sources
+set(DEBUG_SOURCES "")
+foreach(source ${COMMAN_SOURCES})
+  list(APPEND DEBUG_SOURCES ${source})
+endforeach()
+list(APPEND DEBUG_SOURCES "${CMAKE_SOURCE_DIR}/src/runner.cpp")
+
+set(RELEASE_SOURCES "")
+foreach(source ${COMMAN_SOURCES})
+  list(APPEND RELEASE_SOURCES ${source})
+endforeach()
+list(APPEND RELEASE_SOURCES "${CMAKE_SOURCE_DIR}/src/wrapper.cpp")
+
+message(STATUS "Filtered COMMAND SOURCES: ${COMMAN_SOURCES}")
+message(STATUS "DEBUG specific sources: ${DEBUG_SOURCES}")
+message(STATUS "RELEASE specific sources: ${RELEASE_SOURCES}")
 
 # Ensure build directory exists
 file(MAKE_DIRECTORY ${METAL_BUILD_DIR})
@@ -74,9 +97,9 @@ set(COMMON_LIBRARIES ${FOUNDATION_FRAMEWORK} ${METAL_FRAMEWORK})
 # Build configurations
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Debug build selected")
-  set(SOURCE_FILES "${CMAKE_SOURCE_DIR}/src/mps.mm"
-                   "${CMAKE_SOURCE_DIR}/src/runner.cpp")
-  add_executable(out ${SOURCE_FILES})
+  # set(SOURCE_FILES "${CMAKE_SOURCE_DIR}/src/mps.mm"
+                   # "${CMAKE_SOURCE_DIR}/src/runner.cpp")
+    add_executable(out ${DEBUG_SOURCES})
   target_link_libraries(out PRIVATE ${COMMON_LIBRARIES})
   target_compile_options(out PRIVATE -DDEBUG_BUILD -g -O0 -ObjC++ -fobjc-arc)
 
@@ -86,7 +109,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Test")
   enable_testing()
   foreach(TEST_SOURCE ${TEST_SOURCES})
     get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
-    set(SOURCE_FILES "${CMAKE_SOURCE_DIR}/src/mps.mm" ${TEST_SOURCE})
+        set(SOURCE_FILES ${COMMAN_SOURCES} ${TEST_SOURCE})
     add_executable(${TEST_NAME} ${SOURCE_FILES})
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
     target_link_libraries(${TEST_NAME} PRIVATE ${COMMON_LIBRARIES})
@@ -95,10 +118,12 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Test")
 
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
   message(STATUS "Release build selected")
-  set(SOURCE_FILES "${CMAKE_SOURCE_DIR}/src/mps.mm"
-                   "${CMAKE_SOURCE_DIR}/src/tensor.mm")
-  add_executable(out ${SOURCE_FILES})
+  # set(SOURCE_FILES "${CMAKE_SOURCE_DIR}/src/mps.mm"
+  # "${CMAKE_SOURCE_DIR}/src/tensor.mm") TODO: ADD The python.h reference
+  add_executable(out ${RELEASE_SOURCES})
   target_link_libraries(out PRIVATE ${COMMON_LIBRARIES})
+  target_compile_options(out PRIVATE -DRELEASE_BUILD -O3 -DNDEBUG -ObjC++
+                                     -fobjc-arc)
   target_compile_options(out PRIVATE -DRELEASE_BUILD -O3 -DNDEBUG -ObjC++
                                      -fobjc-arc)
 endif()
