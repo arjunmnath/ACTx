@@ -43,6 +43,7 @@ public:
   std::vector<id<MTLBuffer>> __dummy_data();
   void print_buffer_contents(std::vector<id<MTLBuffer>> buffers,
                              std::vector<int> stride);
+
   id<MTLBuffer> createBuffer(void *data, size_t size, DType type);
   id<MTLBuffer> createEmptyBuffer(int size, DType type);
   id<MTLBuffer> clone(id<MTLBuffer> buffer);

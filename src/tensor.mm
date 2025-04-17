@@ -1,4 +1,5 @@
 #include "tensor.h"
+#include "memory.h"
 #include "mps.h"
 #include "types.h"
 #include "utility.h"
