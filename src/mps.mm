@@ -16,6 +16,7 @@
 #include <unistd.h>
 #include <unordered_map>
 #include <vector>
+
 static NSString *getModuleDirectory() {
   Dl_info info;
   if (dladdr((void *)&getModuleDirectory, &info) != 0 && info.dli_fname) {

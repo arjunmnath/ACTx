@@ -1,5 +1,6 @@
 #include "tensor.h"
 #include "mps.h"
+#include "memory.h"
 #include "types.h"
 #include "utility.h"
 #include <MacTypes.h>

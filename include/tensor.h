@@ -9,6 +9,7 @@
 #include <Metal/Metal.h>
 #include <sys/types.h>
 #include <vector>
+
 class Tensor {
 private:
   id<MTLBuffer> storage;
