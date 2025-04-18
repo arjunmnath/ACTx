@@ -1,5 +1,6 @@
 
 #pragma once
+#include "tensor.h"
 #include "types.h"
 #include <cstdint>
 #include <iostream>
@@ -16,5 +17,5 @@ float __randn(float mean = 0, float stddev = 1, int seed = -1);
 int __randint(int min, int max, int seed = -1);
 int __poisson(float mean, int seed = -1);
 int __bernoulli(float p, int seed = -1);
-
+std::vector<int> compute_broadcast_shape(const Tensor &a, const Tensor &b);
 int getDTypeSize(DType type);

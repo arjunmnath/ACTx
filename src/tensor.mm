@@ -81,33 +81,6 @@ int Tensor::_compute_broadcast_index(
   return source_index;
 }
 
-std::vector<int> Tensor::_compute_broadcast_shape(const Tensor *other) const {
-  int max_rank = std::max(other->dims.size(), this->dims.size());
-
-  std::vector<int> rev_shape1 = this->dims;
-  std::vector<int> rev_shape2 = other->dims;
-
-  std::reverse(rev_shape1.begin(), rev_shape1.end());
-  std::reverse(rev_shape2.begin(), rev_shape2.end());
-
-  rev_shape1.resize(max_rank, 1);
-  rev_shape2.resize(max_rank, 1);
-
-  std::vector<int> result(max_rank);
-
-  int dim1, dim2;
-  for (int i = 0; i < max_rank; i++) {
-    dim1 = rev_shape1[i];
-    dim2 = rev_shape2[i];
-    if (dim1 == dim2 || dim1 == 1 || dim2 == 1) {
-      result[i] = std::max(dim1, dim2);
-    } else {
-      throw std::invalid_argument("Shapes not broadcastable");
-    }
-  }
-  std::reverse(result.begin(), result.end());
-  return result;
-}
 // ================================================================================================================================
 
 void Tensor::throw_out_of_bound(std::vector<int> indexes) const {
@@ -120,6 +93,7 @@ void Tensor::throw_out_of_bound(std::vector<int> indexes) const {
 // ================================================================================================================================
 //  KERNEL DISPATCHES
 // ================================================================================================================================
+/*
 Tensor Tensor::_dispatch_kernel_operation(const Tensor *other,
                                           std::string kernel_function) const {
 
@@ -170,6 +144,7 @@ Tensor Tensor::_dispatch_kernel_operation_inplace(const Tensor *other,
   this->dims = result_shape;
   return *this;
 }
+*/
 // ================================================================================================================================
 // CONSTRUCTORS
 // ================================================================================================================================

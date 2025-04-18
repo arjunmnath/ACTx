@@ -1,4 +1,6 @@
 #include "mps.h"
+#include "device_type.h"
+#include "main.h"
 #include "types.h"
 #include "utility.h"
 #import <Foundation/Foundation.h>
@@ -246,4 +248,77 @@ id<MTLBuffer> MPS::clone(id<MTLBuffer> buffer) {
   void *newData = newBuffer.contents;
   memcpy(newData, originalData, bufferSize);
   return newBuffer;
+}
+
+void MPS::copy_vector_to_buffer(void *ptr, Memory &memory, int buffer_size) {
+  memcpy([memory.storage->metal contents], ptr, buffer_size);
+}
+
+void MPS::initiate_dispatch_broadcastable(std::string kernel_method,
+                                          const Tensor &a, const Tensor &b,
+                                          Tensor &result) {
+
+  if (a.device != DeviceType::MPS || b.device != DeviceType::MPS ||
+      result.device != DeviceType::MPS) {
+    throw std::runtime_error("All the tensor must live in Metal Buffers");
+  }
+  auto result_shape = compute_broadcast_shape(a, b);
+  std::shared_ptr<Memory> lshape =
+      pool->request_memory(DeviceType::MPS, a.dims.size(), a.dtype);
+  this->copy_vector_to_buffer((void *)a.dims.data(), *lshape,
+                              a.dims.size() * getDTypeSize(a.dtype));
+
+  std::shared_ptr<Memory> rshape =
+      pool->request_memory(DeviceType::MPS, b.dims.size(), b.dtype);
+  this->copy_vector_to_buffer((void *)b.dims.data(), *rshape,
+                              b.dims.size() * getDTypeSize(b.dtype));
+
+  std::shared_ptr<Memory> target =
+      pool->request_memory(DeviceType::MPS, result_shape.size(), a.dtype);
+  this->copy_vector_to_buffer((void *)result_shape.data(), *target,
+                              result_shape.size() * getDTypeSize(a.dtype));
+
+  std::vector<int> _ranks = {static_cast<int>(a.dims.size()),
+                             static_cast<int>(b.dims.size()),
+                             static_cast<int>(result_shape.size())};
+
+  std::shared_ptr<Memory> ranks =
+      pool->request_memory(DeviceType::MPS, _ranks.size(), DType::float32);
+  this->copy_vector_to_buffer((void *)_ranks.data(), *ranks,
+                              result_shape.size() *
+                                  getDTypeSize(DType::float32));
+
+  this->execute_kernel_binary_with_broadcast(
+      kernel_method, a.memory.storage->metal, b.memory.storage->metal,
+      result.memory.storage->metal,
+      *reinterpret_cast<id<MTLBuffer> __strong *>(&lshape->storage->metal),
+      *reinterpret_cast<id<MTLBuffer> __strong *>(&rshape->storage->metal),
+      *reinterpret_cast<id<MTLBuffer> __strong *>(&target->storage->metal),
+      *reinterpret_cast<id<MTLBuffer> __strong *>(&ranks->storage->metal));
+
+  pool->return_memory(lshape);
+  pool->return_memory(rshape);
+  pool->return_memory(target);
+  pool->return_memory(ranks);
+}
+
+void MPS::add(const Tensor &a, const Tensor &b, Tensor &result) {
+  this->initiate_dispatch_broadcastable("__add__", a, b, result);
+};
+
+void MPS::sub(const Tensor &a, const Tensor &b, Tensor &result) {
+  this->initiate_dispatch_broadcastable("__sub__", a, b, result);
+};
+void MPS::mul(const Tensor &a, const Tensor &b, Tensor &result) {
+  this->initiate_dispatch_broadcastable("__mul__", a, b, result);
+};
+void MPS::div(const Tensor &a, const Tensor &b, Tensor &result) {
+  this->initiate_dispatch_broadcastable("__div__", a, b, result);
+};
+void MPS::matmul(const Tensor &a, const Tensor &b, Tensor &result) {
+  throw std::logic_error("not implemented");
+  this->initiate_dispatch_broadcastable("__matmul__", a, b, result);
+};
+void MPS::pow(const Tensor &a, const Tensor &b, Tensor &result) {
+  // this->initiate_dispatch("__pow__", a, b, result);
 }

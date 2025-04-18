@@ -10,17 +10,14 @@ private:
   std::string _name;
 
 public:
-  Memory alloc();
-  void sync();
+  virtual void sync() = 0;
   std::string name() { return this->_name; }
-
-  Tensor add(const Tensor *other, bool inplace);
-
-  Tensor sub(const Tensor *other, bool inplace);
-  Tensor mul(const Tensor *other, bool inplace);
-  Tensor div(const Tensor *other, bool inplace);
-  Tensor matmul(const Tensor *other) const;
-  Tensor pow(float exp, bool inplace);
+  virtual void add(const Tensor &a, const Tensor &b, Tensor &result) = 0;
+  virtual void sub(const Tensor &a, const Tensor &b, Tensor &result) = 0;
+  virtual void mul(const Tensor &a, const Tensor &b, Tensor &result) = 0;
+  virtual void div(const Tensor &a, const Tensor &b, Tensor &result) = 0;
+  virtual void matmul(const Tensor &a, const Tensor &b, Tensor &result) = 0;
+  virtual void pow(const Tensor &a, const Tensor &b, Tensor &result) = 0;
 
   // Comparison operators
   Tensor logical_e(const Tensor *other) const;

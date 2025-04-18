@@ -40,6 +40,9 @@ public:
   void execute_kernel_init(std::string func, id<MTLBuffer> A,
                            id<MTLBuffer> meta);
 
+  void initiate_dispatch_broadcastable(std::string kernel_method,
+                                       const Tensor &a, const Tensor &b,
+                                       Tensor &result);
   std::vector<id<MTLBuffer>> __dummy_data();
   void print_buffer_contents(std::vector<id<MTLBuffer>> buffers,
                              std::vector<int> stride);
@@ -47,4 +50,13 @@ public:
   id<MTLBuffer> createBuffer(void *data, size_t size, DType type);
   id<MTLBuffer> createEmptyBuffer(int size, DType type);
   id<MTLBuffer> clone(id<MTLBuffer> buffer);
+  void sync() override;
+  void copy_vector_to_buffer(void *ptr, Memory &memory, int buffer_size);
+
+  void add(const Tensor &a, const Tensor &b, Tensor &result) override;
+  void sub(const Tensor &a, const Tensor &b, Tensor &result) override;
+  void mul(const Tensor &a, const Tensor &b, Tensor &result) override;
+  void div(const Tensor &a, const Tensor &b, Tensor &result) override;
+  void matmul(const Tensor &a, const Tensor &b, Tensor &result) override;
+  void pow(const Tensor &a, const Tensor &b, Tensor &result) override;
 };

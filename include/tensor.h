@@ -1,5 +1,6 @@
 #pragma once
 
+#include "memory.h"
 #include "types.h"
 #include <tuple>
 #ifdef __OBJC__
@@ -16,11 +17,9 @@ private:
   std::vector<int> stride;
   float *data_ptr;
   bool requires_grad;
-  DType dtype;
   int ndim;
   void _compte_stride();
   int _compute_offset(std::vector<int> indexes) const;
-  std::vector<int> _compute_broadcast_shape(const Tensor *other) const;
 
   int _compute_broadcast_index(int flat_index,
                                const std::vector<int> &source_shape,
@@ -35,7 +34,10 @@ private:
 
 public:
   std::vector<int> dims;
+  DType dtype;
   int size;
+  DeviceType device;
+  Memory memory;
   Tensor(std::vector<int> dims, bool requires_grad = false);
   Tensor(id<MTLBuffer> buffer, std::vector<int> dims,
          bool requires_grad = false);
