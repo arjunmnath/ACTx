@@ -19,7 +19,7 @@ std::shared_ptr<Memory> MemoryPool::request_memory(DeviceType device, int size,
       this->find_suitable_block(required_block_size);
   if (nullptr == suitable_block) {
     std::shared_ptr<Memory> memory =
-        std::make_shared<Memory>(device, size, dtype);
+        std::make_shared<Memory>(device, required_block_size, dtype);
     this->used_pool.insert(memory);
     return memory;
   }
@@ -32,7 +32,7 @@ std::shared_ptr<Memory> MemoryPool::find_suitable_block(int requested) {
   auto it = std::upper_bound(this->available_pool.begin(),
                              this->available_pool.end(), requested,
                              [](int size, const std::shared_ptr<Memory> &mem) {
-                               return size < mem->size;
+                               return size <= mem->size;
                              });
 
   if (it == this->available_pool.end()) {
