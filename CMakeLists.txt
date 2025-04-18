@@ -109,10 +109,17 @@ set(COMMON_LIBRARIES ${FOUNDATION_FRAMEWORK} ${METAL_FRAMEWORK})
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Debug build selected")
   add_executable(out ${DEBUG_SOURCES})
-  target_link_libraries(out PRIVATE ${COMMON_LIBRARIES})
-  target_compile_options(out PRIVATE -DDEBUG_BUILD -g -O0 -ObjC++ -fobjc-arc
-                                     -Wno-unused-command-line-argument)
+  target_compile_options(
+    out
+    PRIVATE -DDEBUG_BUILD
+            -g
+            -O0
+            -ObjC++
+            -fobjc-arc
+            -fsanitize=address
+            -Wno-unused-command-line-argument)
 
+  target_link_libraries(out PRIVATE ${COMMON_LIBRARIES} -fsanitize=address)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Test")
   enable_testing()
   set(SOURCE_FILES ${COMMAN_SOURCES} ${TEST_SOURCES})
@@ -120,8 +127,10 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Test")
   message(STATUS "Test BUILD SOURCES: ${SOURCE_FILES}")
   add_executable(AllTests ${SOURCE_FILES})
   target_link_libraries(AllTests PRIVATE ${COMMON_LIBRARIES} gtest_main)
-  target_compile_options(AllTests PRIVATE -DTEST_BUILD -O0 -g -ObjC++
-                                          -Wno-unused-command-line-argument)
+  target_compile_options(
+    AllTests PRIVATE -DTEST_BUILD -O0 -g -ObjC++ -fsanitize=address
+                     -Wno-unused-command-line-argument)
+  target_link_libraries(AllTests PRIVATE -fsanitize=address)
   include(GoogleTest)
   gtest_discover_tests(AllTests)
 
@@ -130,8 +139,6 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
   # TODO: ADD The python.h reference
   add_executable(out ${RELEASE_SOURCES})
   target_link_libraries(out PRIVATE ${COMMON_LIBRARIES})
-  target_compile_options(out PRIVATE -DRELEASE_BUILD -O3 -DNDEBUG -ObjC++
-                                     -fobjc-arc)
   target_compile_options(out PRIVATE -DRELEASE_BUILD -O3 -DNDEBUG -ObjC++
                                      -fobjc-arc)
 endif()

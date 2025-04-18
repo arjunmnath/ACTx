@@ -21,12 +21,22 @@ MPS *device_mps = new MPS();
 // ================================================================================================================================
 void Tensor::_compte_stride() {
   /*strides[i] = (j=i+1 ∏ len(dims) - 1){shape[j]}*/
+  if (this->ndim == 0 || this->dims.empty()) {
+    throw std::runtime_error("dims and ndim not initialized properly.");
+  }
+
+  assert(this->dims.size() == this->ndim &&
+         "Mismatch between 'ndim' and 'dims' size");
   int value = 1;
+  this->stride.clear();
   this->stride.push_back(value);
+  assert(this->dims.size() == this->ndim);
+
   for (uint i = this->ndim - 1; i > 0; i--) {
     value *= this->dims[i];
-    this->stride.insert(this->stride.begin(), value);
+    this->stride.push_back(value);
   }
+  std::reverse(this->stride.begin(), this->stride.end());
 }
 
 int Tensor::_compute_offset(std::vector<int> indexes) const {
