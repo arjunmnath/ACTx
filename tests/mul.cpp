@@ -14,6 +14,6 @@ TEST(TensorMultiplication, MultiplicationWorks) {
   std::vector<float> expected_data = {2, 6, 12, 20};
   Tensor expected(expected_data, shape);
 
-  EXPECT_TRUE(result.logical_e(&expected).all()) << "Tensor multiplication failed";
+  EXPECT_TRUE(result.logical_e(&expected).all())
+      << "Tensor multiplication failed";
 }
-

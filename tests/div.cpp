@@ -1,7 +1,7 @@
 #include "tensor.h"
 #include <gtest/gtest.h>
-#include <vector>
 #include <stdexcept>
+#include <vector>
 
 TEST(TensorDivion, DivisionOperationWorks) {
   std::vector<float> data1 = {10, 20, 30, 40};
@@ -26,7 +26,5 @@ TEST(TensorDivion, DivisionByZeroThrows) {
   Tensor tensor1(data1, shape);
   Tensor tensor2(data2, shape);
 
-  EXPECT_THROW({
-    tensor1.div(&tensor2, false);
-  }, std::runtime_error);
+  EXPECT_THROW({ tensor1.div(&tensor2, false); }, std::runtime_error);
 }

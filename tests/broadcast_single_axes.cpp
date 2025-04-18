@@ -15,5 +15,6 @@ TEST(TensorBroadcastSingleAxes, SingleAxisBroadcastingAddition) {
   std::vector<float> expected_data = {11, 12, 13};
   Tensor expected(expected_data, shape1);
 
-  EXPECT_TRUE(result.logical_e(&expected).all()) << "Single-axis broadcasting failed";
+  EXPECT_TRUE(result.logical_e(&expected).all())
+      << "Single-axis broadcasting failed";
 }

@@ -12,9 +12,10 @@ TEST(TensorBroadcastScalar, ScalarBroadcastingAddition) {
   Tensor tensor2(data2, shape2);
 
   Tensor result = tensor1.add(&tensor2, false);
-  
+
   std::vector<float> expected_data = {11, 12, 13, 14};
   Tensor expected(expected_data, shape2);
 
-  EXPECT_TRUE(result.logical_e(&expected).all()) << "Scalar broadcasting failed";
+  EXPECT_TRUE(result.logical_e(&expected).all())
+      << "Scalar broadcasting failed";
 }
