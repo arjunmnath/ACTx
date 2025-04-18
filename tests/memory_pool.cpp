@@ -1,11 +1,11 @@
 #include "memory_pool.h"
 #include "memory.h"
 #include "types.h"
+
 #include <gtest/gtest.h>
 #include <memory>
 
-
-TEST(MemoryPoolTest, RequestAndReturnMemory) {
+TEST(MemoryPool, RequestAndReturnMemory) {
   MemoryPool pool;
 
   auto mem1 = pool.request_memory(DeviceType::MPS, 1024, DType::float32);
@@ -19,7 +19,7 @@ TEST(MemoryPoolTest, RequestAndReturnMemory) {
   EXPECT_EQ(mem2, mem1);
 }
 
-TEST(MemoryPoolTest, FindSuitableBlock) {
+TEST(MemoryPool, FindSuitableBlock) {
   MemoryPool pool;
 
   auto mem1 = pool.request_memory(DeviceType::MPS, 2048, DType::float32);
@@ -30,8 +30,7 @@ TEST(MemoryPoolTest, FindSuitableBlock) {
   EXPECT_EQ(found, mem1);
 }
 
-
-TEST(MemoryPoolTest, MultipleBlocksAndReuse) {
+TEST(MemoryPool, MultipleBlocksAndReuse) {
   MemoryPool pool;
 
   auto m1 = pool.request_memory(DeviceType::MPS, 1024, DType::float32);
@@ -48,15 +47,13 @@ TEST(MemoryPoolTest, MultipleBlocksAndReuse) {
   EXPECT_NE(r1, r2);
 }
 
-
-TEST(MemoryPoolTest, NoSuitableBlock) {
+TEST(MemoryPool, NoSuitableBlock) {
   MemoryPool pool;
   auto found = pool.find_suitable_block(4096);
   EXPECT_EQ(found, nullptr);
 }
 
-
-TEST(MemoryPoolTest, NonPowerOfTwoSizes) {
+TEST(MemoryPool, NonPowerOfTwoSizes) {
   MemoryPool pool;
 
   auto mem1 = pool.request_memory(DeviceType::MPS, 11, DType::float32);
