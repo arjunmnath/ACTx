@@ -2,9 +2,8 @@
 #include "dispather.h"
 #include "gtest
 
-
 Tensor make_tensor(std::vector<float> data, std::vector<size_t> shape = {1}) {
-  Tensor t(data, shape, DType::float32); 
+  Tensor t(data, shape, DType::float32);
   return t;
 }
 
@@ -74,8 +73,8 @@ TEST(DispatcherTest, MatMulOperationMPS) {
 
   dispatcher.call(OPType::MATMUL, DeviceType::MPS, a, b, result);
 
-  EXPECT_FLOAT_EQ(result.data()[0], 19.0f); 
-  EXPECT_FLOAT_EQ(result.data()[1], 22.0f); 
-  EXPECT_FLOAT_EQ(result.data()[2], 43.0f); 
-  EXPECT_FLOAT_EQ(result.data()[3], 50.0f); 
+  EXPECT_FLOAT_EQ(result.data()[0], 19.0f);
+  EXPECT_FLOAT_EQ(result.data()[1], 22.0f);
+  EXPECT_FLOAT_EQ(result.data()[2], 43.0f);
+  EXPECT_FLOAT_EQ(result.data()[3], 50.0f);
 }
