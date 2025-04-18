@@ -9,7 +9,7 @@ int MemoryPool::_compute_pool_size(int requested_size) {
    * requested_size(11): 1011 -> 4 (block_size: 16)
    * requested_size(32): 100000 -> 5 (block_size: 32)
    */
-  return ceil(log2(requested_size));
+  return pow(2, ceil(log2(requested_size)));
 }
 
 std::shared_ptr<Memory> MemoryPool::request_memory(DeviceType device, int size,
