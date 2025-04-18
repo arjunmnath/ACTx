@@ -23,9 +23,13 @@ private:
   void *data_ptr;
   std::mutex _lock;
   DeviceType _type;
-  Memory(DeviceType type, int size, DType dtype = DType::float32);
 
 public:
+  int size;
+  DType dtype;
+  Memory(DeviceType type, int size, DType dtype = DType::float32);
+
+  bool operator<(const Memory &other) const { return size < other.size; }
   void acquire_lock();
   void release_lock();
   void guarded_lock();
