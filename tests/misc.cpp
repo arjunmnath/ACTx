@@ -1,25 +1,18 @@
+
 #include "tensor.h"
-#include <Foundation/Foundation.h>
-#include <cassert>
+#include <gtest/gtest.h>
+#include <stdexcept>
 #include <vector>
 
-void test_empty_tensor() {
+TEST(TensorTest, EmptyTensorThrows) {
   std::vector<float> data1 = {};
   std::vector<float> data2 = {};
   std::vector<int> shape = {};
 
-  try {
-    Tensor tensor1 = Tensor(data1, shape);
-    Tensor tensor2 = Tensor(data2, shape);
-
-    assert(false && "empty tensor created was allowed");
-  } catch (const std::runtime_error &e) {
-
-    assert(true && "ok");
-  }
-}
-
-int main() {
-  test_empty_tensor();
-  return 0;
+  EXPECT_THROW(
+      {
+        Tensor tensor1(data1, shape);
+        Tensor tensor2(data2, shape);
+      },
+      std::runtime_error);
 }

@@ -3,9 +3,20 @@ project(MetalGraphs LANGUAGES CXX OBJCXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_OSX_ARCHITECTURES "arm64")
+cmake_policy(SET CMP0135 NEW)
+
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+      DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+FetchContent_MakeAvailable(googletest)
 
 include_directories("${CMAKE_SOURCE_DIR}/include")
+include_directories(${gtest_SOURCE_DIR}/googletest/include)
+
 # Directories
 set(METAL_SOURCE_DIR "${CMAKE_SOURCE_DIR}/src/kernels")
 set(METAL_BUILD_DIR "${CMAKE_BINARY_DIR}/build")
@@ -97,29 +108,26 @@ set(COMMON_LIBRARIES ${FOUNDATION_FRAMEWORK} ${METAL_FRAMEWORK})
 # Build configurations
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Debug build selected")
-  # set(SOURCE_FILES "${CMAKE_SOURCE_DIR}/src/mps.mm"
-                   # "${CMAKE_SOURCE_DIR}/src/runner.cpp")
-    add_executable(out ${DEBUG_SOURCES})
+  add_executable(out ${DEBUG_SOURCES})
   target_link_libraries(out PRIVATE ${COMMON_LIBRARIES})
-  target_compile_options(out PRIVATE -DDEBUG_BUILD -g -O0 -ObjC++ -fobjc-arc)
+  target_compile_options(out PRIVATE -DDEBUG_BUILD -g -O0 -ObjC++ -fobjc-arc
+                                     -Wno-unused-command-line-argument)
 
 elseif(CMAKE_BUILD_TYPE STREQUAL "Test")
-  message(STATUS "Test build selected")
-  message(STATUS ${TEST_SOURCES})
   enable_testing()
-  foreach(TEST_SOURCE ${TEST_SOURCES})
-    get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
-        set(SOURCE_FILES ${COMMAN_SOURCES} ${TEST_SOURCE})
-    add_executable(${TEST_NAME} ${SOURCE_FILES})
-    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
-    target_link_libraries(${TEST_NAME} PRIVATE ${COMMON_LIBRARIES})
-    target_compile_options(${TEST_NAME} PRIVATE -DTEST_BUILD -g -O2 -ObjC++)
-  endforeach()
+  set(SOURCE_FILES ${COMMAN_SOURCES} ${TEST_SOURCES})
+  message(STATUS "Test build selected")
+  message(STATUS "Test BUILD SOURCES: ${SOURCE_FILES}")
+  add_executable(AllTests ${SOURCE_FILES})
+  target_link_libraries(AllTests PRIVATE ${COMMON_LIBRARIES} gtest_main)
+  target_compile_options(AllTests PRIVATE -DTEST_BUILD -O0 -g -ObjC++
+                                          -Wno-unused-command-line-argument)
+  include(GoogleTest)
+  gtest_discover_tests(AllTests)
 
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
   message(STATUS "Release build selected")
-  # set(SOURCE_FILES "${CMAKE_SOURCE_DIR}/src/mps.mm"
-  # "${CMAKE_SOURCE_DIR}/src/tensor.mm") TODO: ADD The python.h reference
+  # TODO: ADD The python.h reference
   add_executable(out ${RELEASE_SOURCES})
   target_link_libraries(out PRIVATE ${COMMON_LIBRARIES})
   target_compile_options(out PRIVATE -DRELEASE_BUILD -O3 -DNDEBUG -ObjC++

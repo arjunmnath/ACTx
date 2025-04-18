@@ -3,18 +3,18 @@
 #include "memory.h"
 #include "types.h"
 #include <memory>
-#include <unordered_map>
+#include <set>
 #include <vector>
-
-typedef struct {
-  Memory memory;
-  uint32 size;
-} MemoryItem;
 
 class MemoryPool {
 private:
-  std::vector<MemoryItem> pool;
+  std::multiset<std::shared_ptr<Memory>> available_pool;
+  std::multiset<std::shared_ptr<Memory>> used_pool;
+  int _compute_pool_size(int requested_size);
 
 public:
-  std::shared_ptr<Memory> requestMemoryFromPool();
+  std::shared_ptr<Memory> request_memory(DeviceType device, int size,
+                                         DType dtype);
+  std::shared_ptr<Memory> find_suitable_block(int requested);
+  void return_memory(std::shared_ptr<Memory> memory);
 };

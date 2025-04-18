@@ -1,20 +1,19 @@
 #include "tensor.h"
-#include <Foundation/Foundation.h>
-#include <cassert>
+#include <gtest/gtest.h>
 #include <vector>
 
-int main() {
+TEST(TensorMultiplication, MultiplicationWorks) {
   std::vector<float> data1 = {1, 2, 3, 4};
   std::vector<float> data2 = {2, 3, 4, 5};
   std::vector<int> shape = {2, 2};
 
-  Tensor tensor1 = Tensor(data1, shape);
-  Tensor tensor2 = Tensor(data2, shape);
+  Tensor tensor1(data1, shape);
+  Tensor tensor2(data2, shape);
 
   Tensor result = tensor1.mul(&tensor2, false);
-  std::vector<float> exp = {2, 6, 12, 20};
+  std::vector<float> expected_data = {2, 6, 12, 20};
+  Tensor expected(expected_data, shape);
 
-  Tensor expected = Tensor(exp, shape);
-  assert(result.logical_e(&expected).all() && "Addition failed!");
-  return 0;
+  EXPECT_TRUE(result.logical_e(&expected).all())
+      << "Tensor multiplication failed";
 }

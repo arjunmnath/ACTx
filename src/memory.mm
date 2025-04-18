@@ -3,6 +3,8 @@
 
 Memory::Memory(DeviceType type, int size, DType dtype) {
   this->_type = type;
+  this->size = size;
+  this->dtype = dtype;
   switch (type) {
   case DeviceType::MPS:
     this->memory = new Storage;

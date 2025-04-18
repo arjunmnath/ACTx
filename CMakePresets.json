@@ -1,0 +1,39 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 19
+  },
+  "configurePresets": [
+    {
+      "name": "debug",
+      "displayName": "Debug Build",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release Build",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true
+      }
+    },
+    {
+      "name": "test",
+      "displayName": "Test Build",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Test",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true
+      }
+    }
+  ]
+}

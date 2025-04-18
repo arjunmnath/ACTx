@@ -1,46 +1,32 @@
 #include "tensor.h"
-#include <Foundation/Foundation.h>
-#include <cassert>
+#include <gtest/gtest.h>
+#include <stdexcept>
 #include <vector>
 
-void test_matmul_shape_mismatch() {
+/*
+TEST(TensorTest, MatmulShapeMismatchThrows) {
   std::vector<float> data1 = {1, 2, 3, 4};
   std::vector<float> data2 = {5, 6, 7, 8};
   std::vector<int> shape1 = {2, 2};
   std::vector<int> shape2 = {3, 1};
 
-  Tensor tensor1 = Tensor(data1, shape1);
-  Tensor tensor2 = Tensor(data2, shape2);
+  Tensor tensor1(data1, shape1);
+  Tensor tensor2(data2, shape2);
 
-  try {
-    Tensor result = tensor1.matmul(&tensor2);
-    assert(false && "Matrix multiplication with mismatched shapes should throw "
-                    "an exception");
-  } catch (const std::runtime_error &e) {
-    assert(true && "Caught expected shape mismatch exception for matmul");
-  }
+  EXPECT_THROW({
+    tensor1.matmul(&tensor2);
+  }, std::runtime_error);
 }
+*/
 
-void test_matmul_operations() {
+TEST(TensorShape, BroadcastAddOperationValid) {
   std::vector<float> data1 = {1, 2, 3, 4};
   std::vector<float> data2 = {5, 6};
   std::vector<int> shape1 = {2, 2};
   std::vector<int> shape2 = {1, 2};
 
-  Tensor tensor1 = Tensor(data1, shape1);
-  Tensor tensor2 = Tensor(data2, shape2);
+  Tensor tensor1(data1, shape1);
+  Tensor tensor2(data2, shape2);
 
-  try {
-    Tensor result = tensor1.add(&tensor2, false);
-    assert(true && "Tensor addition should be possible as shapes follow "
-                   "broadcasting rules");
-  } catch (const std::runtime_error &e) {
-    assert(false && "Case is a valid broadcast opeartion");
-  }
-}
-
-int main() {
-  test_matmul_operations();
-  /*test_matmul_shape_mismatch();*/
-  return 0;
+  EXPECT_NO_THROW({ tensor1.add(&tensor2, false); });
 }
