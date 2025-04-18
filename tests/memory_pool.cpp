@@ -54,20 +54,17 @@ void test_no_suitable_block() {
   assert(found == nullptr);
 }
 
-
-
-
 void test_non_power_of_two_sizes() {
   MemoryPool pool;
 
   auto mem1 = pool.request_memory(DeviceType::MPS, 11, DType::float32);
   assert(mem1 != nullptr);
-  assert(mem1->size >= 11);  
+  assert(mem1->size >= 11);
 
   pool.return_memory(mem1);
 
   auto mem2 = pool.request_memory(DeviceType::MPS, 13, DType::float32);
-  assert(mem2 == mem1);  
+  assert(mem2 == mem1);
 
   auto mem3 = pool.request_memory(DeviceType::MPS, 33, DType::float32);
   assert(mem3 != nullptr);
