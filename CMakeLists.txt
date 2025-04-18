@@ -97,11 +97,10 @@ set(COMMON_LIBRARIES ${FOUNDATION_FRAMEWORK} ${METAL_FRAMEWORK})
 # Build configurations
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Debug build selected")
-  # set(SOURCE_FILES "${CMAKE_SOURCE_DIR}/src/mps.mm"
-  # "${CMAKE_SOURCE_DIR}/src/runner.cpp")
   add_executable(out ${DEBUG_SOURCES})
   target_link_libraries(out PRIVATE ${COMMON_LIBRARIES})
-  target_compile_options(out PRIVATE -DDEBUG_BUILD -g -O0 -ObjC++ -fobjc-arc)
+  target_compile_options(out PRIVATE -DDEBUG_BUILD -g -O0 -ObjC++ -fobjc-arc
+                                     -Wno-unused-command-line-argument)
 
 elseif(CMAKE_BUILD_TYPE STREQUAL "Test")
   message(STATUS "Test build selected")
@@ -109,11 +108,13 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Test")
   enable_testing()
   foreach(TEST_SOURCE ${TEST_SOURCES})
     get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
-    set(SOURCE_FILES ${} ${TEST_SOURCE})
+    set(SOURCE_FILES ${COMMAN_SOURCES} ${TEST_SOURCE})
     add_executable(${TEST_NAME} ${SOURCE_FILES})
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
     target_link_libraries(${TEST_NAME} PRIVATE ${COMMON_LIBRARIES})
-    target_compile_options(${TEST_NAME} PRIVATE -DTEST_BUILD -g -O2 -ObjC++)
+    target_compile_options(
+      ${TEST_NAME} PRIVATE -DTEST_BUILD -g -O2 -ObjC++
+                           -Wno-unused-command-line-argument)
   endforeach()
 
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
