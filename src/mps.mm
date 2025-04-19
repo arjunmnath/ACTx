@@ -301,6 +301,26 @@ void MPS::initiate_dispatch_broadcastable(std::string kernel_method,
   pool->return_memory(ranks);
 }
 
+void MPS::initiate_dispatch_comparison(std::string kernel_method,
+                                       const Tensor &a, const Tensor &b,
+                                       Tensor &result) {
+
+  if (a.device != DeviceType::MPS || b.device != DeviceType::MPS ||
+      result.device != DeviceType::MPS) {
+    throw std::runtime_error("All the tensor must live in Metal Buffers");
+  }
+  std::shared_ptr<Memory> meta =
+      pool->request_memory(DeviceType::MPS, a.dims.size(), DType::int32);
+  this->copy_vector_to_buffer((void *)a.dims.data(), *meta,
+                              a.dims.size() * getDTypeSize(DType::int32));
+
+  this->execute_kernel_binary(
+      kernel_method, a.memory->storage->metal, b.memory->storage->metal,
+      result.memory->storage->metal,
+      *reinterpret_cast<id<MTLBuffer> __strong *>(&meta->storage->metal));
+  pool->return_memory(meta);
+}
+
 // ==================================================
 //                     ARITHMETIC
 // ==================================================
@@ -353,3 +373,30 @@ void MPS::zeros(Tensor &a) {
                             meta_memory->storage->metal);
   pool->return_memory(meta_memory);
 }
+
+// ==================================================
+//                     COMPARISON
+// ==================================================
+
+void MPS::logical_e(const Tensor &a, const Tensor &b, Tensor &result) {
+  this->initiate_dispatch_comparison("logical_e", a, b, result);
+};
+
+void MPS::logical_ne(const Tensor &a, const Tensor &b, Tensor &result) {
+  this->initiate_dispatch_comparison("logical_ne", a, b, result);
+};
+void MPS::logical_gt(const Tensor &a, const Tensor &b, Tensor &result) {
+  this->initiate_dispatch_comparison("logical_gt", a, b, result);
+};
+
+void MPS::logical_lt(const Tensor &a, const Tensor &b, Tensor &result) {
+  this->initiate_dispatch_comparison("logical_lt", a, b, result);
+};
+
+void MPS::logical_gte(const Tensor &a, const Tensor &b, Tensor &result) {
+  this->initiate_dispatch_comparison("logical_gte", a, b, result);
+};
+
+void MPS::logical_lte(const Tensor &a, const Tensor &b, Tensor &result) {
+  this->initiate_dispatch_comparison("logical_lte", a, b, result);
+};

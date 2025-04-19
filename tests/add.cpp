@@ -10,9 +10,7 @@ TEST(TensorAddition, AdditionWorks) {
   Tensor tensor1(data1, shape);
   Tensor tensor2(data2, shape);
   Tensor result = tensor1.add(&tensor2, false);
-
   std::vector<float> expected_data = {6, 8, 10, 12};
   Tensor expected(expected_data, shape);
-
   EXPECT_TRUE(result.logical_e(&expected).all()) << "Tensor addition failed";
 }

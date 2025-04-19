@@ -25,15 +25,19 @@ private:
   int _compute_broadcast_index(int flat_index,
                                const std::vector<int> &source_shape,
                                const std::vector<int> &target_shape) const;
+
   void throw_out_of_bound(std::vector<int> indexes) const;
   Tensor execute_broadcastable_operation(OPType op, Tensor *other,
                                          bool inplace);
+  Tensor execute_binary_operation(OPType op, Tensor *other);
 
   static Tensor execute_init_operation(OPType op, std::vector<int> shape,
                                        DType dtype = DType::float32,
                                        // TODO: change default devicetype to cpu
                                        bool requires_grad = false,
                                        DeviceType device = DeviceType::MPS);
+  // FIX: template type
+  double _get_element(int offset) const;
 
 public:
   std::vector<int> dims;
@@ -70,11 +74,6 @@ public:
   static Tensor poission(Tensor &other, DType dtype = DType::float32);
   static Tensor bernoulli(Tensor &other, DType dtype = DType::float32);
 
-  // getters & setters
-  std::vector<int> strides();
-  template <typename... Args> double getElement(Args... indexes) const;
-  template <typename... Args> void setElement(float value, Args... indexes);
-
   // arithmetic operators
   Tensor add(Tensor *other, bool inplace);
   Tensor sub(Tensor *other, bool inplace);
@@ -84,12 +83,12 @@ public:
   Tensor pow(float exp, bool inplace);
 
   // Comparison operators
-  Tensor logical_e(const Tensor *other) const;
-  Tensor logical_ne(const Tensor *other) const;
-  Tensor logical_gt(const Tensor *other) const;
-  Tensor logical_gte(const Tensor *other) const;
-  Tensor logical_lt(const Tensor *other) const;
-  Tensor logical_lte(const Tensor *other) const;
+  Tensor logical_e(Tensor *other);
+  Tensor logical_ne(Tensor *other);
+  Tensor logical_gt(Tensor *other);
+  Tensor logical_gte(Tensor *other);
+  Tensor logical_lt(Tensor *other);
+  Tensor logical_lte(Tensor *other);
 
   // Mathematical operations
   Tensor exp(bool inplace);
@@ -104,6 +103,25 @@ public:
   Tensor transpose() const;
 
   // Input/Output
-  void print() const;
+  //
+
+  void print(int dim = 0, int offset = 0) const;
   void print_matrix() const;
+
+  // getters & setters
+  std::vector<int> strides();
+  template <typename... Args> void setElement(float value, Args... indexes);
+  template <typename... Args> double getElement(Args... indexes) const {
+    std::vector<int> indices = {indexes...};
+    this->throw_out_of_bound(indices);
+    int offset = this->_compute_offset(indices);
+    if (std::holds_alternative<int *>(this->data_ptr)) {
+      return std::get<int *>(this->data_ptr)[offset];
+    } else if (std::holds_alternative<float *>(this->data_ptr)) {
+      return std::get<float *>(this->data_ptr)[offset];
+    } else if (std::holds_alternative<void *>(this->data_ptr)) {
+      // return std::get<void *>(this->data_ptr)[offset];
+    }
+    return -1;
+  }
 };

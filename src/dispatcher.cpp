@@ -19,6 +19,7 @@ void Dispatcher::call(
 }
 
 void Dispatcher::init_register() {
+  // arithmetic
   this->_register->register_op(
       OPType::ADD, DeviceType::MPS,
       [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
@@ -59,6 +60,70 @@ void Dispatcher::init_register() {
          const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
         // TODO: do this
       });
+
+  // comparisions
+  this->_register->register_op(
+      OPType::LOGICAL_E, DeviceType::MPS,
+      [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
+         const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
+        mps->logical_e(a, b->get(), result->get());
+      },
+      [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
+         const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
+        // TODO: do this
+      });
+  this->_register->register_op(
+      OPType::LOGICAL_NE, DeviceType::MPS,
+      [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
+         const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
+        mps->logical_ne(a, b->get(), result->get());
+      },
+      [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
+         const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
+        // TODO: do this
+      });
+  this->_register->register_op(
+      OPType::LOGICAL_GT, DeviceType::MPS,
+      [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
+         const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
+        mps->logical_gt(a, b->get(), result->get());
+      },
+      [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
+         const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
+        // TODO: do this
+      });
+  this->_register->register_op(
+      OPType::LOGICAL_GTE, DeviceType::MPS,
+      [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
+         const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
+        mps->logical_gte(a, b->get(), result->get());
+      },
+      [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
+         const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
+        // TODO: do this
+      });
+  this->_register->register_op(
+      OPType::LOGICAL_LT, DeviceType::MPS,
+      [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
+         const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
+        mps->logical_lt(a, b->get(), result->get());
+      },
+      [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
+         const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
+        // TODO: do this
+      });
+  this->_register->register_op(
+      OPType::LOGICAL_LTE, DeviceType::MPS,
+      [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
+         const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
+        mps->logical_lte(a, b->get(), result->get());
+      },
+      [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
+         const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
+        // TODO: do this
+      });
+
+  // inits
   this->_register->register_op(
       OPType::ONES_INIT, DeviceType::MPS,
       [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,

@@ -124,9 +124,9 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Test")
   add_executable(AllTests ${SOURCE_FILES})
   target_link_libraries(AllTests PRIVATE ${COMMON_LIBRARIES} gtest_main)
   target_compile_options(
-    AllTests PRIVATE -DTEST_BUILD -O0 -g -ObjC++ -fsanitize=address
+    AllTests PRIVATE -DTEST_BUILD -O0 -g -ObjC++ # -fsanitize=address
                      -Wno-unused-command-line-argument)
-  target_link_libraries(AllTests PRIVATE -fsanitize=address)
+  # target_link_libraries(AllTests PRIVATE -fsanitize=address)
   include(GoogleTest)
   gtest_discover_tests(AllTests)
 

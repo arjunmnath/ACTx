@@ -43,6 +43,10 @@ public:
   void initiate_dispatch_broadcastable(std::string kernel_method,
                                        const Tensor &a, const Tensor &b,
                                        Tensor &result);
+
+  void initiate_dispatch_comparison(std::string kernel_method, const Tensor &a,
+                                    const Tensor &b, Tensor &result);
+
   std::vector<id<MTLBuffer>> __dummy_data();
   void print_buffer_contents(std::vector<id<MTLBuffer>> buffers,
                              std::vector<int> stride);
@@ -61,6 +65,14 @@ public:
   // init kernels
   void ones(Tensor &a);
   void zeros(Tensor &a);
+
+  // comparison
+  void logical_e(const Tensor &a, const Tensor &b, Tensor &result) override;
+  void logical_ne(const Tensor &a, const Tensor &b, Tensor &result) override;
+  void logical_gt(const Tensor &a, const Tensor &b, Tensor &result) override;
+  void logical_gte(const Tensor &a, const Tensor &b, Tensor &result) override;
+  void logical_lt(const Tensor &a, const Tensor &b, Tensor &result) override;
+  void logical_lte(const Tensor &a, const Tensor &b, Tensor &result) override;
 
   // not implemented
   void eye(int n, DType dtype = DType::float32);
