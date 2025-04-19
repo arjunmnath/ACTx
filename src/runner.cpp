@@ -13,6 +13,7 @@ int main() {
 
   tensor1.print();
   tensor2.print();
+  // FIX: operations going out of bound
   Tensor result = tensor1.add(&tensor2, false);
   result.print();
   return 0;
