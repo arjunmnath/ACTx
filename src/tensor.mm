@@ -173,10 +173,8 @@ void Tensor::setElement(float value, Args... indexes) {
 
 // TODO: impelement this
 Tensor Tensor::transpose() const { throw std::logic_error("not implemented"); }
-
 void Tensor::print() const {
   float *ptr = (float *)this->memory->data_ptr;
-
   for (int i = 0; i < this->memory->size; i++) {
     std::cout << ptr[i] << " ";
   }
@@ -197,18 +195,20 @@ Tensor Tensor::execute_broadcastable_operation(OPType op, Tensor *other,
   if (this->requires_grad || other->requires_grad) {
     this->requires_grad = other->requires_grad = true;
   }
-  if (!inplace) {
-    auto result_shape = compute_broadcast_shape(*this, *other);
-    std::shared_ptr<Memory> result_memory = pool->request_memory(
-        this->device,
-        std::accumulate(result_shape.begin(), result_shape.end(), 1,
-                        std::multiplies<int>()),
-        this->dtype);
-    return Tensor(result_memory, result_shape, this->dtype,
-                  this->requires_grad);
+  if (inplace) {
+    dispatcher->call(op, this->device, *this, *other, *this);
+    return *this;
   }
-  dispatcher->call(op, this->device, *this, *other, *this);
-  return *this;
+  auto result_shape = compute_broadcast_shape(*this, *other);
+  std::shared_ptr<Memory> result_memory = pool->request_memory(
+      this->device,
+      std::accumulate(result_shape.begin(), result_shape.end(), 1,
+                      std::multiplies<int>()),
+      this->dtype);
+
+  Tensor result(result_memory, result_shape, this->dtype, this->requires_grad);
+  dispatcher->call(op, this->device, *this, *other, result);
+  return result;
 }
 
 Tensor Tensor::execute_init_operation(OPType op, std::vector<int> shape,

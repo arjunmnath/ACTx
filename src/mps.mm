@@ -129,6 +129,7 @@ void MPS::execute_kernel_init(std::string func, id<MTLBuffer> A,
   }
   [computeEncoder setComputePipelineState:pipelineState];
   [computeEncoder setBuffer:A offset:0 atIndex:0];
+  [computeEncoder setBuffer:meta offset:0 atIndex:1];
   NSUInteger threadExecutionWidth = pipelineState.threadExecutionWidth;
   size_t threadsPerThreadgroup = threadExecutionWidth;
   size_t threadgroups =
@@ -264,12 +265,12 @@ void MPS::initiate_dispatch_broadcastable(std::string kernel_method,
   }
   auto result_shape = compute_broadcast_shape(a, b);
   std::shared_ptr<Memory> lshape =
-      pool->request_memory(DeviceType::MPS, a.dims.size(), a.dtype);
+      pool->request_memory(DeviceType::MPS, a.dims.size(), DType::int32);
   this->copy_vector_to_buffer((void *)a.dims.data(), *lshape,
-                              a.dims.size() * getDTypeSize(a.dtype));
+                              a.dims.size() * getDTypeSize(DType::int32));
 
   std::shared_ptr<Memory> rshape =
-      pool->request_memory(DeviceType::MPS, b.dims.size(), b.dtype);
+      pool->request_memory(DeviceType::MPS, b.dims.size(), DType::int32);
   this->copy_vector_to_buffer((void *)b.dims.data(), *rshape,
                               b.dims.size() * getDTypeSize(b.dtype));
 
@@ -283,10 +284,9 @@ void MPS::initiate_dispatch_broadcastable(std::string kernel_method,
                              static_cast<int>(result_shape.size())};
 
   std::shared_ptr<Memory> ranks =
-      pool->request_memory(DeviceType::MPS, _ranks.size(), DType::float32);
+      pool->request_memory(DeviceType::MPS, _ranks.size(), DType::int32);
   this->copy_vector_to_buffer((void *)_ranks.data(), *ranks,
-                              result_shape.size() *
-                                  getDTypeSize(DType::float32));
+                              result_shape.size() * getDTypeSize(DType::int32));
 
   this->execute_kernel_binary_with_broadcast(
       kernel_method, a.memory->storage->metal, b.memory->storage->metal,
@@ -331,21 +331,25 @@ void MPS::pow(const Tensor &a, const Tensor &b, Tensor &result) {
 // ==================================================
 
 void MPS::ones(Tensor &a) {
-  std::shared_ptr<Memory> meta =
-      pool->request_memory(DeviceType::MPS, a.dims.size(), a.dtype);
-  this->copy_vector_to_buffer((void *)a.dims.data(), *meta,
-                              a.dims.size() * getDTypeSize(a.dtype));
+  std::shared_ptr<Memory> meta_memory =
+      pool->request_memory(DeviceType::MPS, 1, DType::int32);
+  std::vector<int> meta = {
+      std::accumulate(a.dims.begin(), a.dims.end(), 1, std::multiplies<int>())};
+  this->copy_vector_to_buffer((void *)meta.data(), *meta_memory,
+                              meta.size() * getDTypeSize(DType::int32));
   this->execute_kernel_init("__ones__", a.memory->storage->metal,
-                            meta->storage->metal);
-  pool->return_memory(meta);
+                            meta_memory->storage->metal);
+  pool->return_memory(meta_memory);
 }
 
 void MPS::zeros(Tensor &a) {
-  std::shared_ptr<Memory> meta =
-      pool->request_memory(DeviceType::MPS, a.dims.size(), a.dtype);
-  this->copy_vector_to_buffer((void *)a.dims.data(), *meta,
-                              a.dims.size() * getDTypeSize(a.dtype));
-  this->execute_kernel_init("__zeros__", a.memory->storage->metal,
-                            meta->storage->metal);
-  pool->return_memory(meta);
+  std::shared_ptr<Memory> meta_memory =
+      pool->request_memory(DeviceType::MPS, 1, DType::int32);
+  std::vector<int> meta = {
+      std::accumulate(a.dims.begin(), a.dims.end(), 1, std::multiplies<int>())};
+  this->copy_vector_to_buffer((void *)meta.data(), *meta_memory,
+                              meta.size() * getDTypeSize(DType::int32));
+  this->execute_kernel_init("__ones__", a.memory->storage->metal,
+                            meta_memory->storage->metal);
+  pool->return_memory(meta_memory);
 }
