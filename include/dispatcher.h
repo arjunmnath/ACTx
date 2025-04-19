@@ -12,10 +12,10 @@ private:
   std::unique_ptr<OpRegister> _register = std::make_unique<OpRegister>();
 
 public:
-  void call(OPType op, DeviceType device, const Tensor &a,
-            const std::optional<std::reference_wrapper<const Tensor>> &b =
-                std::nullopt,
-            const std::optional<std::reference_wrapper<Tensor>> &result =
-                std::nullopt);
+  void
+  call(OPType op, DeviceType device, Tensor &a,
+       const std::optional<std::reference_wrapper<Tensor>> &b = std::nullopt,
+       const std::optional<std::reference_wrapper<Tensor>> &result =
+           std::nullopt);
   void init_register();
 };

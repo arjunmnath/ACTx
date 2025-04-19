@@ -4,6 +4,7 @@
 #include "op_types.h"
 #include "types.h"
 #include <tuple>
+#include <variant>
 #ifdef __OBJC__
 #import <Foundation/Foundation.h>
 #endif
@@ -14,14 +15,13 @@
 
 class Tensor {
 private:
-  id<MTLBuffer> storage;
   std::vector<int> stride;
-  float *data_ptr;
   bool requires_grad;
   int ndim;
+  std::variant<void *, float *, int *> data_ptr;
   void _compte_stride();
   int _compute_offset(std::vector<int> indexes) const;
-
+  void reinterpret_pointer(void *ptr);
   int _compute_broadcast_index(int flat_index,
                                const std::vector<int> &source_shape,
                                const std::vector<int> &target_shape) const;

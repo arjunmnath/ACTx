@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <iostream>
 #include <random>
+#include <variant>
 
 // TODO: FIX THE HARD CODED TYPE MANAGEMENT IN bernoulli poisson etc
 template <typename T>
@@ -81,8 +82,8 @@ int __bernoulli(float p, int seed) {
   return dist(gen);
 }
 
-int getDTypeSize(DType type) {
-  switch (type) {
+int getDTypeSize(DType dtype) {
+  switch (dtype) {
   case DType::int8:
     return 1;
     break;
@@ -104,6 +105,7 @@ int getDTypeSize(DType type) {
     break;
   }
 }
+// TODO: complete remaining data types
 
 std::vector<int> compute_broadcast_shape(const Tensor &a, const Tensor &b) {
   int max_rank = std::max(b.dims.size(), a.dims.size());

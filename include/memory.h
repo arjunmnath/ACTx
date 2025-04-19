@@ -12,11 +12,11 @@
 
 class Memory {
 private:
-  void *data_ptr;
   std::mutex _lock;
   DeviceType _type;
 
 public:
+  void *data_ptr;
   int size;
   DType dtype;
   std::unique_ptr<Storage> storage;

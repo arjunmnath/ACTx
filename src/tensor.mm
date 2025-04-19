@@ -5,7 +5,6 @@
 #include "types.h"
 #include "utility.h"
 #include <MacTypes.h>
-#include <Metal/Metal.h>
 #include <cassert>
 #include <cstddef>
 #include <functional>
@@ -15,8 +14,6 @@
 #include <sys/types.h>
 #include <vector>
 
-MPS *device_mps = new MPS();
-// TODO: use better error time;
 // ================================================================================================================================
 // COMPUTES
 // ================================================================================================================================
@@ -61,6 +58,33 @@ void Tensor::throw_out_of_bound(std::vector<int> indexes) const {
     }
   }
 }
+
+void Tensor::reinterpret_pointer(void *ptr) {
+  switch (this->dtype) {
+  case DType::int8:
+    break;
+  case DType::float16:
+  case DType::int16:
+    this->data_ptr = ptr;
+    break;
+
+  case DType::float32:
+    this->data_ptr = (float *)ptr;
+    break;
+
+  case DType::int32:
+    this->data_ptr = (int *)ptr;
+    break;
+  case DType::float64:
+  case DType::int64:
+    this->data_ptr = ptr;
+    break;
+  default:
+    throw std::invalid_argument("not implemented");
+    break;
+  }
+}
+
 // ================================================================================================================================
 // CONSTRUCTORS
 // ================================================================================================================================
@@ -73,8 +97,8 @@ Tensor::Tensor(std::vector<int> dims, DType dtype, bool requires_grad) {
   this->device = DeviceType::MPS;
   this->dtype = dtype;
   this->memory = pool->request_memory(this->device, this->size, this->dtype);
+  this->reinterpret_pointer(this->memory->data_ptr);
   this->_compte_stride();
-  this->data_ptr = (float *)[this->storage contents];
   this->requires_grad = requires_grad;
 }
 
@@ -83,33 +107,32 @@ Tensor::Tensor(std::shared_ptr<Memory> memory, std::vector<int> dims,
   this->dims = dims;
   this->memory = memory;
   this->dtype = dtype;
+  this->reinterpret_pointer(this->memory->data_ptr);
   // TODO: change this to cpu
   this->device = DeviceType::MPS;
   this->ndim = dims.size();
   this->_compte_stride();
-  this->data_ptr = (float *)[this->storage contents];
   this->size =
       std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
 
   this->requires_grad = requires_grad;
 }
 
-// TODO: fix the vector<float> and dtype mismatch
-Tensor::Tensor(std::vector<float> &values, std::vector<int> dims, DType dtpe,
+// TODO: fix the vector<float> and dtype mismatch and allocate memory and do
+// memcpy
+Tensor::Tensor(std::vector<float> &values, std::vector<int> dims, DType dtype,
                bool requires_grad) {
   if (values.size() == 0) {
     throw std::runtime_error("values expected");
   }
   this->dtype = dtype;
-  this->storage =
-      device_mps->createBuffer(values.data(), values.size(), this->dtype);
   this->dims = dims;
   this->ndim = dims.size();
-  this->data_ptr = (float *)[this->storage contents];
   this->_compte_stride();
   this->size =
       std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
 
+  this->reinterpret_pointer(this->memory->data_ptr);
   this->requires_grad = requires_grad;
 }
 
@@ -123,29 +146,46 @@ template <typename... Args> double Tensor::getElement(Args... indexes) const {
   std::vector<int> indices = {indexes...};
   this->throw_out_of_bound(indices);
   int offset = this->_compute_offset(indices);
-  return this->data_ptr[offset];
+  if (std::holds_alternative<int *>(this->data_ptr)) {
+    return std::get<int *>(this->data_ptr)[offset];
+  } else if (std::holds_alternative<float *>(this->data_ptr)) {
+    return std::get<float *>(this->data_ptr)[offset];
+  } else if (std::holds_alternative<void *>(this->data_ptr)) {
+    // return std::get<void *>(this->data_ptr)[offset];
+  }
+  return -1;
 }
 
+// TODO: fix the type float for value and make it dynamic
 template <typename... Args>
 void Tensor::setElement(float value, Args... indexes) {
   int indices[] = {indexes...};
   this->throw_out_of_bound(indices);
   int offset = this->_compute_offset(indices);
-  this->data_ptr[offset] = value;
+  if (std::holds_alternative<int *>(this->data_ptr)) {
+    std::get<int *>(this->data_ptr)[offset] = value;
+  } else if (std::holds_alternative<float *>(this->data_ptr)) {
+    std::get<float *>(this->data_ptr)[offset] = value;
+  } else if (std::holds_alternative<void *>(this->data_ptr)) {
+    // std::get<int *>(this->data_ptr)[offset] = value;
+  }
 }
 
 // TODO: impelement this
 Tensor Tensor::transpose() const { throw std::logic_error("not implemented"); }
 
 void Tensor::print() const {
-  float *ptr = (float *)[this->storage contents];
-  std::cout << ptr[0] << std::endl;
+  float *ptr = (float *)this->memory->data_ptr;
+
+  for (int i = 0; i < this->memory->size; i++) {
+    std::cout << ptr[i] << " ";
+  }
+  std::cout << std::endl;
 }
 void Tensor::print_matrix() const {
   for (int i = 0; i < this->dims[0]; i++) {
     for (int j = 0; j < this->dims[1]; j++) {
-      std::cout << this->data_ptr[this->stride[0] * i + this->stride[1] * j]
-                << " ";
+      std::cout << this->getElement(i, j) << " ";
     }
     std::cout << std::endl;
   }
