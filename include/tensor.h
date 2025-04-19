@@ -1,6 +1,7 @@
 #pragma once
 
 #include "memory.h"
+#include "op_types.h"
 #include "types.h"
 #include <tuple>
 #ifdef __OBJC__
@@ -25,28 +26,31 @@ private:
                                const std::vector<int> &source_shape,
                                const std::vector<int> &target_shape) const;
   void throw_out_of_bound(std::vector<int> indexes) const;
+  Tensor execute_broadcastable_operation(OPType op, Tensor *other,
+                                         bool inplace);
 
-  Tensor _dispatch_kernel_operation(const Tensor *other,
-                                    std::string kernel_function) const;
-
-  Tensor _dispatch_kernel_operation_inplace(const Tensor *other,
-                                            std::string kernel_function);
+  static Tensor execute_init_operation(OPType op, std::vector<int> shape,
+                                       DType dtype = DType::float32,
+                                       // TODO: change default devicetype to cpu
+                                       bool requires_grad = false,
+                                       DeviceType device = DeviceType::MPS);
 
 public:
   std::vector<int> dims;
   DType dtype;
   int size;
   DeviceType device;
-  Memory memory;
-  Tensor(std::vector<int> dims, bool requires_grad = false);
-  Tensor(id<MTLBuffer> buffer, std::vector<int> dims,
+  std::shared_ptr<Memory> memory;
+  Tensor(std::vector<int> dims, DType dtype = DType::float32,
          bool requires_grad = false);
+  Tensor(std::shared_ptr<Memory> memory, std::vector<int> dims,
+         DType dtype = DType::float32, bool requires_grad = false);
 
   Tensor(std::vector<float> &values, std::vector<int> dims,
-         bool requires_grad = false);
+         DType dtype = DType::float32, bool requires_grad = false);
   template <typename T>
   Tensor(std::vector<T> &values, std::vector<int> dims,
-         bool requires_grad = false);
+         DType dtype = DType::float32, bool requires_grad = false);
 
   // initialization methods
   static Tensor ones(std::vector<int> shape, DType dtype = DType::float32);
@@ -72,11 +76,11 @@ public:
   template <typename... Args> void setElement(float value, Args... indexes);
 
   // arithmetic operators
-  Tensor add(const Tensor *other, bool inplace);
-  Tensor sub(const Tensor *other, bool inplace);
-  Tensor mul(const Tensor *other, bool inplace);
-  Tensor div(const Tensor *other, bool inplace);
-  Tensor matmul(const Tensor *other) const;
+  Tensor add(Tensor *other, bool inplace);
+  Tensor sub(Tensor *other, bool inplace);
+  Tensor mul(Tensor *other, bool inplace);
+  Tensor div(Tensor *other, bool inplace);
+  Tensor matmul(Tensor *other) const;
   Tensor pow(float exp, bool inplace);
 
   // Comparison operators

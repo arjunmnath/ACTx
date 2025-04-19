@@ -1,5 +1,6 @@
 #include "memory.h"
 #include "mps.h"
+#include "storage.h"
 #include <stdexcept>
 
 Memory::Memory(DeviceType type, int size, DType dtype) {
@@ -9,7 +10,7 @@ Memory::Memory(DeviceType type, int size, DType dtype) {
   switch (type) {
   case DeviceType::MPS:
 #ifdef __APPLE__
-    this->storage = new Storage;
+    this->storage = std::make_unique<Storage>();
     // TODO: fix this mps construction and use a global mps object
     this->storage->metal = MPS().createEmptyBuffer(size, dtype);
     this->data_ptr = (void *)[this->storage->metal contents];

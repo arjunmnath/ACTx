@@ -289,19 +289,21 @@ void MPS::initiate_dispatch_broadcastable(std::string kernel_method,
                                   getDTypeSize(DType::float32));
 
   this->execute_kernel_binary_with_broadcast(
-      kernel_method, a.memory.storage->metal, b.memory.storage->metal,
-      result.memory.storage->metal,
+      kernel_method, a.memory->storage->metal, b.memory->storage->metal,
+      result.memory->storage->metal,
       *reinterpret_cast<id<MTLBuffer> __strong *>(&lshape->storage->metal),
       *reinterpret_cast<id<MTLBuffer> __strong *>(&rshape->storage->metal),
       *reinterpret_cast<id<MTLBuffer> __strong *>(&target->storage->metal),
       *reinterpret_cast<id<MTLBuffer> __strong *>(&ranks->storage->metal));
-
   pool->return_memory(lshape);
   pool->return_memory(rshape);
   pool->return_memory(target);
   pool->return_memory(ranks);
 }
 
+// ==================================================
+//                     ARITHMETIC
+// ==================================================
 void MPS::add(const Tensor &a, const Tensor &b, Tensor &result) {
   this->initiate_dispatch_broadcastable("__add__", a, b, result);
 };
@@ -315,10 +317,35 @@ void MPS::mul(const Tensor &a, const Tensor &b, Tensor &result) {
 void MPS::div(const Tensor &a, const Tensor &b, Tensor &result) {
   this->initiate_dispatch_broadcastable("__div__", a, b, result);
 };
+
 void MPS::matmul(const Tensor &a, const Tensor &b, Tensor &result) {
   throw std::logic_error("not implemented");
   this->initiate_dispatch_broadcastable("__matmul__", a, b, result);
 };
 void MPS::pow(const Tensor &a, const Tensor &b, Tensor &result) {
   // this->initiate_dispatch("__pow__", a, b, result);
+}
+
+// ==================================================
+//                      INIT
+// ==================================================
+
+void MPS::ones(Tensor &a) {
+  std::shared_ptr<Memory> meta =
+      pool->request_memory(DeviceType::MPS, a.dims.size(), a.dtype);
+  this->copy_vector_to_buffer((void *)a.dims.data(), *meta,
+                              a.dims.size() * getDTypeSize(a.dtype));
+  this->execute_kernel_init("__ones__", a.memory->storage->metal,
+                            meta->storage->metal);
+  pool->return_memory(meta);
+}
+
+void MPS::zeros(Tensor &a) {
+  std::shared_ptr<Memory> meta =
+      pool->request_memory(DeviceType::MPS, a.dims.size(), a.dtype);
+  this->copy_vector_to_buffer((void *)a.dims.data(), *meta,
+                              a.dims.size() * getDTypeSize(a.dtype));
+  this->execute_kernel_init("__zeros__", a.memory->storage->metal,
+                            meta->storage->metal);
+  pool->return_memory(meta);
 }

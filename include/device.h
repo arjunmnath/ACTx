@@ -10,7 +10,6 @@ private:
   std::string _name;
 
 public:
-  virtual void sync() = 0;
   std::string name() { return this->_name; }
   virtual void add(const Tensor &a, const Tensor &b, Tensor &result) = 0;
   virtual void sub(const Tensor &a, const Tensor &b, Tensor &result) = 0;
