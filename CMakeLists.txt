@@ -111,15 +111,11 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_executable(out ${DEBUG_SOURCES})
   target_compile_options(
     out
-    PRIVATE -DDEBUG_BUILD
-            -g
-            -O0
-            -ObjC++
-            -fobjc-arc
-            -fsanitize=address
+    PRIVATE -DDEBUG_BUILD -g -O0 -ObjC++ -fobjc-arc
+            # -fsanitize=address
             -Wno-unused-command-line-argument)
 
-  target_link_libraries(out PRIVATE ${COMMON_LIBRARIES} -fsanitize=address)
+  target_link_libraries(out PRIVATE ${COMMON_LIBRARIES}) # -fsanitize=address)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Test")
   enable_testing()
   set(SOURCE_FILES ${COMMAN_SOURCES} ${TEST_SOURCES})

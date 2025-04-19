@@ -1,5 +1,7 @@
 #include "memory.h"
 #include "mps.h"
+#include "storage.h"
+#include <stdexcept>
 
 Memory::Memory(DeviceType type, int size, DType dtype) {
   this->_type = type;
@@ -7,10 +9,14 @@ Memory::Memory(DeviceType type, int size, DType dtype) {
   this->dtype = dtype;
   switch (type) {
   case DeviceType::MPS:
-    this->memory = new Storage;
-    this->memory->metal = MPS().createEmptyBuffer(size, dtype);
-    this->data_ptr = (void *)[this->memory->metal contents];
-    // TODO: memory assignment logic pending
+#ifdef __APPLE__
+    this->storage = std::make_unique<Storage>();
+    // TODO: fix this mps construction and use a global mps object
+    this->storage->metal = MPS().createEmptyBuffer(size, dtype);
+    this->data_ptr = (void *)[this->storage->metal contents];
+#else
+    throw std::runtime_error("Metal Not available");
+#endif // __APPLE__
     break;
   case DeviceType::CPU:
     break;

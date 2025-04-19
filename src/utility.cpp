@@ -1,8 +1,10 @@
 #include "utility.h"
+#include "tensor.h"
 #include "types.h"
 #include <cstdint>
 #include <iostream>
 #include <random>
+#include <variant>
 
 // TODO: FIX THE HARD CODED TYPE MANAGEMENT IN bernoulli poisson etc
 template <typename T>
@@ -80,8 +82,8 @@ int __bernoulli(float p, int seed) {
   return dist(gen);
 }
 
-int getDTypeSize(DType type) {
-  switch (type) {
+int getDTypeSize(DType dtype) {
+  switch (dtype) {
   case DType::int8:
     return 1;
     break;
@@ -102,4 +104,33 @@ int getDTypeSize(DType type) {
     throw std::invalid_argument("not implemented");
     break;
   }
+}
+// TODO: complete remaining data types
+
+std::vector<int> compute_broadcast_shape(const Tensor &a, const Tensor &b) {
+  int max_rank = std::max(b.dims.size(), a.dims.size());
+
+  std::vector<int> rev_shape1 = a.dims;
+  std::vector<int> rev_shape2 = b.dims;
+
+  std::reverse(rev_shape1.begin(), rev_shape1.end());
+  std::reverse(rev_shape2.begin(), rev_shape2.end());
+
+  rev_shape1.resize(max_rank, 1);
+  rev_shape2.resize(max_rank, 1);
+
+  std::vector<int> result(max_rank);
+
+  int dim1, dim2;
+  for (int i = 0; i < max_rank; i++) {
+    dim1 = rev_shape1[i];
+    dim2 = rev_shape2[i];
+    if (dim1 == dim2 || dim1 == 1 || dim2 == 1) {
+      result[i] = std::max(dim1, dim2);
+    } else {
+      throw std::invalid_argument("Shapes not broadcastable");
+    }
+  }
+  std::reverse(result.begin(), result.end());
+  return result;
 }
