@@ -5,8 +5,9 @@ kernel void __ones__(device float *A [[buffer(0)]],
                      constant uint *meta [[buffer(1)]],
                      uint tid [[thread_position_in_grid]]) {
 
-  uint total_elems = meta[0]; 
-  if (tid >= total_elems) return;
+  uint total_elems = meta[0];
+  if (tid >= total_elems)
+    return;
   A[tid] = 1;
 }
 kernel void __full__(device float *A [[buffer(0)]],
@@ -14,8 +15,9 @@ kernel void __full__(device float *A [[buffer(0)]],
                      constant uint *meta [[buffer(2)]],
                      uint tid [[thread_position_in_grid]]) {
 
-  uint total_elems = meta[0]; 
-  if (tid >= total_elems) return;
+  uint total_elems = meta[0];
+  if (tid >= total_elems)
+    return;
   A[tid] = value;
 }
 kernel void __eye__(device float *A [[buffer(0)]],
@@ -31,10 +33,11 @@ kernel void __eye__(device float *A [[buffer(0)]],
   }
 }
 kernel void __zeros__(device float *A [[buffer(0)]],
-                     constant uint *meta [[buffer(1)]],
+                      constant uint *meta [[buffer(1)]],
                       uint tid [[thread_position_in_grid]]) {
 
-  uint total_elems = meta[0]; 
-  if (tid >= total_elems) return;
+  uint total_elems = meta[0];
+  if (tid >= total_elems)
+    return;
   A[tid] = 0;
 }
