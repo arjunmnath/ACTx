@@ -59,7 +59,8 @@ std::shared_ptr<Memory> MemoryPool::find_suitable_block(DeviceType device,
     }
   }
 
-  if (nullptr == item || item->size * getDTypeSize(dtype) >= requested_size * 2) {
+  if (nullptr == item ||
+      item->size * getDTypeSize(dtype) >= requested_size * 2) {
     return nullptr;
   }
   return item;
