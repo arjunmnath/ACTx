@@ -8,7 +8,6 @@
 #include "device_type.h"
 #include "storage.h"
 #include <mutex>
-#include <string>
 
 class Memory {
 private:
@@ -17,7 +16,7 @@ private:
 
 public:
   void *data_ptr;
-  int size;
+  size_t size;
   DType dtype;
   std::unique_ptr<Storage> storage;
   Memory(DeviceType type, int size, DType dtype);
@@ -26,10 +25,4 @@ public:
   void acquire_lock();
   void release_lock();
   void guarded_lock();
-};
-
-class MemoryPimpl {
-public:
-  Memory *allocate(DeviceType type, int size, DType);
-  void deallocate(void *ptr);
 };

@@ -100,5 +100,5 @@ backend
 cmake-build-debug/
 
 Testing/
-
+logs.txt
 compile_commands.json

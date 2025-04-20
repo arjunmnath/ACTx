@@ -1,20 +1,22 @@
 #include "memory_pool.h"
+#include "main.h"
 #include "memory.h"
 #include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <memory>
 
-int MemoryPool::_compute_pool_size(int requested_size) {
+size_t MemoryPool::_compute_pool_size(size_t requested_size) {
   /*
+   * requested_size should be in bytes
    * requested_size(11): 1011 -> 4 (block_size: 16)
    * requested_size(32): 100000 -> 5 (block_size: 32)
    */
-  return std::max(static_cast<int>(pow(2, ceil(log2(requested_size)))), 2);
+  return std::max(static_cast<int>(pow(2, ceil(log2(requested_size + 1)))), 2);
 }
 
-std::shared_ptr<Memory> MemoryPool::request_memory(DeviceType device, int size,
-                                                   DType dtype) {
+std::shared_ptr<Memory> MemoryPool::request_memory(DeviceType device,
+                                                   size_t size, DType dtype) {
 
   int required_block_size = this->_compute_pool_size(size);
   std::shared_ptr<Memory> suitable_block =
@@ -23,25 +25,22 @@ std::shared_ptr<Memory> MemoryPool::request_memory(DeviceType device, int size,
     std::shared_ptr<Memory> memory =
         std::make_shared<Memory>(device, required_block_size, dtype);
     this->used_pool.insert(memory);
-    /*std::cout << "Requesting, " << "Used Pool size: " <<
-     * this->used_pool.size()*/
-    /*          << " Available Pool Size: " << this->available_pool.size()*/
-    /*          << " Pool size: " << required_block_size*/
-    /*          << " Requested Size: " << size << std::endl;*/
-
+    logger->info("Requesting, Used Pool size: {} Available Pool Size: {} Pool "
+                 "size: {} Requested Size: {}",
+                 this->used_pool.size(), this->available_pool.size(),
+                 required_block_size, size);
     return memory;
   }
   this->used_pool.insert(suitable_block);
   this->available_pool.erase(suitable_block);
-  /*std::cout << "Requesting, " << "Used Pool size: " <<
-   * this->used_pool.size()*/
-  /*          << " Available Pool Size: " << this->available_pool.size()*/
-  /*          << " Pool size: " << required_block_size*/
-  /*          << " Requested Size: " << size << std::endl;*/
+  logger->info("Requesting, Used Pool size: {} Available Pool Size: {} Pool "
+               "size: {} Requested Size: {}",
+               this->used_pool.size(), this->available_pool.size(),
+               required_block_size, size);
   return suitable_block;
 }
 
-std::shared_ptr<Memory> MemoryPool::find_suitable_block(int requested) {
+std::shared_ptr<Memory> MemoryPool::find_suitable_block(size_t requested) {
   auto it = std::upper_bound(this->available_pool.begin(),
                              this->available_pool.end(), requested,
                              [](int size, const std::shared_ptr<Memory> &mem) {
@@ -62,7 +61,8 @@ std::shared_ptr<Memory> MemoryPool::find_suitable_block(int requested) {
 void MemoryPool::return_memory(std::shared_ptr<Memory> memory) {
   this->used_pool.erase(memory);
   this->available_pool.insert(memory);
-  /*std::cout << "Returning, " << "Used Pool size: " << this->used_pool.size()*/
-  /*          << " Available Pool Size: " << this->available_pool.size()*/
-  /*          << " Pool size: " << memory->size << std::endl;*/
+  logger->info("Requesting, Used Pool size: {} Available Pool Size: {} Pool "
+               "size: {}",
+               this->used_pool.size(), this->available_pool.size(),
+               memory->size);
 }

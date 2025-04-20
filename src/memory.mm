@@ -5,7 +5,7 @@
 
 bool Memory::does_live_on(DeviceType type) { return this->_type == type; }
 
-Memory::Memory(DeviceType type, int size, DType dtype) {
+Memory::Memory(DeviceType type, size_t size, DType dtype) {
   this->_type = type;
   this->size = size;
   this->dtype = dtype;

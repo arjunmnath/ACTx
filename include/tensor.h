@@ -3,14 +3,9 @@
 #include "memory.h"
 #include "op_types.h"
 #include "types.h"
+#include <sys/types.h>
 #include <tuple>
 #include <variant>
-#ifdef __OBJC__
-#import <Foundation/Foundation.h>
-#endif
-
-#include <Metal/Metal.h>
-#include <sys/types.h>
 #include <vector>
 
 class Tensor {
@@ -42,7 +37,7 @@ private:
 public:
   std::vector<int> dims;
   DType dtype;
-  int size;
+  size_t size;
   DeviceType device;
   std::shared_ptr<Memory> memory;
   Tensor(std::vector<int> dims, DType dtype = DType::float32,

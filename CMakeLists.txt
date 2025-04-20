@@ -12,7 +12,14 @@ FetchContent_Declare(
   googletest
   URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
       DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+FetchContent_Declare(
+  spdlog
+  GIT_REPOSITORY https://github.com/gabime/spdlog.git
+  GIT_TAG v1.15.2
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+
 FetchContent_MakeAvailable(googletest)
+FetchContent_MakeAvailable(spdlog)
 
 include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories(${gtest_SOURCE_DIR}/googletest/include)
@@ -104,7 +111,7 @@ find_library(METAL_FRAMEWORK Metal)
 if(NOT FOUNDATION_FRAMEWORK OR NOT METAL_FRAMEWORK)
   message(FATAL_ERROR "Required frameworks not found!")
 endif()
-set(COMMON_LIBRARIES ${FOUNDATION_FRAMEWORK} ${METAL_FRAMEWORK})
+set(COMMON_LIBRARIES ${FOUNDATION_FRAMEWORK} ${METAL_FRAMEWORK} spdlog::spdlog)
 # Build configurations
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Debug build selected")
