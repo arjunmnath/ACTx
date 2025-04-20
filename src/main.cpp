@@ -15,5 +15,5 @@ int _init() {
   logger->set_level(spdlog::level::off);
   return 0;
 }
-int intialized = _init();
+int initialized = _init();
 } // namespace
