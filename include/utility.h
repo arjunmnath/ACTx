@@ -19,3 +19,5 @@ int __poisson(float mean, int seed = -1);
 int __bernoulli(float p, int seed = -1);
 std::vector<int> compute_broadcast_shape(const Tensor &a, const Tensor &b);
 int getDTypeSize(DType type);
+std::string getDeviceName(DeviceType device);
+std::string getTypeName(DType dtype);

@@ -96,13 +96,42 @@ int getDTypeSize(DType dtype) {
   case DType::int32:
     return 4;
     break;
-  case DType::float64:
   case DType::int64:
     return 8;
     break;
   default:
     throw std::invalid_argument("not implemented");
     break;
+  }
+}
+std::string getDeviceName(DeviceType device) {
+  switch (device) {
+  case DeviceType::MPS:
+    return "MPS";
+  case DeviceType::CPU:
+    return "CPU";
+  case DeviceType::WEBGPU:
+    return "WEBGPU";
+  default:
+    return "unknown device";
+  }
+}
+std::string getTypeName(DType dtype) {
+  switch (dtype) {
+  case DType::int8:
+    return "int8";
+  case DType::int16:
+    return "int16";
+  case DType::int32:
+    return "int32";
+  case DType::int64:
+    return "int64";
+  case DType::float16:
+    return "float16";
+  case DType::float32:
+    return "float32";
+  default:
+    return "unknown type";
   }
 }
 // TODO: complete remaining data types

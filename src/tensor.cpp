@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstring>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <numeric>
@@ -73,7 +74,6 @@ void Tensor::reinterpret_pointer(void *ptr) {
   case DType::int32:
     this->data_ptr = (int *)ptr;
     break;
-  case DType::float64:
   case DType::int64:
     this->data_ptr = ptr;
     break;
@@ -144,7 +144,7 @@ Tensor::Tensor(std::vector<float> &values, std::vector<int> dims, DType dtype,
 
 std::vector<int> Tensor::strides() { return this->stride; }
 
-double Tensor::_get_element(int offset) const {
+float Tensor::_get_element(int offset) const {
   if (std::holds_alternative<int *>(this->data_ptr)) {
     return std::get<int *>(this->data_ptr)[offset];
   } else if (std::holds_alternative<float *>(this->data_ptr)) {

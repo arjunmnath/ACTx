@@ -1,16 +1,15 @@
 #pragma once
 
-#include "types.h"
-#ifdef __OBJC__
-#import <Foundation/Foundation.h>
-#endif
-
 #include "device.h"
-#include <Metal/Metal.h>
+#include "types.h"
 #include <string>
 #include <sys/types.h>
 #include <unordered_map>
 #include <vector>
+
+#ifdef __OBJC__
+#import <Foundation/Foundation.h>
+#include <Metal/Metal.h>
 class MPS : Device {
 private:
   id<MTLDevice> device;
@@ -51,7 +50,6 @@ public:
   void print_buffer_contents(std::vector<id<MTLBuffer>> buffers,
                              std::vector<int> stride);
 
-  id<MTLBuffer> createBuffer(void *data, size_t size, DType type);
   id<MTLBuffer> createEmptyBuffer(int size, DType type);
   id<MTLBuffer> clone(id<MTLBuffer> buffer);
   void copy_vector_to_buffer(void *ptr, Memory &memory, int buffer_size);
@@ -80,3 +78,4 @@ public:
   void matmul(const Tensor &a, const Tensor &b, Tensor &result) override;
   void pow(const Tensor &a, const Tensor &b, Tensor &result) override;
 };
+#endif

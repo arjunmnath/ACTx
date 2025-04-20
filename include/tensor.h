@@ -32,7 +32,7 @@ private:
                                        bool requires_grad = false,
                                        DeviceType device = DeviceType::MPS);
   // FIX: template type
-  double _get_element(int offset) const;
+  float _get_element(int offset) const;
 
 public:
   std::vector<int> dims;
