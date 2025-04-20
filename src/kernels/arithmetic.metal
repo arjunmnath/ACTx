@@ -2,12 +2,14 @@
 #include <metal_stdlib>
 using namespace metal;
 
-kernel void
-__add__(device float *A [[buffer(0)]], device float *B [[buffer(1)]],
-        device float *C [[buffer(2)]], constant int *lshape [[buffer(3)]],
-        constant int *rshape [[buffer(4)]], constant int *result_shape [[buffer(5)]],
-        constant int *ranks [[buffer(6)]],
-        uint tid [[thread_position_in_grid]]) {
+kernel void __add__(device float *A [[buffer(0)]],
+                    device float *B [[buffer(1)]],
+                    device float *C [[buffer(2)]],
+                    constant int *lshape [[buffer(3)]],
+                    constant int *rshape [[buffer(4)]],
+                    constant int *result_shape [[buffer(5)]],
+                    constant int *ranks [[buffer(6)]],
+                    uint tid [[thread_position_in_grid]]) {
   int flat_index = tid;
   int lrank = ranks[0];
   int rrank = ranks[1];
@@ -19,12 +21,14 @@ __add__(device float *A [[buffer(0)]], device float *B [[buffer(1)]],
   C[flat_index] = A[lindex] + B[rindex];
 }
 
-kernel void
-__sub__(device float *A [[buffer(0)]], device float *B [[buffer(1)]],
-        device float *C [[buffer(2)]], constant int *lshape [[buffer(3)]],
-        constant int *rshape [[buffer(4)]], constant int *result_shape [[buffer(5)]],
-        constant int *ranks [[buffer(6)]],
-        uint tid [[thread_position_in_grid]]) {
+kernel void __sub__(device float *A [[buffer(0)]],
+                    device float *B [[buffer(1)]],
+                    device float *C [[buffer(2)]],
+                    constant int *lshape [[buffer(3)]],
+                    constant int *rshape [[buffer(4)]],
+                    constant int *result_shape [[buffer(5)]],
+                    constant int *ranks [[buffer(6)]],
+                    uint tid [[thread_position_in_grid]]) {
   int flat_index = tid;
   int lrank = ranks[0];
   int rrank = ranks[1];
@@ -36,12 +40,14 @@ __sub__(device float *A [[buffer(0)]], device float *B [[buffer(1)]],
   C[flat_index] = A[lindex] - B[rindex];
 }
 
-kernel void
-__div__(device float *A [[buffer(0)]], device float *B [[buffer(1)]],
-        device float *C [[buffer(2)]], constant int *lshape [[buffer(3)]],
-        constant int *rshape [[buffer(4)]], constant int *result_shape [[buffer(5)]],
-        constant int *ranks [[buffer(6)]],
-        uint tid [[thread_position_in_grid]]) {
+kernel void __div__(device float *A [[buffer(0)]],
+                    device float *B [[buffer(1)]],
+                    device float *C [[buffer(2)]],
+                    constant int *lshape [[buffer(3)]],
+                    constant int *rshape [[buffer(4)]],
+                    constant int *result_shape [[buffer(5)]],
+                    constant int *ranks [[buffer(6)]],
+                    uint tid [[thread_position_in_grid]]) {
   int flat_index = tid;
   int lrank = ranks[0];
   int rrank = ranks[1];
@@ -53,12 +59,14 @@ __div__(device float *A [[buffer(0)]], device float *B [[buffer(1)]],
   C[flat_index] = A[lindex] / B[rindex];
 }
 
-kernel void
-__mul__(device float *A [[buffer(0)]], device float *B [[buffer(1)]],
-        device float *C [[buffer(2)]], constant int *lshape [[buffer(3)]],
-        constant int *rshape [[buffer(4)]], constant int *result_shape [[buffer(5)]],
-        constant int *ranks [[buffer(6)]],
-        uint tid [[thread_position_in_grid]]) {
+kernel void __mul__(device float *A [[buffer(0)]],
+                    device float *B [[buffer(1)]],
+                    device float *C [[buffer(2)]],
+                    constant int *lshape [[buffer(3)]],
+                    constant int *rshape [[buffer(4)]],
+                    constant int *result_shape [[buffer(5)]],
+                    constant int *ranks [[buffer(6)]],
+                    uint tid [[thread_position_in_grid]]) {
   int flat_index = tid;
   int lrank = ranks[0];
   int rrank = ranks[1];
@@ -71,11 +79,14 @@ __mul__(device float *A [[buffer(0)]], device float *B [[buffer(1)]],
 }
 
 // FIX: matmul algorithm to match n dimensional tensors
-kernel void __matmul__(
-    device float *A [[buffer(0)]], device float *B [[buffer(1)]],
-    device float *C [[buffer(2)]], constant int *lshape [[buffer(3)]],
-    constant int *rshape [[buffer(4)]], constant int *result_shape [[buffer(5)]],
-    constant int *ranks [[buffer(6)]], uint tid [[thread_position_in_grid]]) {
+kernel void __matmul__(device float *A [[buffer(0)]],
+                       device float *B [[buffer(1)]],
+                       device float *C [[buffer(2)]],
+                       constant int *lshape [[buffer(3)]],
+                       constant int *rshape [[buffer(4)]],
+                       constant int *result_shape [[buffer(5)]],
+                       constant int *ranks [[buffer(6)]],
+                       uint tid [[thread_position_in_grid]]) {
   int flat_index = tid;
   int lrank = ranks[0];
   int rrank = ranks[1];
