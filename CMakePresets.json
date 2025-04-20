@@ -34,6 +34,28 @@
         "CMAKE_BUILD_TYPE": "Test",
         "CMAKE_EXPORT_COMPILE_COMMANDS": true
       }
+    },
+    {
+      "name": "xcode-debug",
+      "displayName": "Xcode Debug (for Instruments)",
+      "generator": "Xcode",
+      "binaryDir": "${sourceDir}/build/xcode",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+        "CMAKE_OSX_ARCHITECTURES": "arm64"
+      }
+    },
+    {
+      "name": "xcode-test",
+      "displayName": "Xcode Test (for Instruments)",
+      "generator": "Xcode",
+      "binaryDir": "${sourceDir}/build/xcode",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Test",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+        "CMAKE_OSX_ARCHITECTURES": "arm64"
+      }
     }
   ]
 }

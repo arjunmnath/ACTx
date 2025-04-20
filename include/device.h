@@ -19,12 +19,14 @@ public:
   virtual void pow(const Tensor &a, const Tensor &b, Tensor &result) = 0;
 
   // Comparison operators
-  Tensor logical_e(const Tensor *other) const;
-  Tensor logical_ne(const Tensor *other) const;
-  Tensor logical_gt(const Tensor *other) const;
-  Tensor logical_gte(const Tensor *other) const;
-  Tensor logical_lt(const Tensor *other) const;
-  Tensor logical_lte(const Tensor *other) const;
+  virtual void logical_e(const Tensor &a, const Tensor &b, Tensor &result) = 0;
+  virtual void logical_ne(const Tensor &a, const Tensor &b, Tensor &result) = 0;
+  virtual void logical_gt(const Tensor &a, const Tensor &b, Tensor &result) = 0;
+  virtual void logical_gte(const Tensor &a, const Tensor &b,
+                           Tensor &result) = 0;
+  virtual void logical_lt(const Tensor &a, const Tensor &b, Tensor &result) = 0;
+  virtual void logical_lte(const Tensor &a, const Tensor &b,
+                           Tensor &result) = 0;
 
   // Mathematical operations
   Tensor exp(bool inplace);

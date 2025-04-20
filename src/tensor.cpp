@@ -1,14 +1,13 @@
 #include "tensor.h"
 #include "main.h"
-#include "memory.h"
-#include "mps.h"
 #include "types.h"
 #include "utility.h"
-#include <MacTypes.h>
 #include <cassert>
 #include <cstddef>
+#include <cstring>
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <numeric>
 #include <stdexcept>
 #include <sys/types.h>
@@ -75,7 +74,6 @@ void Tensor::reinterpret_pointer(void *ptr) {
   case DType::int32:
     this->data_ptr = (int *)ptr;
     break;
-  case DType::float64:
   case DType::int64:
     this->data_ptr = ptr;
     break;
@@ -129,9 +127,13 @@ Tensor::Tensor(std::vector<float> &values, std::vector<int> dims, DType dtype,
   this->dims = dims;
   this->ndim = dims.size();
   this->_compte_stride();
+  this->device = DeviceType::MPS;
   this->size =
       std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
-
+  assert(values.size() == this->size);
+  this->memory = pool->request_memory(this->device, this->size, this->dtype);
+  mps->copy_vector_to_buffer(values.data(), *this->memory,
+                             values.size() * getDTypeSize(DType::float32));
   this->reinterpret_pointer(this->memory->data_ptr);
   this->requires_grad = requires_grad;
 }
@@ -142,10 +144,7 @@ Tensor::Tensor(std::vector<float> &values, std::vector<int> dims, DType dtype,
 
 std::vector<int> Tensor::strides() { return this->stride; }
 
-template <typename... Args> double Tensor::getElement(Args... indexes) const {
-  std::vector<int> indices = {indexes...};
-  this->throw_out_of_bound(indices);
-  int offset = this->_compute_offset(indices);
+float Tensor::_get_element(int offset) const {
   if (std::holds_alternative<int *>(this->data_ptr)) {
     return std::get<int *>(this->data_ptr)[offset];
   } else if (std::holds_alternative<float *>(this->data_ptr)) {
@@ -173,19 +172,26 @@ void Tensor::setElement(float value, Args... indexes) {
 
 // TODO: impelement this
 Tensor Tensor::transpose() const { throw std::logic_error("not implemented"); }
-void Tensor::print() const {
-  float *ptr = (float *)this->memory->data_ptr;
-  for (int i = 0; i < this->memory->size; i++) {
-    std::cout << ptr[i] << " ";
-  }
-  std::cout << std::endl;
-}
-void Tensor::print_matrix() const {
-  for (int i = 0; i < this->dims[0]; i++) {
-    for (int j = 0; j < this->dims[1]; j++) {
-      std::cout << this->getElement(i, j) << " ";
+void Tensor::print(int dim, int offset) const {
+  int size = this->dims[dim];
+  std::cout << "[";
+  for (int i = 0; i < size; ++i) {
+    int new_offset = offset + i * this->stride[dim];
+    if (dim == this->dims.size() - 1) {
+      std::cout << this->_get_element(new_offset);
+    } else {
+      print(dim + 1, new_offset);
     }
+    if (i != size - 1)
+      std::cout << ", ";
+  }
+  std::cout << "]";
+  if (dim == 0)
     std::cout << std::endl;
+}
+void Tensor::print_buffer() const {
+  for (int i = 0; i < this->memory->size; i++) {
+    std::cout << this->_get_element(i) << " ";
   }
   std::cout << std::endl;
 }
@@ -223,6 +229,40 @@ Tensor Tensor::execute_init_operation(OPType op, std::vector<int> shape,
   return result;
 }
 
+Tensor Tensor::execute_binary_operation(OPType op, Tensor *other) {
+  if (this->requires_grad || other->requires_grad) {
+    this->requires_grad = other->requires_grad = true;
+  }
+  std::shared_ptr<Memory> result_memory =
+      pool->request_memory(this->device,
+                           std::accumulate(this->dims.begin(), this->dims.end(),
+                                           1, std::multiplies<int>()),
+                           this->dtype);
+
+  Tensor result(result_memory, this->dims, this->dtype, this->requires_grad);
+  dispatcher->call(op, this->device, *this, *other, result);
+  return result;
+}
+
+bool Tensor::all() {
+  bool allTrue = true;
+  for (int i = 0; i < this->size; i++) {
+    if (false == this->_get_element(i)) {
+      allTrue = false;
+    }
+  }
+  return allTrue;
+}
+bool Tensor::any() {
+  bool anyTrue = false;
+  for (int i = 0; i < this->size; i++) {
+    if (this->_get_element(i)) {
+      anyTrue = true;
+    }
+  }
+  return anyTrue;
+}
+
 // ================================================================================================================================
 // Arithemetic
 // ================================================================================================================================
@@ -239,13 +279,52 @@ Tensor Tensor::mul(Tensor *other, bool inplace) {
 
 Tensor Tensor::div(Tensor *other, bool inplace) {
   // TODO: fix this division by zero checking
-  /*
-    Tensor zeros = Tensor::zeros(other->dims);
-    if (other->logical_e(&zeros).any()) {
-      throw std::runtime_error("division by zero");
-    }
-  */
+  Tensor zeros = Tensor::zeros(other->dims);
+  if (other->logical_e(&zeros).any()) {
+    throw std::runtime_error("division by zero");
+  }
   return execute_broadcastable_operation(OPType::DIV, other, inplace);
+}
+
+// Comparison operators
+Tensor Tensor::logical_e(Tensor *other) {
+  if (this->dims != other->dims) {
+    throw std::runtime_error("shape contraint failed");
+  }
+  return this->execute_binary_operation(OPType::LOGICAL_E, other);
+}
+Tensor Tensor::logical_ne(Tensor *other) {
+  if (this->dims != other->dims) {
+    throw std::runtime_error("shape contraint failed");
+  }
+  return this->execute_binary_operation(OPType::LOGICAL_NE, other);
+}
+Tensor Tensor::logical_gt(Tensor *other) {
+  if (this->dims != other->dims) {
+    throw std::runtime_error("shape contraint failed");
+  }
+  return this->execute_binary_operation(OPType::LOGICAL_GT, other);
+}
+
+Tensor Tensor::logical_gte(Tensor *other) {
+  if (this->dims != other->dims) {
+    throw std::runtime_error("shape contraint failed");
+  }
+  return this->execute_binary_operation(OPType::LOGICAL_GTE, other);
+}
+
+Tensor Tensor::logical_lt(Tensor *other) {
+  if (this->dims != other->dims) {
+    throw std::runtime_error("shape contraint failed");
+  }
+  return this->execute_binary_operation(OPType::LOGICAL_LT, other);
+}
+
+Tensor Tensor::logical_lte(Tensor *other) {
+  if (this->dims != other->dims) {
+    throw std::runtime_error("shape contraint failed");
+  }
+  return this->execute_binary_operation(OPType::LOGICAL_LTE, other);
 }
 
 /*
@@ -277,53 +356,7 @@ Tensor Tensor::pow(float exp, bool inplace) {
   return inplace ? *this : Tensor(result, this->dims);
 }
 
-// Comparison operators
-//
-Tensor Tensor::logical_e(const Tensor *other) const {
-  if (this->dims != other->dims || this->dims.size() != 2) {
-    throw std::runtime_error("shape contraint failed");
-  }
-
-  return this->_dispatch_kernel_operation(other, "logical_e");
-}
-Tensor Tensor::logical_ne(const Tensor *other) const {
-  if (this->dims != other->dims || this->dims.size() != 2) {
-    throw std::runtime_error("shape contraint failed");
-  }
-
-  return this->_dispatch_kernel_operation(other, "logical_ne");
-}
-Tensor Tensor::logical_gt(const Tensor *other) const {
-  if (this->dims != other->dims || this->dims.size() != 2) {
-    throw std::runtime_error("shape contraint failed");
-  }
-
-  return this->_dispatch_kernel_operation(other, "logical_gt");
-}
-
-Tensor Tensor::logical_gte(const Tensor *other) const {
-  if (this->dims != other->dims || this->dims.size() != 2) {
-    throw std::runtime_error("shape contraint failed");
-  }
-  return this->_dispatch_kernel_operation(other, "logical_gte");
-}
-
-Tensor Tensor::logical_lt(const Tensor *other) const {
-  if (this->dims != other->dims || this->dims.size() != 2) {
-    throw std::runtime_error("shape contraint failed");
-  }
-  return this->_dispatch_kernel_operation(other, "logical_lt");
-}
-
-Tensor Tensor::logical_lte(const Tensor *other) const {
-  if (this->dims != other->dims || this->dims.size() != 2) {
-    throw std::runtime_error("shape contraint failed");
-  }
-  return this->_dispatch_kernel_operation(other, "logical_lte");
-}
-
 // Mathematical operations
-
 Tensor Tensor::exp(bool inplace) {
   id<MTLBuffer> meta =
       device_mps->createBuffer(this->dims.data(), 2, this->dtype);
@@ -352,26 +385,6 @@ Tensor Tensor::log(bool inplace) {
   return inplace ? *this : Tensor(result, this->dims);
 }
 
-bool Tensor::all() {
-  bool allTrue = true;
-
-  for (int i = 0; i < this->size; i++) {
-    if (false == this->data_ptr[i]) {
-      allTrue = false;
-    }
-  }
-  return allTrue;
-}
-bool Tensor::any() {
-  bool anyTrue = false;
-  for (int i = 0; i < this->size; i++) {
-    if (this->data_ptr[i]) {
-      anyTrue = true;
-    }
-  }
-  return anyTrue;
-}
-
 Tensor Tensor::sqrt(bool inplace) {
   id<MTLBuffer> meta =
       device_mps->createBuffer(this->dims.data(), 2, this->dtype);
@@ -385,9 +398,7 @@ Tensor Tensor::sqrt(bool inplace) {
   }
   return inplace ? *this : Tensor(result, this->dims);
 }
-
 */
-
 // ================================================================================================================================
 //                            INIT
 // ================================================================================================================================
@@ -486,9 +497,9 @@ Tensor Tensor::normal(std::vector<int> shape, float mean, float stddev,
   return Tensor(result, shape);
 }
 
-Tensor Tensor::randint(std::vector<int> shape, int min, int max, DType dtype) {
-  id<MTLBuffer> meta =
-      device_mps->createBuffer(shape.data(), shape.size(), dtype);
+Tensor Tensor::randint(std::vector<int> shape, int min, int max, DType dtype)
+{ id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), shape.size(),
+dtype);
 
   int size =
       std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());

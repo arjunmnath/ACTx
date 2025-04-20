@@ -13,6 +13,7 @@
 #include <iomanip>
 #include <iostream>
 #include <limits.h>
+#include <memory>
 #include <string>
 #include <sys/types.h>
 #include <unistd.h>
@@ -225,18 +226,17 @@ void MPS::execute_kernel_binary_with_broadcast(
   [commandBuffer commit];
   [commandBuffer waitUntilCompleted];
 }
-
-id<MTLBuffer> MPS::createBuffer(void *data, size_t size, DType type) {
-  id<MTLBuffer> buffer =
-      [this->device newBufferWithBytes:data
-                                length:getDTypeSize(type) * size
-                               options:MTLResourceStorageModeShared];
-  return buffer;
-}
 id<MTLBuffer> MPS::createEmptyBuffer(int size, DType type) {
   id<MTLBuffer> buffer =
-      [this->device newBufferWithLength:getDTypeSize(type) * size
+      [this->device newBufferWithLength:size * getDTypeSize(type)
                                 options:MTLResourceStorageModeShared];
+
+  /*
+  NSLog(@"Buffer length: %lu", buffer.length);
+  NSLog(@"Buffer: %@", buffer);
+  void *contents = buffer.contents;
+  NSLog(@"Buffer contents pointer: %p", contents);
+  */
   return buffer;
 }
 
@@ -252,6 +252,7 @@ id<MTLBuffer> MPS::clone(id<MTLBuffer> buffer) {
 }
 
 void MPS::copy_vector_to_buffer(void *ptr, Memory &memory, int buffer_size) {
+  assert(memory.does_live_on(DeviceType::MPS));
   memcpy([memory.storage->metal contents], ptr, buffer_size);
 }
 
@@ -274,9 +275,9 @@ void MPS::initiate_dispatch_broadcastable(std::string kernel_method,
   this->copy_vector_to_buffer((void *)b.dims.data(), *rshape,
                               b.dims.size() * getDTypeSize(b.dtype));
 
-  std::shared_ptr<Memory> target =
+  std::shared_ptr<Memory> result_shape_memory =
       pool->request_memory(DeviceType::MPS, result_shape.size(), a.dtype);
-  this->copy_vector_to_buffer((void *)result_shape.data(), *target,
+  this->copy_vector_to_buffer((void *)result_shape.data(), *result_shape_memory,
                               result_shape.size() * getDTypeSize(a.dtype));
 
   std::vector<int> _ranks = {static_cast<int>(a.dims.size()),
@@ -293,12 +294,34 @@ void MPS::initiate_dispatch_broadcastable(std::string kernel_method,
       result.memory->storage->metal,
       *reinterpret_cast<id<MTLBuffer> __strong *>(&lshape->storage->metal),
       *reinterpret_cast<id<MTLBuffer> __strong *>(&rshape->storage->metal),
-      *reinterpret_cast<id<MTLBuffer> __strong *>(&target->storage->metal),
+      *reinterpret_cast<id<MTLBuffer> __strong *>(
+          &result_shape_memory->storage->metal),
       *reinterpret_cast<id<MTLBuffer> __strong *>(&ranks->storage->metal));
+
   pool->return_memory(lshape);
   pool->return_memory(rshape);
-  pool->return_memory(target);
+  pool->return_memory(result_shape_memory);
   pool->return_memory(ranks);
+}
+
+void MPS::initiate_dispatch_comparison(std::string kernel_method,
+                                       const Tensor &a, const Tensor &b,
+                                       Tensor &result) {
+
+  if (a.device != DeviceType::MPS || b.device != DeviceType::MPS ||
+      result.device != DeviceType::MPS) {
+    throw std::runtime_error("All the tensor must live in Metal Buffers");
+  }
+  std::shared_ptr<Memory> meta =
+      pool->request_memory(DeviceType::MPS, a.dims.size(), DType::int32);
+  this->copy_vector_to_buffer((void *)a.dims.data(), *meta,
+                              a.dims.size() * getDTypeSize(DType::int32));
+
+  this->execute_kernel_binary(
+      kernel_method, a.memory->storage->metal, b.memory->storage->metal,
+      result.memory->storage->metal,
+      *reinterpret_cast<id<MTLBuffer> __strong *>(&meta->storage->metal));
+  pool->return_memory(meta);
 }
 
 // ==================================================
@@ -353,3 +376,30 @@ void MPS::zeros(Tensor &a) {
                             meta_memory->storage->metal);
   pool->return_memory(meta_memory);
 }
+
+// ==================================================
+//                     COMPARISON
+// ==================================================
+
+void MPS::logical_e(const Tensor &a, const Tensor &b, Tensor &result) {
+  this->initiate_dispatch_comparison("logical_e", a, b, result);
+};
+
+void MPS::logical_ne(const Tensor &a, const Tensor &b, Tensor &result) {
+  this->initiate_dispatch_comparison("logical_ne", a, b, result);
+};
+void MPS::logical_gt(const Tensor &a, const Tensor &b, Tensor &result) {
+  this->initiate_dispatch_comparison("logical_gt", a, b, result);
+};
+
+void MPS::logical_lt(const Tensor &a, const Tensor &b, Tensor &result) {
+  this->initiate_dispatch_comparison("logical_lt", a, b, result);
+};
+
+void MPS::logical_gte(const Tensor &a, const Tensor &b, Tensor &result) {
+  this->initiate_dispatch_comparison("logical_gte", a, b, result);
+};
+
+void MPS::logical_lte(const Tensor &a, const Tensor &b, Tensor &result) {
+  this->initiate_dispatch_comparison("logical_lte", a, b, result);
+};

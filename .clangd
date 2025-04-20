@@ -1,0 +1,4 @@
+CompileFlags:
+  Add: [ "-x", "objective-c++", "-std=c++17" ]
+FallbackFlags:
+  Add: [ "-x", "objective-c++" ]
