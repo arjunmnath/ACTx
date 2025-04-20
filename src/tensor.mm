@@ -131,11 +131,13 @@ Tensor::Tensor(std::vector<float> &values, std::vector<int> dims, DType dtype,
   this->dims = dims;
   this->ndim = dims.size();
   this->_compte_stride();
+  this->device = DeviceType::MPS;
   this->size =
       std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
   assert(values.size() == this->size);
   this->memory = pool->request_memory(this->device, this->size, this->dtype);
-  mps->copy_vector_to_buffer(values.data(), *this->memory, values.size());
+  mps->copy_vector_to_buffer(values.data(), *this->memory,
+                             values.size() * getDTypeSize(DType::float32));
   this->reinterpret_pointer(this->memory->data_ptr);
   this->requires_grad = requires_grad;
 }
@@ -191,12 +193,9 @@ void Tensor::print(int dim, int offset) const {
   if (dim == 0)
     std::cout << std::endl;
 }
-void Tensor::print_matrix() const {
-  for (int i = 0; i < this->dims[0]; i++) {
-    for (int j = 0; j < this->dims[1]; j++) {
-      std::cout << this->getElement(i, j) << " ";
-    }
-    std::cout << std::endl;
+void Tensor::print_buffer() const {
+  for (int i = 0; i < this->memory->size; i++) {
+    std::cout << this->_get_element(i) << " ";
   }
   std::cout << std::endl;
 }

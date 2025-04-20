@@ -3,6 +3,8 @@
 #include "storage.h"
 #include <stdexcept>
 
+bool Memory::does_live_on(DeviceType type) { return this->_type == type; }
+
 Memory::Memory(DeviceType type, int size, DType dtype) {
   this->_type = type;
   this->size = size;
@@ -22,5 +24,7 @@ Memory::Memory(DeviceType type, int size, DType dtype) {
     break;
   case DeviceType::WEBGPU:
     break;
+  default:
+    throw std::logic_error("unkown device type");
   }
 }

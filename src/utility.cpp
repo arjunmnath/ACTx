@@ -109,28 +109,14 @@ int getDTypeSize(DType dtype) {
 
 std::vector<int> compute_broadcast_shape(const Tensor &a, const Tensor &b) {
   int max_rank = std::max(b.dims.size(), a.dims.size());
-
-  std::vector<int> rev_shape1 = a.dims;
-  std::vector<int> rev_shape2 = b.dims;
-
-  std::reverse(rev_shape1.begin(), rev_shape1.end());
-  std::reverse(rev_shape2.begin(), rev_shape2.end());
-
-  rev_shape1.resize(max_rank, 1);
-  rev_shape2.resize(max_rank, 1);
-
   std::vector<int> result(max_rank);
-
-  int dim1, dim2;
-  for (int i = 0; i < max_rank; i++) {
-    dim1 = rev_shape1[i];
-    dim2 = rev_shape2[i];
-    if (dim1 == dim2 || dim1 == 1 || dim2 == 1) {
-      result[i] = std::max(dim1, dim2);
-    } else {
+  for (int i = 0; i < max_rank; ++i) {
+    int dim1 = (i < a.dims.size()) ? a.dims[(a.dims.size() - 1) - i] : 1;
+    int dim2 = (i < b.dims.size()) ? b.dims[(b.dims.size() - 1) - i] : 1;
+    if (dim1 == dim2 || dim1 == 1 || dim2 == 1)
+      result[(max_rank - 1) - i] = std::max(dim1, dim2);
+    else
       throw std::invalid_argument("Shapes not broadcastable");
-    }
   }
-  std::reverse(result.begin(), result.end());
   return result;
 }

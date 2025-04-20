@@ -106,7 +106,7 @@ public:
   //
 
   void print(int dim = 0, int offset = 0) const;
-  void print_matrix() const;
+  void print_buffer() const;
 
   // getters & setters
   std::vector<int> strides();

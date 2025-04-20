@@ -22,6 +22,7 @@ public:
   std::unique_ptr<Storage> storage;
   Memory(DeviceType type, int size, DType dtype);
   bool operator<(const Memory &other) const { return size < other.size; }
+  bool does_live_on(DeviceType type);
   void acquire_lock();
   void release_lock();
   void guarded_lock();
