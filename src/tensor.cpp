@@ -1,14 +1,10 @@
 #include "tensor.h"
 #include "main.h"
-#include "memory.h"
-#include "mps.h"
 #include "types.h"
 #include "utility.h"
-#include <MacTypes.h>
 #include <cassert>
 #include <cstddef>
 #include <cstring>
-#include <functional>
 #include <iostream>
 #include <memory>
 #include <numeric>

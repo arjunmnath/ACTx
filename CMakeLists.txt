@@ -24,6 +24,13 @@ FetchContent_MakeAvailable(spdlog)
 include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories(${gtest_SOURCE_DIR}/googletest/include)
 
+# manually mention
+file(GLOB_RECURSE OBJCXX_HEADERS "${CMAKE_SOURCE_DIR}/include/mps.h"
+     "${CMAKE_SOURCE_DIR}/include/memory.h"
+     "${CMAKE_SOURCE_DIR}/include/storage.h")
+set_source_files_properties(${OBJCXX_HEADERS}
+                            PROPERTIES COMPILE_FLAGS "-x objective-c++")
+
 # Directories
 set(METAL_SOURCE_DIR "${CMAKE_SOURCE_DIR}/src/kernels")
 set(METAL_BUILD_DIR "${CMAKE_BINARY_DIR}/build")

@@ -17,4 +17,3 @@ int _init() {
 }
 int intialized = _init();
 } // namespace
-//
