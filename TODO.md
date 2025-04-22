@@ -21,5 +21,6 @@
 - [ ] use open mp to implement cpu kernels
 - [ ] enable mutex locks for memory
 - [ ] copying meta data to a buffer for every kernel operation is expensive, fix that;
+- [ ] simplify the compute_broadcast_index kernel helper logic
  
 
