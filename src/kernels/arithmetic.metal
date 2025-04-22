@@ -10,15 +10,13 @@ kernel void __add__(device float *A [[buffer(0)]],
                     constant int *result_shape [[buffer(5)]],
                     constant int *ranks [[buffer(6)]],
                     uint tid [[thread_position_in_grid]]) {
-  int flat_index = tid;
+
+  int trank = ranks[2];
   int lrank = ranks[0];
   int rrank = ranks[1];
-  int trank = ranks[2];
-  int lindex =
-      compute_broadcast_index(flat_index, lshape, result_shape, lrank, trank);
-  int rindex =
-      compute_broadcast_index(flat_index, rshape, result_shape, rrank, trank);
-  C[flat_index] = A[lindex] + B[rindex];
+  int lindex = compute_broadcast_index(tid, lshape, result_shape, lrank, trank);
+  int rindex = compute_broadcast_index(tid, rshape, result_shape, rrank, trank);
+  C[tid] = A[lindex] + B[rindex];
 }
 
 kernel void __sub__(device float *A [[buffer(0)]],

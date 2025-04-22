@@ -10,8 +10,6 @@
 
 class Tensor {
 private:
-  std::vector<int> stride;
-  bool requires_grad;
   int ndim;
   std::variant<void *, float *, int *> data_ptr;
   void _compte_stride();
@@ -36,6 +34,8 @@ private:
 
 public:
   std::vector<int> dims;
+  std::vector<int> stride;
+  bool requires_grad;
   DType dtype;
   size_t size;
   DeviceType device;

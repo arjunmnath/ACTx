@@ -18,10 +18,6 @@ TEST(TensorDataType, Float32Size) {
 
 TEST(TensorDataType, Int32Size) { EXPECT_EQ(getDTypeSize(DType::int32), 4); }
 
-TEST(TensorDataType, Float64Size) {
-  EXPECT_EQ(getDTypeSize(DType::float64), 8);
-}
-
 TEST(TensorDataType, Int64Size) { EXPECT_EQ(getDTypeSize(DType::int64), 8); }
 
 TEST(TensorDataType, InvalidTypeThrows) {

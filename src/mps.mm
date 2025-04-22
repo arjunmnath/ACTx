@@ -288,7 +288,6 @@ void MPS::initiate_dispatch_broadcastable(std::string kernel_method,
       pool->request_memory(DeviceType::MPS, _ranks.size(), DType::int32);
   this->copy_vector_to_buffer((void *)_ranks.data(), *ranks,
                               result_shape.size() * getDTypeSize(DType::int32));
-
   this->execute_kernel_binary_with_broadcast(
       kernel_method, a.memory->storage->metal, b.memory->storage->metal,
       result.memory->storage->metal,
