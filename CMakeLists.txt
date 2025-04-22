@@ -28,8 +28,8 @@ include_directories(${gtest_SOURCE_DIR}/googletest/include)
 file(GLOB_RECURSE OBJCXX_HEADERS "${CMAKE_SOURCE_DIR}/include/mps.h"
      "${CMAKE_SOURCE_DIR}/include/memory.h"
      "${CMAKE_SOURCE_DIR}/include/storage.h")
-set_source_files_properties(${OBJCXX_HEADERS}
-                            PROPERTIES COMPILE_FLAGS "-x objective-c++")
+set_source_files_properties(${OBJCXX_HEADERS} PROPERTIES COMPILE_FLAGS
+                                                         "-x objective-c++")
 
 # Directories
 set(METAL_SOURCE_DIR "${CMAKE_SOURCE_DIR}/src/kernels")
@@ -111,6 +111,7 @@ if(NOT CMAKE_BUILD_TYPE)
       CACHE STRING "Choose the build type" FORCE)
 endif()
 
+
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 find_library(FOUNDATION_FRAMEWORK Foundation)
@@ -125,11 +126,21 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_executable(out ${DEBUG_SOURCES})
   target_compile_options(
     out
-    PRIVATE -DDEBUG_BUILD -g -O0 -ObjC++ -fobjc-arc
-            # -fsanitize=address
+    PRIVATE -DDEBUG_BUILD
+            -g
+            -O0
+            -ObjC++
+            -fobjc-arc
+            -fsanitize=address
             -Wno-unused-command-line-argument)
 
-  target_link_libraries(out PRIVATE ${COMMON_LIBRARIES}) # -fsanitize=address)
+  target_link_libraries(out PRIVATE ${COMMON_LIBRARIES} -fsanitize=address)
+  if(CMAKE_GENERATOR STREQUAL "Xcode")
+    set_target_properties(
+      out PROPERTIES XCODE_ATTRIBUTE_ENABLE_ADDRESS_SANITIZER "YES"
+                     XCODE_ATTRIBUTE_ENABLE_ZOMBIE_OBJECTS "YES")
+  endif()
+
 elseif(CMAKE_BUILD_TYPE STREQUAL "Test")
   enable_testing()
   set(SOURCE_FILES ${COMMAN_SOURCES} ${TEST_SOURCES})
@@ -138,12 +149,17 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Test")
   add_executable(AllTests ${SOURCE_FILES})
   target_link_libraries(AllTests PRIVATE ${COMMON_LIBRARIES} gtest_main)
   target_compile_options(
-    AllTests PRIVATE -DTEST_BUILD -O0 -g -ObjC++ # -fsanitize=address
+    AllTests PRIVATE -DTEST_BUILD -O0 -g -ObjC++ -fsanitize=address
                      -Wno-unused-command-line-argument)
-  # target_link_libraries(AllTests PRIVATE -fsanitize=address)
+  target_link_libraries(AllTests PRIVATE -fsanitize=address)
+  if(CMAKE_GENERATOR STREQUAL "Xcode")
+    set_target_properties(
+      out PROPERTIES XCODE_ATTRIBUTE_ENABLE_ADDRESS_SANITIZER "YES"
+                     XCODE_ATTRIBUTE_ENABLE_ZOMBIE_OBJECTS "YES")
+  endif()
+
   include(GoogleTest)
   gtest_discover_tests(AllTests)
-
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
   message(STATUS "Release build selected")
   # TODO: ADD The python.h reference
