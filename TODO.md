@@ -20,5 +20,6 @@
 - [ ] change usage of shared_ptr to weak_ptr wherever possible
 - [ ] use open mp to implement cpu kernels
 - [ ] enable mutex locks for memory
+- [ ] copying meta data to a buffer for every kernel operation is expensive, fix that;
  
 
