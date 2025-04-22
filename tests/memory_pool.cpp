@@ -25,7 +25,7 @@ TEST(MemoryPool, FindSuitableBlock) {
   auto mem1 = pool.request_memory(DeviceType::MPS, 2048, DType::float32);
   pool.return_memory(mem1);
 
-  auto found = pool.find_suitable_block(2048);
+  auto found = pool.find_suitable_block(DeviceType::MPS, DType::float32, 2048);
   ASSERT_NE(found, nullptr);
   EXPECT_EQ(found, mem1);
 }
@@ -49,7 +49,7 @@ TEST(MemoryPool, MultipleBlocksAndReuse) {
 
 TEST(MemoryPool, NoSuitableBlock) {
   MemoryPool pool;
-  auto found = pool.find_suitable_block(4096);
+  auto found = pool.find_suitable_block(DeviceType::MPS, DType::float32, 4096);
   EXPECT_EQ(found, nullptr);
 }
 
