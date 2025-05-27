@@ -1,8 +1,6 @@
 
-inline int compute_broadcast_index(int flat_index,
-                                   constant int *source_shape,
-                                   constant int *target_shape,
-                                   int source_rank,
+inline int compute_broadcast_index(int flat_index, constant int *source_shape,
+                                   constant int *target_shape, int source_rank,
                                    int target_rank) {
   int source_index = 0;
   int stride = 1;
@@ -28,4 +26,3 @@ inline int compute_broadcast_index(int flat_index,
 
   return source_index;
 }
-
