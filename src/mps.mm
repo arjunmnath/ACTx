@@ -5,6 +5,7 @@
 #include "utility.h"
 #import <Foundation/Foundation.h>
 #include <Metal/Metal.h>
+#include <any>
 #include <cassert>
 #include <cmath>
 #include <cstdint>
@@ -19,6 +20,19 @@
 #include <unistd.h>
 #include <unordered_map>
 #include <vector>
+
+template <typename T>
+void print_buffer(id<MTLBuffer> buffer, DType dtype, const char *label = "") {
+  size_t count = buffer.length / getDTypeSize(dtype);
+  std::vector<T> data(count);
+  std::cout << count << std::endl;
+  memcpy(data.data(), buffer.contents, buffer.length);
+  std::cout << label << "[ ";
+  for (size_t i = 0; i < count; ++i) {
+    std::cout << data[i] << " ";
+  }
+  std::cout << "]" << std::endl;
+}
 
 static NSString *getModuleDirectory() {
   Dl_info info;
@@ -77,7 +91,8 @@ void MPS::_init_pipeline(std::string metal_function_name) {
   pipelines[metal_function_name] = pipelineState;
 }
 void MPS::execute_kernel_unary(std::string func, id<MTLBuffer> A,
-                               id<MTLBuffer> result, id<MTLBuffer> meta) {
+                               id<MTLBuffer> result, id<MTLBuffer> meta,
+                               int N) {
   std::string metal_function_name = func;
   if (!pipelines[metal_function_name]) {
     this->_init_pipeline(metal_function_name);
@@ -98,10 +113,11 @@ void MPS::execute_kernel_unary(std::string func, id<MTLBuffer> A,
   [computeEncoder setComputePipelineState:pipelineState];
   [computeEncoder setBuffer:A offset:0 atIndex:0];
   [computeEncoder setBuffer:result offset:0 atIndex:1];
-  NSUInteger threadExecutionWidth = pipelineState.threadExecutionWidth;
-  size_t threadsPerThreadgroup = threadExecutionWidth;
+
+  size_t threadsPerThreadgroup = pipelineState.threadExecutionWidth;
   size_t threadgroups =
-      (A.length + threadsPerThreadgroup - 1) / threadsPerThreadgroup;
+      ((N + threadsPerThreadgroup - 1) / threadsPerThreadgroup) *
+      threadsPerThreadgroup;
   [computeEncoder
        dispatchThreadgroups:MTLSizeMake(threadgroups, 1, 1)
       threadsPerThreadgroup:MTLSizeMake(threadsPerThreadgroup, 1, 1)];
@@ -110,7 +126,7 @@ void MPS::execute_kernel_unary(std::string func, id<MTLBuffer> A,
   [commandBuffer waitUntilCompleted];
 }
 void MPS::execute_kernel_init(std::string func, id<MTLBuffer> A,
-                              id<MTLBuffer> meta) {
+                              id<MTLBuffer> meta, int N) {
   std::string metal_function_name = func;
   if (!pipelines[metal_function_name]) {
     this->_init_pipeline(metal_function_name);
@@ -131,10 +147,11 @@ void MPS::execute_kernel_init(std::string func, id<MTLBuffer> A,
   [computeEncoder setComputePipelineState:pipelineState];
   [computeEncoder setBuffer:A offset:0 atIndex:0];
   [computeEncoder setBuffer:meta offset:0 atIndex:1];
-  NSUInteger threadExecutionWidth = pipelineState.threadExecutionWidth;
-  size_t threadsPerThreadgroup = threadExecutionWidth;
+
+  size_t threadsPerThreadgroup = pipelineState.threadExecutionWidth;
   size_t threadgroups =
-      (A.length + threadsPerThreadgroup - 1) / threadsPerThreadgroup;
+      ((N + threadsPerThreadgroup - 1) / threadsPerThreadgroup) *
+      threadsPerThreadgroup;
   [computeEncoder
        dispatchThreadgroups:MTLSizeMake(threadgroups, 1, 1)
       threadsPerThreadgroup:MTLSizeMake(threadsPerThreadgroup, 1, 1)];
@@ -144,7 +161,7 @@ void MPS::execute_kernel_init(std::string func, id<MTLBuffer> A,
 }
 void MPS::execute_kernel_binary(std::string func, id<MTLBuffer> A,
                                 id<MTLBuffer> B, id<MTLBuffer> result,
-                                id<MTLBuffer> meta) {
+                                id<MTLBuffer> meta, int N) {
   std::string metal_function_name = func;
   if (!pipelines[metal_function_name]) {
     this->_init_pipeline(metal_function_name);
@@ -169,10 +186,10 @@ void MPS::execute_kernel_binary(std::string func, id<MTLBuffer> A,
   [computeEncoder setBuffer:B offset:0 atIndex:1];
   [computeEncoder setBuffer:result offset:0 atIndex:2];
   [computeEncoder setBuffer:meta offset:0 atIndex:3];
-  NSUInteger threadExecutionWidth = pipelineState.threadExecutionWidth;
-  size_t threadsPerThreadgroup = threadExecutionWidth;
+
+  size_t threadsPerThreadgroup = pipelineState.threadExecutionWidth;
   size_t threadgroups =
-      (std::min(A.length, B.length) + threadsPerThreadgroup - 1) /
+      ((N + threadsPerThreadgroup - 1) / threadsPerThreadgroup) *
       threadsPerThreadgroup;
   [computeEncoder
        dispatchThreadgroups:MTLSizeMake(threadgroups, 1, 1)
@@ -184,8 +201,8 @@ void MPS::execute_kernel_binary(std::string func, id<MTLBuffer> A,
 
 void MPS::execute_kernel_binary_with_broadcast(
     std::string func, id<MTLBuffer> A, id<MTLBuffer> B, id<MTLBuffer> result,
-    id<MTLBuffer> lshape, id<MTLBuffer> rshape, id<MTLBuffer> target,
-    id<MTLBuffer> ranks) {
+    id<MTLBuffer> ashape, id<MTLBuffer> bshape, id<MTLBuffer> target,
+    id<MTLBuffer> ranks, int N) {
   std::string metal_function_name = func;
   if (!pipelines[metal_function_name]) {
     this->_init_pipeline(metal_function_name);
@@ -209,15 +226,14 @@ void MPS::execute_kernel_binary_with_broadcast(
   [computeEncoder setBuffer:A offset:0 atIndex:0];
   [computeEncoder setBuffer:B offset:0 atIndex:1];
   [computeEncoder setBuffer:result offset:0 atIndex:2];
-  [computeEncoder setBuffer:lshape offset:0 atIndex:3];
-  [computeEncoder setBuffer:rshape offset:0 atIndex:4];
+  [computeEncoder setBuffer:ashape offset:0 atIndex:3];
+  [computeEncoder setBuffer:bshape offset:0 atIndex:4];
   [computeEncoder setBuffer:target offset:0 atIndex:5];
   [computeEncoder setBuffer:ranks offset:0 atIndex:6];
 
-  NSUInteger threadExecutionWidth = pipelineState.threadExecutionWidth;
-  size_t threadsPerThreadgroup = threadExecutionWidth;
+  size_t threadsPerThreadgroup = pipelineState.threadExecutionWidth;
   size_t threadgroups =
-      (std::min(A.length, B.length) + threadsPerThreadgroup - 1) /
+      ((N + threadsPerThreadgroup - 1) / threadsPerThreadgroup) *
       threadsPerThreadgroup;
   [computeEncoder
        dispatchThreadgroups:MTLSizeMake(threadgroups, 1, 1)
@@ -227,9 +243,15 @@ void MPS::execute_kernel_binary_with_broadcast(
   [commandBuffer waitUntilCompleted];
 }
 id<MTLBuffer> MPS::createEmptyBuffer(int size, DType type) {
+  if (size <= 0) {
+    throw std::runtime_error("invalid buffer size");
+  }
   id<MTLBuffer> buffer =
       [this->device newBufferWithLength:size * getDTypeSize(type)
                                 options:MTLResourceStorageModeShared];
+  if (!buffer) {
+    throw std::runtime_error("Failed to allocate MTLBuffer");
+  }
 
   /*
   NSLog(@"Buffer length: %lu", buffer.length);
@@ -265,20 +287,20 @@ void MPS::initiate_dispatch_broadcastable(std::string kernel_method,
     throw std::runtime_error("All the tensor must live in Metal Buffers");
   }
   auto result_shape = compute_broadcast_shape(a, b);
-  std::shared_ptr<Memory> lshape =
+  std::shared_ptr<Memory> ashape =
       pool->request_memory(DeviceType::MPS, a.dims.size(), DType::int32);
-  this->copy_vector_to_buffer((void *)a.dims.data(), *lshape,
+  this->copy_vector_to_buffer((void *)a.dims.data(), *ashape,
                               a.dims.size() * getDTypeSize(DType::int32));
 
-  std::shared_ptr<Memory> rshape =
+  std::shared_ptr<Memory> bshape =
       pool->request_memory(DeviceType::MPS, b.dims.size(), DType::int32);
-  this->copy_vector_to_buffer((void *)b.dims.data(), *rshape,
-                              b.dims.size() * getDTypeSize(b.dtype));
+  this->copy_vector_to_buffer((void *)b.dims.data(), *bshape,
+                              b.dims.size() * getDTypeSize(DType::int32));
 
   std::shared_ptr<Memory> result_shape_memory =
-      pool->request_memory(DeviceType::MPS, result_shape.size(), a.dtype);
+      pool->request_memory(DeviceType::MPS, result_shape.size(), DType::int32);
   this->copy_vector_to_buffer((void *)result_shape.data(), *result_shape_memory,
-                              result_shape.size() * getDTypeSize(a.dtype));
+                              result_shape.size() * getDTypeSize(DType::int32));
 
   std::vector<int> _ranks = {static_cast<int>(a.dims.size()),
                              static_cast<int>(b.dims.size()),
@@ -287,18 +309,31 @@ void MPS::initiate_dispatch_broadcastable(std::string kernel_method,
   std::shared_ptr<Memory> ranks =
       pool->request_memory(DeviceType::MPS, _ranks.size(), DType::int32);
   this->copy_vector_to_buffer((void *)_ranks.data(), *ranks,
-                              result_shape.size() * getDTypeSize(DType::int32));
+                              _ranks.size() * getDTypeSize(DType::int32));
+  /*
+    print_buffer<float>(a.memory->storage->metal, a.dtype, "A: ");
+    print_buffer<float>(b.memory->storage->metal, b.dtype, "B: ");
+    print_buffer<int>(ashape->storage->metal, ashape->dtype, "ashape: ");
+    print_buffer<int>(bshape->storage->metal, bshape->dtype, "bshape: ");
+    print_buffer<int>(result_shape_memory->storage->metal,
+                      result_shape_memory->dtype, "Result Shape: ");
+    print_buffer<int>(ranks->storage->metal, ranks->dtype, "Ranks: ");
+    */
+
   this->execute_kernel_binary_with_broadcast(
       kernel_method, a.memory->storage->metal, b.memory->storage->metal,
       result.memory->storage->metal,
-      *reinterpret_cast<id<MTLBuffer> __strong *>(&lshape->storage->metal),
-      *reinterpret_cast<id<MTLBuffer> __strong *>(&rshape->storage->metal),
+      *reinterpret_cast<id<MTLBuffer> __strong *>(&ashape->storage->metal),
+      *reinterpret_cast<id<MTLBuffer> __strong *>(&bshape->storage->metal),
       *reinterpret_cast<id<MTLBuffer> __strong *>(
           &result_shape_memory->storage->metal),
-      *reinterpret_cast<id<MTLBuffer> __strong *>(&ranks->storage->metal));
+      *reinterpret_cast<id<MTLBuffer> __strong *>(&ranks->storage->metal),
+      result.size);
+  // print_buffer<float>(result.memory->storage->metal, result.dtype, "Result:
+  // ");
 
-  pool->return_memory(lshape);
-  pool->return_memory(rshape);
+  pool->return_memory(ashape);
+  pool->return_memory(bshape);
   pool->return_memory(result_shape_memory);
   pool->return_memory(ranks);
 }
@@ -319,7 +354,8 @@ void MPS::initiate_dispatch_comparison(std::string kernel_method,
   this->execute_kernel_binary(
       kernel_method, a.memory->storage->metal, b.memory->storage->metal,
       result.memory->storage->metal,
-      *reinterpret_cast<id<MTLBuffer> __strong *>(&meta->storage->metal));
+      *reinterpret_cast<id<MTLBuffer> __strong *>(&meta->storage->metal),
+      result.size);
   pool->return_memory(meta);
 }
 
@@ -359,8 +395,9 @@ void MPS::ones(Tensor &a) {
       std::accumulate(a.dims.begin(), a.dims.end(), 1, std::multiplies<int>())};
   this->copy_vector_to_buffer((void *)meta.data(), *meta_memory,
                               meta.size() * getDTypeSize(DType::int32));
+
   this->execute_kernel_init("__ones__", a.memory->storage->metal,
-                            meta_memory->storage->metal);
+                            meta_memory->storage->metal, a.size);
   pool->return_memory(meta_memory);
 }
 
@@ -372,7 +409,7 @@ void MPS::zeros(Tensor &a) {
   this->copy_vector_to_buffer((void *)meta.data(), *meta_memory,
                               meta.size() * getDTypeSize(DType::int32));
   this->execute_kernel_init("__ones__", a.memory->storage->metal,
-                            meta_memory->storage->metal);
+                            meta_memory->storage->metal, a.size);
   pool->return_memory(meta_memory);
 }
 

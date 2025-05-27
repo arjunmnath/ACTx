@@ -22,22 +22,22 @@ public:
   MPS();
   void _init_pipeline(std::string metal_function_name);
   void execute_kernel_binary(std::string func, id<MTLBuffer> A, id<MTLBuffer> B,
-                             id<MTLBuffer> result, id<MTLBuffer> meta);
+                             id<MTLBuffer> result, id<MTLBuffer> meta, int N);
   void execute_kernel_binary_with_broadcast(
       std::string func, id<MTLBuffer> A, id<MTLBuffer> B, id<MTLBuffer> result,
       id<MTLBuffer> lshape, id<MTLBuffer> rshape, id<MTLBuffer> target,
-      id<MTLBuffer> ranks);
+      id<MTLBuffer> ranks, int N);
 
   void execute_kernel_unary_with_broadcast(
       std::string func, id<MTLBuffer> A, id<MTLBuffer> B, id<MTLBuffer> result,
       id<MTLBuffer> lshape, id<MTLBuffer> rshape, id<MTLBuffer> target,
-      id<MTLBuffer> ranks);
+      id<MTLBuffer> ranks, int N);
 
   void execute_kernel_unary(std::string func, id<MTLBuffer> A,
-                            id<MTLBuffer> result, id<MTLBuffer> meta);
+                            id<MTLBuffer> result, id<MTLBuffer> meta, int N);
 
   void execute_kernel_init(std::string func, id<MTLBuffer> A,
-                           id<MTLBuffer> meta);
+                           id<MTLBuffer> meta, int N);
 
   void initiate_dispatch_broadcastable(std::string kernel_method,
                                        const Tensor &a, const Tensor &b,
@@ -47,8 +47,6 @@ public:
                                     const Tensor &b, Tensor &result);
 
   std::vector<id<MTLBuffer>> __dummy_data();
-  void print_buffer_contents(std::vector<id<MTLBuffer>> buffers,
-                             std::vector<int> stride);
 
   id<MTLBuffer> createEmptyBuffer(int size, DType type);
   id<MTLBuffer> clone(id<MTLBuffer> buffer);

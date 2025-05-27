@@ -2,23 +2,24 @@
 #include <metal_stdlib>
 using namespace metal;
 
-kernel void __add__(device float *A [[buffer(0)]],
-                    device float *B [[buffer(1)]],
-                    device float *C [[buffer(2)]],
-                    constant int *lshape [[buffer(3)]],
-                    constant int *rshape [[buffer(4)]],
-                    constant int *result_shape [[buffer(5)]],
-                    constant int *ranks [[buffer(6)]],
-                    uint tid [[thread_position_in_grid]]) {
+kernel void __add__(device const float *A       [[ buffer(0) ]],
+                    device const float *B       [[ buffer(1) ]],
+                    device       float *C       [[ buffer(2) ]],
+                    constant     int   *lshape  [[ buffer(3) ]],
+                    constant     int   *rshape  [[ buffer(4) ]],
+                    constant     int   *outshape[[ buffer(5) ]],
+                    constant     int   *ranks   [[ buffer(6) ]],
+                    uint          tid          [[ thread_position_in_grid ]]) 
+{
+    int lrank = ranks[0];
+    int rrank = ranks[1];
+    int trank = ranks[2];
 
-  int trank = ranks[2];
-  int lrank = ranks[0];
-  int rrank = ranks[1];
-  int lindex = compute_broadcast_index(tid, lshape, result_shape, lrank, trank);
-  int rindex = compute_broadcast_index(tid, rshape, result_shape, rrank, trank);
-  C[tid] = A[lindex] + B[rindex];
+    int li = compute_broadcast_index(tid, lshape, outshape, lrank, trank);
+    int ri = compute_broadcast_index(tid, rshape, outshape, rrank, trank);
+
+    C[tid] = A[li] + B[ri];
 }
-
 kernel void __sub__(device float *A [[buffer(0)]],
                     device float *B [[buffer(1)]],
                     device float *C [[buffer(2)]],

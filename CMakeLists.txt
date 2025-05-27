@@ -111,7 +111,6 @@ if(NOT CMAKE_BUILD_TYPE)
       CACHE STRING "Choose the build type" FORCE)
 endif()
 
-
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 find_library(FOUNDATION_FRAMEWORK Foundation)
