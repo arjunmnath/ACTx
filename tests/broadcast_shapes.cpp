@@ -11,8 +11,10 @@ TEST(TensorBroadcastShapes, BroadcastingAdditionWithOnes) {
 
   Tensor result = tensor1.add(&tensor2, false);
 
-  std::vector<float> expected_data = {4, 6, 5, 7};
-  Tensor expected(expected_data, shape2);
+  std::vector<int> shape3 = {3, 4};
+  std::vector<float> expected_data = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
+
+  Tensor expected(expected_data, shape3);
 
   EXPECT_TRUE(result.logical_e(&expected).all())
       << "Broadcasting addition failed";

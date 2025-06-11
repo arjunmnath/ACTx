@@ -5,16 +5,14 @@
 #include <vector>
 
 int main() {
-  std::vector<int> shape1 = {3, 4};
-  std::vector<int> shape2 = {1};
-
-  Tensor tensor1 = Tensor::ones(shape1, DType::float32);
-  Tensor tensor2 = Tensor::ones(shape2, DType::float32);
-
-  tensor1.print();
-  tensor2.print();
-  // FIX: operations going out of bound
-  Tensor result = tensor1.add(&tensor2, false);
-  result.print();
+  std::vector<int> shape = {2, 3};
+  Tensor a = Tensor::zeros(shape);
+  std::vector<float> ones = {0, 0, 0, 0, 0, 0};
+  Tensor expected(ones, shape, DType::int32);
+  a.print();
+  expected.print();
+  Tensor b = a.logical_e(&expected);
+  b.print();
+  std::cout << b.all() << " " << std::endl;
   return 0;
 }

@@ -19,7 +19,7 @@ void Dispatcher::call(
 }
 
 void Dispatcher::init_register() {
-  // arithmetic
+
   this->_register->register_op(
       OPType::ADD, DeviceType::MPS,
       [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
@@ -28,7 +28,7 @@ void Dispatcher::init_register() {
       },
       [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
          const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
-        // TODO: do this
+
       });
   this->_register->register_op(
       OPType::SUB, DeviceType::MPS,
@@ -38,7 +38,7 @@ void Dispatcher::init_register() {
       },
       [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
          const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
-        // TODO: do this
+
       });
   this->_register->register_op(
       OPType::MUL, DeviceType::MPS,
@@ -48,7 +48,7 @@ void Dispatcher::init_register() {
       },
       [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
          const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
-        // TODO: do this
+
       });
   this->_register->register_op(
       OPType::DIV, DeviceType::MPS,
@@ -58,10 +58,9 @@ void Dispatcher::init_register() {
       },
       [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
          const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
-        // TODO: do this
+
       });
 
-  // comparisions
   this->_register->register_op(
       OPType::LOGICAL_E, DeviceType::MPS,
       [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
@@ -70,7 +69,7 @@ void Dispatcher::init_register() {
       },
       [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
          const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
-        // TODO: do this
+
       });
   this->_register->register_op(
       OPType::LOGICAL_NE, DeviceType::MPS,
@@ -80,7 +79,7 @@ void Dispatcher::init_register() {
       },
       [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
          const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
-        // TODO: do this
+
       });
   this->_register->register_op(
       OPType::LOGICAL_GT, DeviceType::MPS,
@@ -90,7 +89,7 @@ void Dispatcher::init_register() {
       },
       [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
          const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
-        // TODO: do this
+
       });
   this->_register->register_op(
       OPType::LOGICAL_GTE, DeviceType::MPS,
@@ -100,7 +99,7 @@ void Dispatcher::init_register() {
       },
       [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
          const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
-        // TODO: do this
+
       });
   this->_register->register_op(
       OPType::LOGICAL_LT, DeviceType::MPS,
@@ -110,7 +109,7 @@ void Dispatcher::init_register() {
       },
       [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
          const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
-        // TODO: do this
+
       });
   this->_register->register_op(
       OPType::LOGICAL_LTE, DeviceType::MPS,
@@ -120,10 +119,9 @@ void Dispatcher::init_register() {
       },
       [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
          const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
-        // TODO: do this
+
       });
 
-  // inits
   this->_register->register_op(
       OPType::ONES_INIT, DeviceType::MPS,
       [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
@@ -133,7 +131,7 @@ void Dispatcher::init_register() {
       },
       [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
          const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
-        // TODO: do this
+
       });
   this->_register->register_op(
       OPType::ZEROES_INIT, DeviceType::MPS,
@@ -144,6 +142,16 @@ void Dispatcher::init_register() {
       },
       [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
          const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
-        // TODO: do this
+
+      });
+  this->_register->register_op(
+      OPType::EYE_INIT, DeviceType::MPS,
+      [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
+         const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
+        assert(!b.has_value() && !result.has_value());
+        mps->eye(a);
+      },
+      [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
+         const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
       });
 }

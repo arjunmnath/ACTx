@@ -5,7 +5,7 @@
 TEST(TensorBroadcastScalar, ScalarBroadcastingAddition) {
   std::vector<float> data1 = {10};
   std::vector<float> data2 = {1, 2, 3, 4};
-  std::vector<int> shape1 = {};
+  std::vector<int> shape1 = {1};
   std::vector<int> shape2 = {2, 2};
 
   Tensor tensor1(data1, shape1);

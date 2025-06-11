@@ -222,7 +222,7 @@ Tensor Tensor::execute_init_operation(OPType op, std::vector<int> shape,
                                       DeviceType device) {
   std::shared_ptr<Memory> result_memory = pool->request_memory(
       device,
-      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>()),
+      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>()) * getDTypeSize(dtype),
       dtype);
   Tensor result(result_memory, shape, dtype, requires_grad);
   dispatcher->call(op, device, result, std::nullopt, std::nullopt);
@@ -289,19 +289,19 @@ Tensor Tensor::div(Tensor *other, bool inplace) {
 // Comparison operators
 Tensor Tensor::logical_e(Tensor *other) {
   if (this->dims != other->dims) {
-    throw std::runtime_error("shape contraint failed");
+    throw std::runtime_error("shape constraint failed");
   }
   return this->execute_binary_operation(OPType::LOGICAL_E, other);
 }
 Tensor Tensor::logical_ne(Tensor *other) {
   if (this->dims != other->dims) {
-    throw std::runtime_error("shape contraint failed");
+    throw std::runtime_error("shape constraint failed");
   }
   return this->execute_binary_operation(OPType::LOGICAL_NE, other);
 }
 Tensor Tensor::logical_gt(Tensor *other) {
   if (this->dims != other->dims) {
-    throw std::runtime_error("shape contraint failed");
+    throw std::runtime_error("shape constraint failed");
   }
   return this->execute_binary_operation(OPType::LOGICAL_GT, other);
 }
@@ -418,16 +418,12 @@ Tensor Tensor::zeros(std::vector<int> shape, DType dtype) {
   return Tensor::execute_init_operation(OPType::ZEROES_INIT, shape, dtype);
 }
 
-/*
 Tensor Tensor::eye(int n, DType dtype) {
   std::vector<int> shape = {n, n};
- id<MTLBuffer> meta =
-      device_mps->createBuffer(shape.data(), shape.size(), dtype);
-  id<MTLBuffer> result = device_mps->createEmptyBuffer(n * n, dtype);
-  device_mps->execute_kernel_init("__eye__", result, meta);
-  return Tensor(result, shape);
+  return Tensor::execute_init_operation(OPType::EYE_INIT, shape, dtype);
 }
 
+/*
 Tensor Tensor::empty(std::vector<int> shape, DType dtype) {
   int size =
       std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
