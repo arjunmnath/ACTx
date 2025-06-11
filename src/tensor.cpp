@@ -222,7 +222,8 @@ Tensor Tensor::execute_init_operation(OPType op, std::vector<int> shape,
                                       DeviceType device) {
   std::shared_ptr<Memory> result_memory = pool->request_memory(
       device,
-      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>()) * getDTypeSize(dtype),
+      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>()) *
+          getDTypeSize(dtype),
       dtype);
   Tensor result(result_memory, shape, dtype, requires_grad);
   dispatcher->call(op, device, result, std::nullopt, std::nullopt);
