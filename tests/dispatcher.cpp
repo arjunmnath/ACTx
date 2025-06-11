@@ -2,7 +2,7 @@
 #include "dispatcher.h"
 #include <gtest/gtest.h>
 
-Tensor make_tensor(std::vector<float> data, std::vector<int> shape = {1}) {
+Tensor make_tensor(std::vector<float> data, std::vector<int> shape = {2}) {
   Tensor t(data, shape, DType::float32, false);
   return t;
 }

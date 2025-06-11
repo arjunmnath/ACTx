@@ -19,6 +19,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 template <typename T>
@@ -71,7 +72,11 @@ MPS::MPS() {
     exit(1);
   }
 }
-
+std::pair<size_t, size_t> MPS::compute_threads(size_t N, size_t maxTPG) {
+  uint32_t TPG = (N < maxTPG) ? N : maxTPG;
+  uint32_t TGs = static_cast<uint32_t>(std::ceil(static_cast<float>(N) / TPG));
+  return {TPG, TGs};
+}
 void MPS::_init_pipeline(std::string metal_function_name) {
   NSError *error = nil;
   id<MTLFunction> function = [this->library
@@ -114,13 +119,10 @@ void MPS::execute_kernel_unary(std::string func, id<MTLBuffer> A,
   [computeEncoder setBuffer:A offset:0 atIndex:0];
   [computeEncoder setBuffer:result offset:0 atIndex:1];
 
-  size_t threadsPerThreadgroup = pipelineState.threadExecutionWidth;
-  size_t threadgroups =
-      ((N + threadsPerThreadgroup - 1) / threadsPerThreadgroup) *
-      threadsPerThreadgroup;
-  [computeEncoder
-       dispatchThreadgroups:MTLSizeMake(threadgroups, 1, 1)
-      threadsPerThreadgroup:MTLSizeMake(threadsPerThreadgroup, 1, 1)];
+  std::pair<size_t, size_t> threadinfo =
+      this->compute_threads(N, pipelineState.maxTotalThreadsPerThreadgroup);
+  [computeEncoder dispatchThreadgroups:MTLSizeMake(threadinfo.second, 1, 1)
+                 threadsPerThreadgroup:MTLSizeMake(threadinfo.first, 1, 1)];
   [computeEncoder endEncoding];
   [commandBuffer commit];
   [commandBuffer waitUntilCompleted];
@@ -148,13 +150,11 @@ void MPS::execute_kernel_init(std::string func, id<MTLBuffer> A,
   [computeEncoder setBuffer:A offset:0 atIndex:0];
   [computeEncoder setBuffer:meta offset:0 atIndex:1];
 
-  size_t threadsPerThreadgroup = pipelineState.threadExecutionWidth;
-  size_t threadgroups =
-      ((N + threadsPerThreadgroup - 1) / threadsPerThreadgroup) *
-      threadsPerThreadgroup;
-  [computeEncoder
-       dispatchThreadgroups:MTLSizeMake(threadgroups, 1, 1)
-      threadsPerThreadgroup:MTLSizeMake(threadsPerThreadgroup, 1, 1)];
+  std::pair<size_t, size_t> threadinfo =
+      this->compute_threads(N, pipelineState.maxTotalThreadsPerThreadgroup);
+  [computeEncoder dispatchThreadgroups:MTLSizeMake(2, 1, 1)
+                 threadsPerThreadgroup:MTLSizeMake(32, 1, 1)];
+
   [computeEncoder endEncoding];
   [commandBuffer commit];
   [commandBuffer waitUntilCompleted];
@@ -187,13 +187,10 @@ void MPS::execute_kernel_binary(std::string func, id<MTLBuffer> A,
   [computeEncoder setBuffer:result offset:0 atIndex:2];
   [computeEncoder setBuffer:meta offset:0 atIndex:3];
 
-  size_t threadsPerThreadgroup = pipelineState.threadExecutionWidth;
-  size_t threadgroups =
-      ((N + threadsPerThreadgroup - 1) / threadsPerThreadgroup) *
-      threadsPerThreadgroup;
-  [computeEncoder
-       dispatchThreadgroups:MTLSizeMake(threadgroups, 1, 1)
-      threadsPerThreadgroup:MTLSizeMake(threadsPerThreadgroup, 1, 1)];
+  std::pair<uint32_t, uint32_t> threadinfo =
+      this->compute_threads(N, pipelineState.maxTotalThreadsPerThreadgroup);
+  [computeEncoder dispatchThreadgroups:MTLSizeMake(threadinfo.second, 1, 1)
+                 threadsPerThreadgroup:MTLSizeMake(threadinfo.first, 1, 1)];
   [computeEncoder endEncoding];
   [commandBuffer commit];
   [commandBuffer waitUntilCompleted];
@@ -359,6 +356,16 @@ void MPS::initiate_dispatch_comparison(std::string kernel_method,
   pool->return_memory(meta);
 }
 
+void MPS::initiate_dispatch_init(std::string kernel_method, Tensor &a) {
+  std::shared_ptr<Memory> meta_memory =
+      pool->request_memory(DeviceType::MPS, 1, DType::int32);
+  this->copy_vector_to_buffer((void *)a.dims.data(), *meta_memory,
+                              a.dims.size() * getDTypeSize(DType::int32));
+  this->execute_kernel_init(kernel_method, a.memory->storage->metal,
+                            meta_memory->storage->metal, a.size);
+  pool->return_memory(meta_memory);
+}
+
 // ==================================================
 //                     ARITHMETIC
 // ==================================================
@@ -388,30 +395,11 @@ void MPS::pow(const Tensor &a, const Tensor &b, Tensor &result) {
 //                      INIT
 // ==================================================
 
-void MPS::ones(Tensor &a) {
-  std::shared_ptr<Memory> meta_memory =
-      pool->request_memory(DeviceType::MPS, 1, DType::int32);
-  std::vector<int> meta = {
-      std::accumulate(a.dims.begin(), a.dims.end(), 1, std::multiplies<int>())};
-  this->copy_vector_to_buffer((void *)meta.data(), *meta_memory,
-                              meta.size() * getDTypeSize(DType::int32));
+void MPS::ones(Tensor &a) { this->initiate_dispatch_init("__ones__", a); }
 
-  this->execute_kernel_init("__ones__", a.memory->storage->metal,
-                            meta_memory->storage->metal, a.size);
-  pool->return_memory(meta_memory);
-}
+void MPS::zeros(Tensor &a) { this->initiate_dispatch_init("__zeros__", a); }
 
-void MPS::zeros(Tensor &a) {
-  std::shared_ptr<Memory> meta_memory =
-      pool->request_memory(DeviceType::MPS, 1, DType::int32);
-  std::vector<int> meta = {
-      std::accumulate(a.dims.begin(), a.dims.end(), 1, std::multiplies<int>())};
-  this->copy_vector_to_buffer((void *)meta.data(), *meta_memory,
-                              meta.size() * getDTypeSize(DType::int32));
-  this->execute_kernel_init("__ones__", a.memory->storage->metal,
-                            meta_memory->storage->metal, a.size);
-  pool->return_memory(meta_memory);
-}
+void MPS::eye(Tensor &a) { this->initiate_dispatch_init("__eye__", a); }
 
 // ==================================================
 //                     COMPARISON

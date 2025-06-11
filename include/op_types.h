@@ -8,6 +8,7 @@ enum class OPType {
   MATMUL,
   ONES_INIT,
   ZEROES_INIT,
+  EYE_INIT,
   LOGICAL_E,
   LOGICAL_NE,
   LOGICAL_GT,

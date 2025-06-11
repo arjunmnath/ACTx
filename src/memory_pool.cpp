@@ -19,14 +19,14 @@ size_t MemoryPool::_compute_pool_size(size_t requested_count) {
 }
 
 std::shared_ptr<Memory> MemoryPool::request_memory(DeviceType device,
-                                                   size_t count, DType dtype) {
+                                                   size_t size, DType dtype) {
 
-  int required_block_count = this->_compute_pool_size(count);
-  std::shared_ptr<Memory> suitable_block = this->find_suitable_block(
-      device, dtype, required_block_count * getDTypeSize(dtype));
+  int required_block_size = this->_compute_pool_size(size);
+  std::shared_ptr<Memory> suitable_block =
+      this->find_suitable_block(device, dtype, required_block_size);
   if (nullptr == suitable_block) {
     std::shared_ptr<Memory> memory =
-        std::make_shared<Memory>(device, required_block_count, dtype);
+        std::make_shared<Memory>(device, required_block_size, dtype);
     this->used_pool.insert(memory);
     logger->info(COLOR("Requesting(allocating), ", BOLD_CYAN) +
                      COLOR("Used Pool size: {} ", BOLD_RED) +
@@ -36,8 +36,7 @@ std::shared_ptr<Memory> MemoryPool::request_memory(DeviceType device,
                      COLOR("Requested Size: ", BOLD_CYAN) +
                      COLOR("{} bytes", BOLD_WHITE),
                  this->used_pool.size(), this->available_pool.size(),
-                 required_block_count * getDTypeSize(dtype),
-                 count * getDTypeSize(dtype));
+                 required_block_size, size);
     return memory;
   }
   this->used_pool.insert(suitable_block);
@@ -48,8 +47,8 @@ std::shared_ptr<Memory> MemoryPool::request_memory(DeviceType device,
           COLOR("Available Pool Size: {} ", BOLD_GREEN) +
           COLOR("Pool size: ", BOLD_CYAN) + COLOR("{} bytes ", BOLD_WHITE) +
           COLOR("Requested Size: ", BOLD_CYAN) + COLOR("{} bytes", BOLD_WHITE),
-      this->used_pool.size(), this->available_pool.size(),
-      required_block_count * getDTypeSize(dtype), count * getDTypeSize(dtype));
+      this->used_pool.size(), this->available_pool.size(), required_block_size,
+      size);
 
   return suitable_block;
 }
@@ -61,14 +60,14 @@ std::shared_ptr<Memory> MemoryPool::find_suitable_block(DeviceType device,
   std::shared_ptr<Memory> item = nullptr;
   for (auto it = this->available_pool.begin(); it != this->available_pool.end();
        ++it) {
-    if ((*it)->size * getDTypeSize(dtype) >= requested_size &&
+    if ((*it)->size >= requested_size &&
+        (item == nullptr ? 1e10 : item->size) >= (*it)->size &&
         (*it)->dtype == dtype && (*it)->device == device) {
       item = *it;
     }
   }
 
-  if (nullptr == item ||
-      item->size * getDTypeSize(dtype) >= requested_size * 2) {
+  if (nullptr == item || item->size >= requested_size * 2) {
     return nullptr;
   }
   return item;
@@ -86,11 +85,10 @@ void MemoryPool::return_memory(std::shared_ptr<Memory> memory) {
     logger->warn(
         COLOR("Tried to return memory that wasn't in used_pool!", BOLD_RED));
   }
-  logger->info(COLOR("Returning, ", BOLD_YELLOW) +
-                   COLOR("Used Pool size: {} ", BOLD_RED) +
-                   COLOR("Available Pool Size: {} ", BOLD_GREEN) +
-                   COLOR("Pool size: ", BOLD_CYAN) +
-                   COLOR("{} bytes ", BOLD_WHITE),
-               this->used_pool.size(), this->available_pool.size(),
-               memory->size * getDTypeSize(memory->dtype));
+  logger->info(
+      COLOR("Returning, ", BOLD_YELLOW) +
+          COLOR("Used Pool size: {} ", BOLD_RED) +
+          COLOR("Available Pool Size: {} ", BOLD_GREEN) +
+          COLOR("Pool size: ", BOLD_CYAN) + COLOR("{} bytes ", BOLD_WHITE),
+      this->used_pool.size(), this->available_pool.size(), memory->size);
 }

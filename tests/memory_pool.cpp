@@ -1,6 +1,7 @@
 #include "memory_pool.h"
 #include "memory.h"
 #include "types.h"
+#include "utility.h"
 
 #include <gtest/gtest.h>
 #include <memory>
@@ -25,7 +26,7 @@ TEST(MemoryPool, FindSuitableBlock) {
   auto mem1 = pool.request_memory(DeviceType::MPS, 2048, DType::float32);
   pool.return_memory(mem1);
 
-  auto found = pool.find_suitable_block(DeviceType::MPS, DType::float32, 2048);
+  auto found = pool.request_memory(DeviceType::MPS, 2048, DType::float32);
   ASSERT_NE(found, nullptr);
   EXPECT_EQ(found, mem1);
 }

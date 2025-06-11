@@ -33,6 +33,7 @@ public:
       id<MTLBuffer> lshape, id<MTLBuffer> rshape, id<MTLBuffer> target,
       id<MTLBuffer> ranks, int N);
 
+  std::pair<size_t, size_t> compute_threads(size_t N, size_t maxTPG);
   void execute_kernel_unary(std::string func, id<MTLBuffer> A,
                             id<MTLBuffer> result, id<MTLBuffer> meta, int N);
 
@@ -45,6 +46,7 @@ public:
 
   void initiate_dispatch_comparison(std::string kernel_method, const Tensor &a,
                                     const Tensor &b, Tensor &result);
+  void initiate_dispatch_init(std::string kernel_method, Tensor &a);
 
   std::vector<id<MTLBuffer>> __dummy_data();
 
@@ -61,6 +63,7 @@ public:
   // init kernels
   void ones(Tensor &a);
   void zeros(Tensor &a);
+  void eye(Tensor &a);
 
   // comparison
   void logical_e(const Tensor &a, const Tensor &b, Tensor &result) override;
