@@ -5,13 +5,13 @@ Thank you for your interest in contributing to **WiFi AutoLogin**! We welcome co
 ## How to Contribute
 
 ### 1. Fork the Repository
-1. Navigate to the [MetalGraphs GitHub repository](https://github.com/arjunmnath/MetalGraphs).
+1. Navigate to the [ACT GitHub repository](https://github.com/arjunmnath/ACT).
 2. Click the **Fork** button to create a copy in your own GitHub account.
 
 ### 2. Clone the Repository
 ```sh
-git clone https://github.com/arjunmnath/MetalGraphs.git
-cd MetalGraphs
+git clone https://github.com/arjunmnath/ACT.git
+cd ACT 
 ```
 
 ### 3. Create a Feature Branch
@@ -43,7 +43,7 @@ git push origin feature-name
 
 ## Reporting Issues
 If you encounter bugs or have feature suggestions, please open an issue:
-1. Go to the [Issues](https://github.com/arjunmnath/MetalGraphs/issues) tab.
+1. Go to the [Issues](https://github.com/arjunmnath/ACT/issues) tab.
 2. Click **New Issue** and provide a detailed description.
 
 ## Code of Conduct

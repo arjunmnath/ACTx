@@ -1,10 +1,11 @@
-# Metal Accelerated Tensor Library with Compute Graphs
+# ACT (Accelerated, Computegraph, Tensor)
 
 > "What I cannot create, I do not understand." - Richard Feynman
 
 Driven by this philosophy, this high-performance tensor library was built as a hands-on learning project. It leverages Metal for GPU acceleration, implements dynamic compute graphs for automatic differentiation (autograd), and provides Python bindings for ease of use in machine learning and scientific computing.
 
-**Note**:  While capable of basic tensor operations and gradient computation, this project is intended primarily for educational purposes and is **not intended for production-level model building**.
+**Note**: While capable of basic tensor operations and gradient computation, this project is intended primarily for educational purposes and is **not intended for production-level model building**.
+
 ## Features
 
 - **GPU Acceleration**: Utilizes Metal for efficient tensor computation on macOS devices.
@@ -20,9 +21,10 @@ Driven by this philosophy, this high-performance tensor library was built as a h
 - Python 3.x (for Python bindings)
 - CMake 3.x or higher (for building the project)
 <!--
+
 ## Project Structure
 
-```
+````
 .
 ├── src
 │   └── beta
@@ -85,63 +87,71 @@ Driven by this philosophy, this high-performance tensor library was built as a h
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/arjunmnath/MetalGraphs.git
-   cd MetalGraphs
-   ```
+   git clone https://github.com/arjunmnath/ACT.git
+   cd ACT
+````
 
 2. Build the C++/Objective-C++ library:
+
    > Debug build
+
    ```bash
    cmake --preset debug
    cmake --build build -- -j$(nproc)
    ```
+
    > Release build
+
    ```bash
    cmake --preset release
    cmake --build build -- -j$(nproc)
    ```
+
    > Test build
+
    ```bash
    cmake --preset test
    cmake --build build -- -j$(nproc)
    ```
+
    > Run Tests
+
    ```
    ctest --parallel $(nproc) --progress --test-dir build --output-on-failure
    ```
 
-4. Install Python bindings:
+3. Install Python bindings:
    ```bash
    pip install .
    ```
 
-
 ### From PyPi
 
 ```bash
-pip install metalgraph
+pip install act
 ```
 
 > 🚧 Not yet deployed on pypi.
+
 ## Usage
 
 ### C++/Objective-C++ API
 
 ```cpp
-#include "MetalTensor.h"
+#include "act.h"
 
 int main() {
-    MetalTensor tensor1 = MetalTensor::random({3, 3});
-    MetalTensor tensor2 = MetalTensor::random({3, 3});
-    
+    Tensor tensor1 = Tensor::random({3, 3});
+    Tensor tensor2 = Tensor::random({3, 3});
+
     // Define a simple computation
-    MetalTensor result = tensor1 * tensor2;
-    
+    Tensor result = tensor1 * tensor2;
+
     // Compute gradients
     result.backward();
 
     // Access the gradients
-    MetalTensor grad = tensor1.grad();
+    Tensor grad = tensor1.grad();
     grad.print();
     return 0;
 }
@@ -150,11 +160,11 @@ int main() {
 ### Python API
 
 ```python
-import metal_tensor as mt
+import act
 
 # Create tensors
-tensor1 = mt.random((3, 3), requires_grad=True)
-tensor2 = mt.random((3, 3), requires_grad=True)
+tensor1 = act.random((3, 3), requires_grad=True)
+tensor2 = act.random((3, 3), requires_grad=True)
 
 # Define a simple computation
 result = tensor1 * tensor2
@@ -173,10 +183,11 @@ print("Gradient of tensor2:\n", grad_tensor2)
 ## Documentation
 
 <!-- For detailed documentation on the API and advanced usage, refer to the [docs](docs). -->
+
 No documentation understand it yourself 🤷🏻‍♂️
 
-
 ## Contributing
+
 Contributions are welcome! Please read our [Contributions Guide](CONTRIBUTING.md) before submitting a pull request. If you encounter any issues, feel free to open an issue in the repository.
 
 ## License
