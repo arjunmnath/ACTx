@@ -2,7 +2,7 @@
 
 ## Our Pledge
 
-We are committed to fostering an inclusive, welcoming, and respectful community for all contributors, maintainers, and users of **ACT**. We pledge to create an environment where everyone can collaborate in a harassment-free and constructive manner.
+We are committed to fostering an inclusive, welcoming, and respectful community for all contributors, maintainers, and users of **ACTx**. We pledge to create an environment where everyone can collaborate in a harassment-free and constructive manner.
 
 ## Expected Behavior
 
@@ -39,4 +39,4 @@ This Code of Conduct applies within all project spaces, including GitHub reposit
 
 This Code of Conduct is inspired by the [Contributor Covenant](https://www.contributor-covenant.org/).
 
-By contributing to **ACT**, you agree to follow this Code of Conduct to ensure a positive and collaborative environment for everyone.
+By contributing to **ACTx**, you agree to follow this Code of Conduct to ensure a positive and collaborative environment for everyone.

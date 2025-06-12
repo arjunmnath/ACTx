@@ -1,4 +1,4 @@
-# ACT (Accelerated, Computegraph, Tensor)
+# ACTx (Accelerated, Computegraph, Tensor, Execution)
 
 > "What I cannot create, I do not understand." - Richard Feynman
 
@@ -87,9 +87,9 @@ Driven by this philosophy, this high-performance tensor library was built as a h
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/arjunmnath/ACT.git
-   cd ACT
-````
+   git clone https://github.com/arjunmnath/ACTx.git
+   cd ACTx
+   ```
 
 2. Build the C++/Objective-C++ library:
 
@@ -128,7 +128,7 @@ Driven by this philosophy, this high-performance tensor library was built as a h
 ### From PyPi
 
 ```bash
-pip install act
+pip install actx
 ```
 
 > 🚧 Not yet deployed on pypi.
@@ -138,7 +138,7 @@ pip install act
 ### C++/Objective-C++ API
 
 ```cpp
-#include "act.h"
+#include "actx.h"
 
 int main() {
     Tensor tensor1 = Tensor::random({3, 3});
@@ -160,11 +160,11 @@ int main() {
 ### Python API
 
 ```python
-import act
+import actx
 
 # Create tensors
-tensor1 = act.random((3, 3), requires_grad=True)
-tensor2 = act.random((3, 3), requires_grad=True)
+tensor1 = actx.random((3, 3), requires_grad=True)
+tensor2 = actx.random((3, 3), requires_grad=True)
 
 # Define a simple computation
 result = tensor1 * tensor2
@@ -199,3 +199,4 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 - Metal framework for GPU acceleration
 - Python bindings via [c-api](https://docs.python.org/3/c-api/)
 - Inspired by various tensor libraries such as NumPy and PyTorch, and automatic differentiation systems like autograd.
+````
