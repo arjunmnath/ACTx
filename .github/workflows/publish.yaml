@@ -1,0 +1,171 @@
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build_linux:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build wheel numpy setuptools auditwheel
+
+      - name: Build wheel
+        run: python -m build --wheel
+
+      - name: Repair wheel
+        run: |
+          auditwheel repair dist/*.whl -w dist/
+          rm dist/*-linux_x86_64.whl  # Remove the unrepaired wheel
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-linux-${{ matrix.python-version }}
+          path: dist/*.whl
+
+  build_macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build wheel numpy setuptools delocate
+
+      - name: Build wheel
+        run: python -m build --wheel
+
+      - name: Repair wheel
+        run: delocate-wheel -w dist/ dist/*.whl
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-macos-${{ matrix.python-version }}
+          path: dist/*.whl
+
+  build_windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.3
+
+      - name: Setup MSVC compiler
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build wheel numpy setuptools delvewheel
+
+      - name: Build wheel
+        run: python -m build --wheel
+        env:
+          DISTUTILS_USE_SDK: "1"
+          MSSdk: "1"
+
+      - name: Install and test wheel repair (optional)
+        if: runner.os == 'Windows'
+        run: |
+          python -m pip install delvewheel
+          try {
+            delvewheel repair dist\*.whl -w repaired\
+          } catch {
+            Write-Host "Wheel repair failed, using original"
+          }
+
+          if (Test-Path "repaired\*.whl") {
+            Remove-Item dist\*.whl
+            Move-Item repaired\*.whl dist\
+          }
+        shell: pwsh
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-windows-${{ matrix.python-version }}
+          path: dist/*.whl
+
+  build_sdist:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build
+
+      - name: Build source distribution
+        run: python -m build --sdist
+
+      - name: Upload sdist
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+
+  publish:
+    needs: [build_linux, build_macos, build_windows, build_sdist]
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+
+      - name: Flatten directory structure
+        run: |
+          mkdir -p final_dist/
+          find dist/ -name "*.whl" -exec cp {} final_dist/ \;
+          find dist/ -name "*.tar.gz" -exec cp {} final_dist/ \;
+          ls -la final_dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_TOKEN }}
+          packages-dir: final_dist/
+          skip-existing: true
