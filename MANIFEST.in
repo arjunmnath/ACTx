@@ -1,2 +1,3 @@
-include src/*.metal
+include build/kernels.metallib
+include build/act-extension.so
 

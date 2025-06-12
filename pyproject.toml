@@ -1,3 +1,60 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["scikit-build-core", "setuptools", "wheel", "ninja"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "act"
+version = "1.1.0"
+license = { text = "GPL-3.0-or-later" }
+authors = [
+  { name = "Arjun Manjunath", email = "dev.arjunmnath@gmail.com" }
+]
+maintainers = [
+  { name = "Arjun Manjunath", email = "dev.arjunmnath@gmail.com" }
+]
+description = "High-performance tensor library with NumPy semantics, accelerated on Metal, CUDA, WebGPU, and CPU."
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = ["numpy"]
+
+keywords = ["tensor", "library", "numpy", "deep-learning", "machine-learning", "gpu", "cuda", "metal", "webgpu", "linear-algebra", "autodiff"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Software Development :: Libraries",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: C",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+]
+
+[tool.setuptools]
+include-package-data = true
+zip-safe = false
+
+[tool.setuptools.package-data]
+mymodule = ["*.so", "*.metallib"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[project.urls]
+"Bug Reports" = "https://github.com/arjunmnath/act/issues"
+"Source" = "https://github.com/arjunmnath/act/"
+
+[tool.scikit-build]
+cmake.source-dir = "."
+build-dir = "build"
+cmake.args = ["-G", "Ninja"]
+

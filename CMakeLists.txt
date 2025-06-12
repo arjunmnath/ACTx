@@ -1,64 +1,76 @@
-cmake_minimum_required(VERSION 3.14)
-project(MetalGraphs LANGUAGES CXX OBJCXX)
+cmake_minimum_required(VERSION 4.0.2)
 
+if(NOT DEFINED PROJECT_VERSION)
+  set(PROJECT_VERSION "0.1.0")
+endif()
+
+project(
+  act
+  VERSION ${PROJECT_VERSION}
+  LANGUAGES C CXX OBJCXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 set(CMAKE_OSX_ARCHITECTURES "arm64")
 cmake_policy(SET CMP0135 NEW)
 
 include(FetchContent)
-FetchContent_Declare(
-  googletest
-  URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
-      DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+
+if(CMAKE_BUILD_TYPE STREQUAL "Test")
+  FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+  FetchContent_MakeAvailable(googletest)
+  include_directories(${gtest_SOURCE_DIR}/googletest/include)
+endif()
+
 FetchContent_Declare(
   spdlog
   GIT_REPOSITORY https://github.com/gabime/spdlog.git
   GIT_TAG v1.15.2
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
 
-FetchContent_MakeAvailable(googletest)
 FetchContent_MakeAvailable(spdlog)
 
-include_directories("${CMAKE_SOURCE_DIR}/include")
-include_directories(${gtest_SOURCE_DIR}/googletest/include)
+include_directories("${CMAKE_SOURCE_DIR}/act/include")
 
 # manually mention
-file(GLOB_RECURSE OBJCXX_HEADERS "${CMAKE_SOURCE_DIR}/include/mps.h"
-     "${CMAKE_SOURCE_DIR}/include/memory.h"
-     "${CMAKE_SOURCE_DIR}/include/storage.h")
+file(GLOB_RECURSE OBJCXX_HEADERS "${CMAKE_SOURCE_DIR}/act/include/mps.h"
+     "${CMAKE_SOURCE_DIR}/act/include/memory.h"
+     "${CMAKE_SOURCE_DIR}/act/include/storage.h")
 set_source_files_properties(${OBJCXX_HEADERS} PROPERTIES COMPILE_FLAGS
                                                          "-x objective-c++")
 
 # Directories
-set(METAL_SOURCE_DIR "${CMAKE_SOURCE_DIR}/src/kernels")
+set(METAL_SOURCE_DIR "${CMAKE_SOURCE_DIR}/act/src/kernels")
 set(METAL_BUILD_DIR "${CMAKE_BINARY_DIR}/build")
 set(METAL_LIB_NAME "kernels.metallib")
-set(TEST_DIR "${CMAKE_SOURCE_DIR}/tests")
+set(TEST_DIR "${CMAKE_SOURCE_DIR}/act/tests")
 
 # Files
 file(GLOB METAL_SOURCES "${METAL_SOURCE_DIR}/*.metal")
 file(GLOB TEST_SOURCES "${TEST_DIR}/*.cpp")
-file(GLOB ALL_SOURCES "${CMAKE_SOURCE_DIR}/src/*.cpp"
-     "${CMAKE_SOURCE_DIR}/src/*.mm")
+file(GLOB ALL_SOURCES "${CMAKE_SOURCE_DIR}/act/src/*.cpp"
+     "${CMAKE_SOURCE_DIR}/act/src/*.mm")
 
 # command source files
 set(COMMAN_SOURCES ${ALL_SOURCES})
-list(REMOVE_ITEM COMMAN_SOURCES "${CMAKE_SOURCE_DIR}/src/runner.cpp"
-     "${CMAKE_SOURCE_DIR}/src/wrapper.cpp")
+list(REMOVE_ITEM COMMAN_SOURCES "${CMAKE_SOURCE_DIR}/act/src/runner.cpp"
+     "${CMAKE_SOURCE_DIR}/act/src/wrapper.cpp")
 # DEBUG and RELEASE specific sources
 set(DEBUG_SOURCES "")
 foreach(source ${COMMAN_SOURCES})
   list(APPEND DEBUG_SOURCES ${source})
 endforeach()
-list(APPEND DEBUG_SOURCES "${CMAKE_SOURCE_DIR}/src/runner.cpp")
+list(APPEND DEBUG_SOURCES "${CMAKE_SOURCE_DIR}/act/src/runner.cpp")
 
 set(RELEASE_SOURCES "")
 foreach(source ${COMMAN_SOURCES})
   list(APPEND RELEASE_SOURCES ${source})
 endforeach()
-list(APPEND RELEASE_SOURCES "${CMAKE_SOURCE_DIR}/src/wrapper.cpp")
+list(APPEND RELEASE_SOURCES "${CMAKE_SOURCE_DIR}/act/src/wrapper.cpp")
 
 message(STATUS "Filtered COMMAND SOURCES: ${COMMAN_SOURCES}")
 message(STATUS "DEBUG specific sources: ${DEBUG_SOURCES}")
@@ -160,10 +172,31 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Test")
   include(GoogleTest)
   gtest_discover_tests(AllTests)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
-  message(STATUS "Release build selected")
-  # TODO: ADD The python.h reference
-  add_executable(out ${RELEASE_SOURCES})
-  target_link_libraries(out PRIVATE ${COMMON_LIBRARIES})
-  target_compile_options(out PRIVATE -DRELEASE_BUILD -O3 -DNDEBUG -ObjC++
-                                     -fobjc-arc)
+  find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+
+  add_library(extension MODULE ${RELEASE_SOURCES})
+  target_include_directories(extension PRIVATE ${Python3_INCLUDE_DIRS})
+  target_link_libraries(extension PRIVATE ${COMMON_LIBRARIES})
+
+  set_target_properties(
+    extension
+    PROPERTIES POSITION_INDEPENDENT_CODE ON
+               PREFIX ""
+               SUFFIX ".so"
+               LINK_FLAGS "-bundle -undefined dynamic_lookup")
+
+  if(APPLE)
+    target_link_options(extension PRIVATE "-undefined dynamic_lookup")
+  endif()
+
+  target_compile_definitions(extension PRIVATE RELEASE_BUILD NDEBUG)
+  target_compile_options(extension PRIVATE -O3 -ObjC++ -fobjc-arc)
+
+  add_library(core-act SHARED ${COMMAN_SOURCES})
+  set_target_properties(core-act PROPERTIES PREFIX "" SUFFIX ".so")
+  target_link_libraries(core-act PRIVATE ${COMMON_LIBRARIES})
+  target_compile_options(core-act PRIVATE -DRELEASE_BUILD -O3 -DNDEBUG -ObjC++
+                                          -fobjc-arc)
+  install(TARGETS extension LIBRARY DESTINATION act)
+  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/kernels.metallib DESTINATION act)
 endif()
