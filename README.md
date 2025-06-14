@@ -199,4 +199,3 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 - Metal framework for GPU acceleration
 - Python bindings via [c-api](https://docs.python.org/3/c-api/)
 - Inspired by various tensor libraries such as NumPy and PyTorch, and automatic differentiation systems like autograd.
-````
