@@ -1,5 +1,5 @@
-#include "device_type.h"
 #include "ilcs/py_devices.h"
+#include "device_type.h"
 
 PyObject *createDevicesModule(PyObject *parent) {
   PyObject *devices = PyModule_New("extension.devices");
