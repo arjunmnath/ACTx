@@ -20,8 +20,8 @@ private:
                                const std::vector<int> &target_shape) const;
 
   void throw_out_of_bound(std::vector<int> indexes) const;
-  Tensor execute_broadcastable_operation(OPType op, Tensor *other,
-                                         bool inplace);
+  Tensor *execute_broadcastable_operation(OPType op, Tensor *other,
+                                          bool inplace);
   Tensor execute_binary_operation(OPType op, Tensor *other);
 
   static Tensor execute_init_operation(OPType op, std::vector<int> shape,
@@ -70,12 +70,12 @@ public:
   static Tensor bernoulli(Tensor &other, DType dtype = DType::float32);
 
   // arithmetic operators
-  Tensor add(Tensor *other, bool inplace);
-  Tensor sub(Tensor *other, bool inplace);
-  Tensor mul(Tensor *other, bool inplace);
-  Tensor div(Tensor *other, bool inplace);
-  Tensor matmul(Tensor *other) const;
-  Tensor pow(float exp, bool inplace);
+  Tensor *add(Tensor *other, bool inplace);
+  Tensor *sub(Tensor *other, bool inplace);
+  Tensor *mul(Tensor *other, bool inplace);
+  Tensor *div(Tensor *other, bool inplace);
+  Tensor *matmul(Tensor *other) const;
+  Tensor *pow(float exp, bool inplace);
 
   // Comparison operators
   Tensor logical_e(Tensor *other);

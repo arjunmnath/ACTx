@@ -196,14 +196,19 @@ void Tensor::print_buffer() const {
   std::cout << std::endl;
 }
 
-Tensor Tensor::execute_broadcastable_operation(OPType op, Tensor *other,
-                                               bool inplace) {
+Tensor *Tensor::execute_broadcastable_operation(OPType op, Tensor *other,
+                                                bool inplace) {
   if (this->requires_grad || other->requires_grad) {
     this->requires_grad = other->requires_grad = true;
   }
   if (inplace) {
-    dispatcher->call(op, this->device, *this, *other, *this);
-    return *this;
+    this->requires_grad
+        ? throw std::runtime_error(
+              "in-place operation is not allowed on a tensor that requires "
+              "gradient. "
+              "Please detach the tensor or clone it before proceeding.")
+        : dispatcher->call(op, this->device, *this, *other, *this);
+    return this;
   }
   auto result_shape = compute_broadcast_shape(*this, *other);
   std::shared_ptr<Memory> result_memory = pool->request_memory(
@@ -212,9 +217,10 @@ Tensor Tensor::execute_broadcastable_operation(OPType op, Tensor *other,
                       std::multiplies<int>()),
       this->dtype);
 
+  // FIX: change stack allocation to heap allocation ;
   Tensor result(result_memory, result_shape, this->dtype, this->requires_grad);
   dispatcher->call(op, this->device, *this, *other, result);
-  return result;
+  return &result;
 }
 
 Tensor Tensor::execute_init_operation(OPType op, std::vector<int> shape,
@@ -267,18 +273,18 @@ bool Tensor::any() {
 // ================================================================================================================================
 // Arithemetic
 // ================================================================================================================================
-Tensor Tensor::add(Tensor *other, bool inplace) {
+Tensor *Tensor::add(Tensor *other, bool inplace) {
   return execute_broadcastable_operation(OPType::ADD, other, inplace);
 }
-Tensor Tensor::sub(Tensor *other, bool inplace) {
+Tensor *Tensor::sub(Tensor *other, bool inplace) {
   return execute_broadcastable_operation(OPType::SUB, other, inplace);
 }
 
-Tensor Tensor::mul(Tensor *other, bool inplace) {
+Tensor *Tensor::mul(Tensor *other, bool inplace) {
   return execute_broadcastable_operation(OPType::MUL, other, inplace);
 }
 
-Tensor Tensor::div(Tensor *other, bool inplace) {
+Tensor *Tensor::div(Tensor *other, bool inplace) {
   // TODO: fix this division by zero checking
   Tensor zeros = Tensor::zeros(other->dims);
   if (other->logical_e(&zeros).any()) {

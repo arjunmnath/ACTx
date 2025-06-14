@@ -54,11 +54,13 @@ file(GLOB METAL_SOURCES "${METAL_SOURCE_DIR}/*.metal")
 file(GLOB TEST_SOURCES "${TEST_DIR}/*.cpp")
 file(GLOB ALL_SOURCES "${CMAKE_SOURCE_DIR}/act/src/*.cpp"
      "${CMAKE_SOURCE_DIR}/act/src/*.mm")
+file(GLOB ILC_SOURCES "${CMAKE_SOURCE_DIR}/act/src/ilcs/*.cpp")
 
 # command source files
 set(COMMAN_SOURCES ${ALL_SOURCES})
 list(REMOVE_ITEM COMMAN_SOURCES "${CMAKE_SOURCE_DIR}/act/src/runner.cpp"
-     "${CMAKE_SOURCE_DIR}/act/src/wrapper.cpp")
+     ${ILC_SOURCES})
+
 # DEBUG and RELEASE specific sources
 set(DEBUG_SOURCES "")
 foreach(source ${COMMAN_SOURCES})
@@ -70,7 +72,7 @@ set(RELEASE_SOURCES "")
 foreach(source ${COMMAN_SOURCES})
   list(APPEND RELEASE_SOURCES ${source})
 endforeach()
-list(APPEND RELEASE_SOURCES "${CMAKE_SOURCE_DIR}/act/src/wrapper.cpp")
+list(APPEND RELEASE_SOURCES ${ILC_SOURCES})
 
 message(STATUS "Filtered COMMAND SOURCES: ${COMMAN_SOURCES}")
 message(STATUS "DEBUG specific sources: ${DEBUG_SOURCES}")
