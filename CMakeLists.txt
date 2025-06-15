@@ -176,6 +176,13 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Test")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
   find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 
+  execute_process(
+    COMMAND ${Python3_EXECUTABLE} -c "import numpy; print(numpy.get_include())"
+    OUTPUT_VARIABLE NUMPY_INCLUDE_DIR
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+  message(STATUS "Numpy Include Path: ${NUMPY_INCLUDE_DIR}")
+  include_directories(${NUMPY_INCLUDE_DIR})
   add_library(extension MODULE ${RELEASE_SOURCES})
   target_include_directories(extension PRIVATE ${Python3_INCLUDE_DIRS})
   target_link_libraries(extension PRIVATE ${COMMON_LIBRARIES})

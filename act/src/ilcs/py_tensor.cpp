@@ -1,8 +1,12 @@
 #include "ilcs/py_tensor.h"
+#include "floatobject.h"
+#include "longobject.h"
 #include "object.h"
 #include "tensor.h"
 #include "types.h"
+#include <iostream>
 #include <memory>
+#include <numpy/arrayobject.h>
 
 extern PyTypeObject PyTensorType;
 typedef struct {
@@ -116,34 +120,200 @@ static int PyTensor_set_requires_grad(PyTensorObject *self, PyObject *value,
 }
 
 // ────────────────────────────────────────────
+// Helper Methods
+// ────────────────────────────────────────────
+Tensor *compute_hoist(PyObject *a, PyObject *b) {
+  if (PyObject_TypeCheck(a, &PyTensorType)) {
+    if (PyFloat_Check(b)) {
+      double val = PyFloat_AsDouble(b);
+      std::vector<int> shape = {1};
+      std::vector<float> values = {(float)val};
+      return new Tensor(
+          values, shape, DType::float32,
+          ((PyTensorObject *)a)->inner->_native_obj->requires_grad);
+    }
+    // } else if (PyLong_Check(b)) {
+    //   long val = PyLong_AsLong(b);
+    //   std::vector<int> shape = {1};
+    //   std::vector<int> values = {(int)val};
+    //   return new Tensor(
+    //       values, shape, DType::int32,
+    //       ((PyTensorObject *)a)->inner->_native_obj->requires_grad);
+    // }
+    else if (PyObject_TypeCheck(b, &PyTensorType)) {
+      return ((PyTensorObject *)b)->inner->_native_obj;
+    } else {
+      PyErr_SetString(
+          PyExc_TypeError,
+          "Invalid argument type, Expected int, float or Tensor object");
+      return NULL;
+    }
+  } else if (PyObject_TypeCheck(b, &PyTensorType)) {
+    if (PyFloat_Check(a)) {
+      double val = PyFloat_AsDouble(a);
+      std::vector<int> shape = {1};
+      std::vector<float> values = {(float)val};
+      return new Tensor(
+          values, shape, DType::float32,
+          ((PyTensorObject *)b)->inner->_native_obj->requires_grad);
+    }
+    // else if (PyLong_Check(a)) {
+    //   long val = PyLong_AsLong(a);
+    //   std::vector<int> shape = {1};
+    //   std::vector<int> values = {(int)val};
+    //   return new Tensor(
+    //       values, shape, DType::int32,
+    //       ((PyTensorObject *)b)->inner->_native_obj->requires_grad);
+    // }
+    else {
+      PyErr_SetString(
+          PyExc_TypeError,
+          "Invalid argument type, Expected int, float or Tensor object");
+      return NULL;
+    }
+  } else {
+    PyErr_SetString(
+        PyExc_TypeError,
+        "Invalid argument type, Expected int, float or Tensor object");
+    return NULL;
+  }
+}
+// ────────────────────────────────────────────
 // Arithemetic operators
 // ────────────────────────────────────────────
-
 static PyObject *PyTensor_add(PyObject *a, PyObject *b) {
-  if (!PyObject_TypeCheck(a, &PyTensorType) ||
-      !PyObject_TypeCheck(b, &PyTensorType)) {
-    Py_RETURN_NOTIMPLEMENTED;
+  Tensor *other = compute_hoist(a, b);
+  if (other == NULL) {
+    return NULL;
   }
+
   PyTensorObject *res_obj = PyObject_New(PyTensorObject, &PyTensorType);
   if (!res_obj)
     return NULL;
+  std::vector<int> shape = {4, 4};
+  res_obj->inner = new TensorStruct;
   res_obj->inner->_native_obj =
-      ((PyTensorObject *)a)
-          ->inner->_native_obj->add(((PyTensorObject *)b)->inner->_native_obj,
-                                    false);
-
+      ((PyTensorObject *)a)->inner->_native_obj->add(other, false);
   return (PyObject *)res_obj;
 }
 
 static PyObject *PyTensor_add_inplace(PyObject *a, PyObject *b) {
-  if (!PyObject_TypeCheck(a, &PyTensorType) ||
-      !PyObject_TypeCheck(b, &PyTensorType)) {
-    Py_RETURN_NOTIMPLEMENTED;
+  Tensor *other = compute_hoist(a, b);
+  if (!other) {
+    return NULL;
   }
-  ((PyTensorObject *)a)
-      ->inner->_native_obj->add(((PyTensorObject *)b)->inner->_native_obj,
-                                true);
+  Tensor *out = ((PyTensorObject *)a)->inner->_native_obj->add(other, true);
+  if (!out) {
+    PyErr_SetString(
+        PyExc_RuntimeError,
+        "in-place operation is not allowed on a tensor that requires "
+        "gradient. "
+        "Please detach the tensor or clone it before proceeding.");
+    return NULL;
+  }
+  Py_INCREF(a);
+  return (PyObject *)a;
+}
 
+static PyObject *PyTensor_sub(PyObject *a, PyObject *b) {
+  Tensor *other = compute_hoist(a, b);
+  if (other == NULL) {
+    return NULL;
+  }
+
+  PyTensorObject *res_obj = PyObject_New(PyTensorObject, &PyTensorType);
+  if (!res_obj)
+    return NULL;
+  std::vector<int> shape = {4, 4};
+  res_obj->inner = new TensorStruct;
+  res_obj->inner->_native_obj =
+      ((PyTensorObject *)a)->inner->_native_obj->sub(other, false);
+  return (PyObject *)res_obj;
+}
+
+static PyObject *PyTensor_sub_inplace(PyObject *a, PyObject *b) {
+  Tensor *other = compute_hoist(a, b);
+  if (!other) {
+    return NULL;
+  }
+  Tensor *out = ((PyTensorObject *)a)->inner->_native_obj->sub(other, true);
+  if (!out) {
+    PyErr_SetString(
+        PyExc_RuntimeError,
+        "in-place operation is not allowed on a tensor that requires "
+        "gradient. "
+        "Please detach the tensor or clone it before proceeding.");
+    return NULL;
+  }
+  Py_INCREF(a);
+  return (PyObject *)a;
+}
+
+static PyObject *PyTensor_div(PyObject *a, PyObject *b) {
+  Tensor *other = compute_hoist(a, b);
+  if (other == NULL) {
+    return NULL;
+  }
+
+  PyTensorObject *res_obj = PyObject_New(PyTensorObject, &PyTensorType);
+  if (!res_obj)
+    return NULL;
+  std::vector<int> shape = {4, 4};
+  res_obj->inner = new TensorStruct;
+  res_obj->inner->_native_obj =
+      ((PyTensorObject *)a)->inner->_native_obj->div(other, false);
+  return (PyObject *)res_obj;
+}
+
+static PyObject *PyTensor_div_inplace(PyObject *a, PyObject *b) {
+  Tensor *other = compute_hoist(a, b);
+  if (!other) {
+    return NULL;
+  }
+  Tensor *out = ((PyTensorObject *)a)->inner->_native_obj->div(other, true);
+  if (!out) {
+    PyErr_SetString(
+        PyExc_RuntimeError,
+        "in-place operation is not allowed on a tensor that requires "
+        "gradient. "
+        "Please detach the tensor or clone it before proceeding.");
+    return NULL;
+  }
+  Py_INCREF(a);
+  return (PyObject *)a;
+}
+
+static PyObject *PyTensor_mul(PyObject *a, PyObject *b) {
+  Tensor *other = compute_hoist(a, b);
+  if (other == NULL) {
+    return NULL;
+  }
+
+  PyTensorObject *res_obj = PyObject_New(PyTensorObject, &PyTensorType);
+  if (!res_obj)
+    return NULL;
+  std::vector<int> shape = {4, 4};
+  res_obj->inner = new TensorStruct;
+  res_obj->inner->_native_obj =
+      ((PyTensorObject *)a)->inner->_native_obj->mul(other, false);
+  return (PyObject *)res_obj;
+}
+
+static PyObject *PyTensor_mul_inplace(PyObject *a, PyObject *b) {
+  Tensor *other = compute_hoist(a, b);
+  if (!other) {
+    return NULL;
+  }
+  Tensor *out = ((PyTensorObject *)a)->inner->_native_obj->mul(other, true);
+  if (!out) {
+    PyErr_SetString(
+        PyExc_RuntimeError,
+        "in-place operation is not allowed on a tensor that requires "
+        "gradient. "
+        "Please detach the tensor or clone it before proceeding.");
+    return NULL;
+  }
+  Py_INCREF(a);
   return (PyObject *)a;
 }
 
@@ -167,7 +337,13 @@ static PyGetSetDef PyTensor_getsets[] = {
 
 static PyNumberMethods PyTensor_as_number = {
     .nb_add = PyTensor_add,
+    .nb_subtract = PyTensor_sub,
+    .nb_multiply = PyTensor_mul,
     .nb_inplace_add = (binaryfunc)PyTensor_add_inplace,
+    .nb_inplace_subtract = (binaryfunc)PyTensor_sub_inplace,
+    .nb_inplace_multiply = (binaryfunc)PyTensor_mul_inplace,
+    .nb_true_divide = PyTensor_div,
+    .nb_inplace_true_divide = (binaryfunc)PyTensor_div_inplace,
 };
 PyTypeObject PyTensorType = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_name = "extension.tensor.Tensor",
@@ -180,8 +356,147 @@ PyTypeObject PyTensorType = {
     .tp_new = PyTensor_new,
 };
 
+static PyObject *PyTensor_Ones(PyObject *self, PyObject *args, PyObject *kwds) {
+  PyObject *dims = nullptr;
+  int dtype = static_cast<int>(DType::float32);
+  int requires_grad = 0;
+  static const char *keywords[] = {"dims", "dtype", "requires_grad", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|ip", (char **)keywords, &dims,
+                                   &dtype, &requires_grad)) {
+    return NULL;
+  }
+  if (dims == NULL) {
+    PyErr_SetString(PyExc_TypeError, "dims is a required argument.");
+    return NULL;
+  }
+  PyTensorObject *t = PyObject_New(PyTensorObject, &PyTensorType);
+  if (t == NULL) {
+    return NULL;
+  }
+
+  if (PyTuple_Check(dims)) {
+    Py_ssize_t ndim = PyTuple_Size(dims);
+    if (ndim <= 0) {
+      PyErr_SetString(PyExc_ValueError, "dims must not be empty");
+      return NULL;
+    }
+    std::vector<int> shape;
+    shape.reserve(ndim);
+    for (Py_ssize_t i = 0; i < ndim; ++i) {
+      PyObject *item = PyTuple_GetItem(dims, i);
+      if (!PyLong_Check(item)) {
+        PyErr_SetString(PyExc_TypeError, "dims must be integers");
+        return NULL;
+      }
+      long dim = PyLong_AsLong(item);
+      if (dim <= 0) {
+        PyErr_SetString(PyExc_ValueError, "dims must be positive integers");
+        return NULL;
+      }
+      shape.push_back(static_cast<int>(dim));
+    }
+    t->inner = new TensorStruct;
+    t->inner->_native_obj =
+        Tensor::ones(shape, static_cast<DType>(dtype), requires_grad == 1);
+    return (PyObject *)t;
+  }
+  PyErr_SetString(PyExc_ValueError,
+                  "dims must be a tuple of positive integers");
+  return NULL;
+}
+
+static PyObject *PyTensor_Zeros(PyObject *self, PyObject *args,
+                                PyObject *kwds) {
+  PyObject *dims = nullptr;
+  int dtype = static_cast<int>(DType::float32);
+  int requires_grad = 0;
+  static const char *keywords[] = {"dims", "dtype", "requires_grad", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|ip", (char **)keywords, &dims,
+                                   &dtype, &requires_grad)) {
+    return NULL;
+  }
+  if (dims == NULL) {
+    PyErr_SetString(PyExc_TypeError, "dims is a required argument.");
+    return NULL;
+  }
+  PyTensorObject *t = PyObject_New(PyTensorObject, &PyTensorType);
+  if (t == NULL) {
+    return NULL;
+  }
+
+  if (PyTuple_Check(dims)) {
+    Py_ssize_t ndim = PyTuple_Size(dims);
+    if (ndim <= 0) {
+      PyErr_SetString(PyExc_ValueError, "dims must not be empty");
+      return NULL;
+    }
+    std::vector<int> shape;
+    shape.reserve(ndim);
+    for (Py_ssize_t i = 0; i < ndim; ++i) {
+      PyObject *item = PyTuple_GetItem(dims, i);
+      if (!PyLong_Check(item)) {
+        PyErr_SetString(PyExc_TypeError, "dims must be integers");
+        return NULL;
+      }
+      long dim = PyLong_AsLong(item);
+      if (dim <= 0) {
+        PyErr_SetString(PyExc_ValueError, "dims must be positive integers");
+        return NULL;
+      }
+      shape.push_back(static_cast<int>(dim));
+    }
+    t->inner = new TensorStruct;
+    t->inner->_native_obj =
+        Tensor::zeros(shape, static_cast<DType>(dtype), requires_grad == 1);
+    return (PyObject *)t;
+  }
+  PyErr_SetString(PyExc_ValueError,
+                  "dims must be a tuple of positive integers");
+  return NULL;
+}
+
+static PyObject *PyTensor_Eye(PyObject *self, PyObject *args, PyObject *kwds) {
+  int n = -1;
+  int dtype = static_cast<int>(DType::float32);
+  int requires_grad = 0;
+  static const char *keywords[] = {"n", "dtype", "requires_grad", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, kwds, "i|ip", (char **)keywords, &n,
+                                   &dtype, &requires_grad)) {
+    return NULL;
+  }
+  if (n == -1) {
+    PyErr_SetString(PyExc_TypeError, "Missing Argument n (order of matrix).");
+    return NULL;
+  }
+  PyTensorObject *t = PyObject_New(PyTensorObject, &PyTensorType);
+  if (t == NULL) {
+    return NULL;
+  }
+
+  if (n <= 0) {
+    PyErr_SetString(PyExc_ValueError, "order n must not be positive");
+    return NULL;
+  }
+  t->inner = new TensorStruct;
+  t->inner->_native_obj =
+      Tensor::eye(n, static_cast<DType>(dtype), requires_grad == 1);
+  return (PyObject *)t;
+}
+
+static PyMethodDef TensorModuleMethods[] = {
+    {"ones", (PyCFunction)PyTensor_Ones, METH_VARARGS | METH_KEYWORDS,
+     "Create a Tensor filled with ones."},
+    {"zeros", (PyCFunction)PyTensor_Zeros, METH_VARARGS | METH_KEYWORDS,
+     "Create a Tensor filled with zeros."},
+    {"eye", (PyCFunction)PyTensor_Eye, METH_VARARGS | METH_KEYWORDS,
+     "Create an identity tensor."},
+    {NULL, NULL, 0, NULL}};
+
+static struct PyModuleDef tensormodule = {
+    PyModuleDef_HEAD_INIT, "extension.tensor", NULL, -1, TensorModuleMethods};
+
 PyObject *createTensorModule(PyObject *parent) {
-  PyObject *tensor = PyModule_New("extension.tensor");
+  PyObject *tensor = PyModule_Create(&tensormodule);
   if (tensor == NULL) {
     Py_DECREF(parent);
     return NULL;
@@ -199,6 +514,5 @@ PyObject *createTensorModule(PyObject *parent) {
     Py_DECREF(parent);
     return NULL;
   }
-
   return tensor;
 }

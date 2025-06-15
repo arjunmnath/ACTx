@@ -116,7 +116,7 @@ Tensor::Tensor(std::shared_ptr<Memory> memory, std::vector<int> dims,
   this->requires_grad = requires_grad;
 }
 
-// TODO: fix the vector<float> and dtype mismatch and allocate memory and do
+// FIX: fix the vector<float> and dtype mismatch and allocate memory and do
 // memcpy
 Tensor::Tensor(std::vector<float> &values, std::vector<int> dims, DType dtype,
                bool requires_grad) {
@@ -133,7 +133,7 @@ Tensor::Tensor(std::vector<float> &values, std::vector<int> dims, DType dtype,
   assert(values.size() == this->size);
   this->memory = pool->request_memory(this->device, this->size, this->dtype);
   mps->copy_vector_to_buffer(values.data(), *this->memory,
-                             values.size() * getDTypeSize(DType::float32));
+                             values.size() * getDTypeSize(dtype));
   this->reinterpret_pointer(this->memory->data_ptr);
   this->requires_grad = requires_grad;
 }
@@ -202,12 +202,9 @@ Tensor *Tensor::execute_broadcastable_operation(OPType op, Tensor *other,
     this->requires_grad = other->requires_grad = true;
   }
   if (inplace) {
-    this->requires_grad
-        ? throw std::runtime_error(
-              "in-place operation is not allowed on a tensor that requires "
-              "gradient. "
-              "Please detach the tensor or clone it before proceeding.")
-        : dispatcher->call(op, this->device, this, other, this);
+    if (this->requires_grad)
+      return NULL;
+    dispatcher->call(op, this->device, this, other, this);
     return this;
   }
   auto result_shape = compute_broadcast_shape(this, other);
@@ -217,7 +214,6 @@ Tensor *Tensor::execute_broadcastable_operation(OPType op, Tensor *other,
                       std::multiplies<int>()),
       this->dtype);
 
-  // FIX: change stack allocation to heap allocation ;
   Tensor *result =
       new Tensor(result_memory, result_shape, this->dtype, this->requires_grad);
   dispatcher->call(op, this->device, this, other, result);
@@ -419,17 +415,20 @@ Tensor Tensor::sqrt(bool inplace) {
 // 6) Clone, tensor: ❌
 // 7) Linspace, logspace, arange: ❌
 // =====================================================================================================================
-Tensor *Tensor::ones(std::vector<int> shape, DType dtype) {
-  return Tensor::execute_init_operation(OPType::ONES_INIT, shape, dtype);
+Tensor *Tensor::ones(std::vector<int> shape, DType dtype, bool requires_grad) {
+  return Tensor::execute_init_operation(OPType::ONES_INIT, shape, dtype,
+                                        requires_grad);
 }
 
-Tensor *Tensor::zeros(std::vector<int> shape, DType dtype) {
-  return Tensor::execute_init_operation(OPType::ZEROES_INIT, shape, dtype);
+Tensor *Tensor::zeros(std::vector<int> shape, DType dtype, bool requires_grad) {
+  return Tensor::execute_init_operation(OPType::ZEROES_INIT, shape, dtype,
+                                        requires_grad);
 }
 
-Tensor *Tensor::eye(int n, DType dtype) {
+Tensor *Tensor::eye(int n, DType dtype, bool requires_grad) {
   std::vector<int> shape = {n, n};
-  return Tensor::execute_init_operation(OPType::EYE_INIT, shape, dtype);
+  return Tensor::execute_init_operation(OPType::EYE_INIT, shape, dtype,
+                                        requires_grad);
 }
 
 /*

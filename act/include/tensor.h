@@ -46,15 +46,19 @@ public:
 
   Tensor(std::vector<float> &values, std::vector<int> dims,
          DType dtype = DType::float32, bool requires_grad = false);
-  template <typename T>
-  Tensor(std::vector<T> &values, std::vector<int> dims,
-         DType dtype = DType::float32, bool requires_grad = false);
-
+  // template <typename T>
+  // Tensor(std::vector<T> &values, std::vector<int> dims,
+  //        DType dtype = DType::float32, bool requires_grad = false);
+  //
   // initialization methods
-  static Tensor *ones(std::vector<int> shape, DType dtype = DType::float32);
-  static Tensor *zeros(std::vector<int> shape, DType dtype = DType::float32);
-  static Tensor *eye(int n, DType dtype = DType::float32);
-  static Tensor *empty(std::vector<int> shape, DType dtype = DType::float32);
+  static Tensor *ones(std::vector<int> shape, DType dtype = DType::float32,
+                      bool requires_grad = false);
+  static Tensor *zeros(std::vector<int> shape, DType dtype = DType::float32,
+                       bool requires_grad = false);
+  static Tensor *eye(int n, DType dtype = DType::float32,
+                     bool requires_grad = false);
+  static Tensor *empty(std::vector<int> shape, DType dtype = DType::float32,
+                       bool requires_grad = false);
 
   template <typename T>
   static Tensor *full(std::vector<int> shape, T n,
