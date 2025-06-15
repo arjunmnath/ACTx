@@ -7,10 +7,16 @@
 #include <optional>
 #include <stdexcept>
 
-void Dispatcher::call(
-    OPType op, DeviceType device, Tensor &a,
-    const std::optional<std::reference_wrapper<Tensor>> &b,
-    const std::optional<std::reference_wrapper<Tensor>> &result) {
+#define REGISTER_OP(OP, DEVICE, FUNC, BACKWARD)                                \
+  this->_register->register_op(                                                \
+      OPType::OP, DeviceType::DEVICE,                                          \
+      [](Tensor *a, Tensor *b, Tensor *result) -> void {                       \
+        FUNC(a, b, result);                                                    \
+      },                                                                       \
+      [](Tensor * a, Tensor * b, Tensor * result) -> void BACKWARD)
+
+void Dispatcher::call(OPType op, DeviceType device, Tensor *a, Tensor *b,
+                      Tensor *result) {
   Operation *operation = this->_register->get(op, device);
   if (operation == nullptr) {
     throw std::logic_error("operation not found");
@@ -19,17 +25,8 @@ void Dispatcher::call(
 }
 
 void Dispatcher::init_register() {
-
-  this->_register->register_op(
-      OPType::ADD, DeviceType::MPS,
-      [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
-         const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
-        mps->add(a, b->get(), result->get());
-      },
-      [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
-         const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
-
-      });
+  REGISTER_OP(ADD, MPS, mps->add, {});
+  /*
   this->_register->register_op(
       OPType::SUB, DeviceType::MPS,
       [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
@@ -154,4 +151,5 @@ void Dispatcher::init_register() {
       [](Tensor &a, const std::optional<std::reference_wrapper<Tensor>> &b,
          const std::optional<std::reference_wrapper<Tensor>> &result) -> void {
       });
+    */
 }

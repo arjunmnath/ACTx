@@ -207,10 +207,10 @@ Tensor *Tensor::execute_broadcastable_operation(OPType op, Tensor *other,
               "in-place operation is not allowed on a tensor that requires "
               "gradient. "
               "Please detach the tensor or clone it before proceeding.")
-        : dispatcher->call(op, this->device, *this, *other, *this);
+        : dispatcher->call(op, this->device, this, other, this);
     return this;
   }
-  auto result_shape = compute_broadcast_shape(*this, *other);
+  auto result_shape = compute_broadcast_shape(this, other);
   std::shared_ptr<Memory> result_memory = pool->request_memory(
       this->device,
       std::accumulate(result_shape.begin(), result_shape.end(), 1,
@@ -218,25 +218,26 @@ Tensor *Tensor::execute_broadcastable_operation(OPType op, Tensor *other,
       this->dtype);
 
   // FIX: change stack allocation to heap allocation ;
-  Tensor result(result_memory, result_shape, this->dtype, this->requires_grad);
-  dispatcher->call(op, this->device, *this, *other, result);
-  return &result;
+  Tensor *result =
+      new Tensor(result_memory, result_shape, this->dtype, this->requires_grad);
+  dispatcher->call(op, this->device, this, other, result);
+  return result;
 }
 
-Tensor Tensor::execute_init_operation(OPType op, std::vector<int> shape,
-                                      DType dtype, bool requires_grad,
-                                      DeviceType device) {
+Tensor *Tensor::execute_init_operation(OPType op, std::vector<int> shape,
+                                       DType dtype, bool requires_grad,
+                                       DeviceType device) {
   std::shared_ptr<Memory> result_memory = pool->request_memory(
       device,
       std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>()) *
           getDTypeSize(dtype),
       dtype);
-  Tensor result(result_memory, shape, dtype, requires_grad);
-  dispatcher->call(op, device, result, std::nullopt, std::nullopt);
+  Tensor *result = new Tensor(result_memory, shape, dtype, requires_grad);
+  dispatcher->call(op, device, result, nullptr, nullptr);
   return result;
 }
 
-Tensor Tensor::execute_binary_operation(OPType op, Tensor *other) {
+Tensor *Tensor::execute_binary_operation(OPType op, Tensor *other) {
   if (this->requires_grad || other->requires_grad) {
     this->requires_grad = other->requires_grad = true;
   }
@@ -246,8 +247,9 @@ Tensor Tensor::execute_binary_operation(OPType op, Tensor *other) {
                                            1, std::multiplies<int>()),
                            this->dtype);
 
-  Tensor result(result_memory, this->dims, this->dtype, this->requires_grad);
-  dispatcher->call(op, this->device, *this, *other, result);
+  Tensor *result =
+      new Tensor(result_memory, this->dims, this->dtype, this->requires_grad);
+  dispatcher->call(op, this->device, this, other, result);
   return result;
 }
 
@@ -286,48 +288,48 @@ Tensor *Tensor::mul(Tensor *other, bool inplace) {
 
 Tensor *Tensor::div(Tensor *other, bool inplace) {
   // TODO: fix this division by zero checking
-  Tensor zeros = Tensor::zeros(other->dims);
-  if (other->logical_e(&zeros).any()) {
+  Tensor *zeros = Tensor::zeros(other->dims);
+  if (other->logical_e(zeros)->any()) {
     throw std::runtime_error("division by zero");
   }
   return execute_broadcastable_operation(OPType::DIV, other, inplace);
 }
 
 // Comparison operators
-Tensor Tensor::logical_e(Tensor *other) {
+Tensor *Tensor::logical_e(Tensor *other) {
   if (this->dims != other->dims) {
     throw std::runtime_error("shape constraint failed");
   }
   return this->execute_binary_operation(OPType::LOGICAL_E, other);
 }
-Tensor Tensor::logical_ne(Tensor *other) {
+Tensor *Tensor::logical_ne(Tensor *other) {
   if (this->dims != other->dims) {
     throw std::runtime_error("shape constraint failed");
   }
   return this->execute_binary_operation(OPType::LOGICAL_NE, other);
 }
-Tensor Tensor::logical_gt(Tensor *other) {
+Tensor *Tensor::logical_gt(Tensor *other) {
   if (this->dims != other->dims) {
     throw std::runtime_error("shape constraint failed");
   }
   return this->execute_binary_operation(OPType::LOGICAL_GT, other);
 }
 
-Tensor Tensor::logical_gte(Tensor *other) {
+Tensor *Tensor::logical_gte(Tensor *other) {
   if (this->dims != other->dims) {
     throw std::runtime_error("shape contraint failed");
   }
   return this->execute_binary_operation(OPType::LOGICAL_GTE, other);
 }
 
-Tensor Tensor::logical_lt(Tensor *other) {
+Tensor *Tensor::logical_lt(Tensor *other) {
   if (this->dims != other->dims) {
     throw std::runtime_error("shape contraint failed");
   }
   return this->execute_binary_operation(OPType::LOGICAL_LT, other);
 }
 
-Tensor Tensor::logical_lte(Tensor *other) {
+Tensor *Tensor::logical_lte(Tensor *other) {
   if (this->dims != other->dims) {
     throw std::runtime_error("shape contraint failed");
   }
@@ -417,15 +419,15 @@ Tensor Tensor::sqrt(bool inplace) {
 // 6) Clone, tensor: ❌
 // 7) Linspace, logspace, arange: ❌
 // =====================================================================================================================
-Tensor Tensor::ones(std::vector<int> shape, DType dtype) {
+Tensor *Tensor::ones(std::vector<int> shape, DType dtype) {
   return Tensor::execute_init_operation(OPType::ONES_INIT, shape, dtype);
 }
 
-Tensor Tensor::zeros(std::vector<int> shape, DType dtype) {
+Tensor *Tensor::zeros(std::vector<int> shape, DType dtype) {
   return Tensor::execute_init_operation(OPType::ZEROES_INIT, shape, dtype);
 }
 
-Tensor Tensor::eye(int n, DType dtype) {
+Tensor *Tensor::eye(int n, DType dtype) {
   std::vector<int> shape = {n, n};
   return Tensor::execute_init_operation(OPType::EYE_INIT, shape, dtype);
 }

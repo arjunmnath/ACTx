@@ -22,13 +22,12 @@ private:
   void throw_out_of_bound(std::vector<int> indexes) const;
   Tensor *execute_broadcastable_operation(OPType op, Tensor *other,
                                           bool inplace);
-  Tensor execute_binary_operation(OPType op, Tensor *other);
+  Tensor *execute_binary_operation(OPType op, Tensor *other);
 
-  static Tensor execute_init_operation(OPType op, std::vector<int> shape,
-                                       DType dtype = DType::float32,
-                                       // TODO: change default devicetype to cpu
-                                       bool requires_grad = false,
-                                       DeviceType device = DeviceType::MPS);
+  static Tensor *execute_init_operation(
+      OPType op, std::vector<int> shape, DType dtype = DType::float32,
+      // TODO: change default devicetype to cpu
+      bool requires_grad = false, DeviceType device = DeviceType::MPS);
   // FIX: template type
   float _get_element(int offset) const;
 
@@ -52,22 +51,23 @@ public:
          DType dtype = DType::float32, bool requires_grad = false);
 
   // initialization methods
-  static Tensor ones(std::vector<int> shape, DType dtype = DType::float32);
-  static Tensor zeros(std::vector<int> shape, DType dtype = DType::float32);
-  static Tensor eye(int n, DType dtype = DType::float32);
-  static Tensor empty(std::vector<int> shape, DType dtype = DType::float32);
+  static Tensor *ones(std::vector<int> shape, DType dtype = DType::float32);
+  static Tensor *zeros(std::vector<int> shape, DType dtype = DType::float32);
+  static Tensor *eye(int n, DType dtype = DType::float32);
+  static Tensor *empty(std::vector<int> shape, DType dtype = DType::float32);
 
   template <typename T>
-  static Tensor full(std::vector<int> shape, T n, DType dtype = DType::float32);
-  static Tensor clone(Tensor *other);
-  static Tensor rand(std::vector<int> shape, DType dtype);
-  static Tensor randn(std::vector<int> shape, DType dtype = DType::float32);
-  static Tensor normal(std::vector<int> shape, float mean = 0, float stddev = 1,
-                       DType dtype = DType::float32);
-  static Tensor randint(std::vector<int> shape, int min, int max,
-                        DType dtype = DType::float32);
-  static Tensor poission(Tensor &other, DType dtype = DType::float32);
-  static Tensor bernoulli(Tensor &other, DType dtype = DType::float32);
+  static Tensor *full(std::vector<int> shape, T n,
+                      DType dtype = DType::float32);
+  static Tensor *clone(Tensor *other);
+  static Tensor *rand(std::vector<int> shape, DType dtype);
+  static Tensor *randn(std::vector<int> shape, DType dtype = DType::float32);
+  static Tensor *normal(std::vector<int> shape, float mean = 0,
+                        float stddev = 1, DType dtype = DType::float32);
+  static Tensor *randint(std::vector<int> shape, int min, int max,
+                         DType dtype = DType::float32);
+  static Tensor *poission(Tensor &other, DType dtype = DType::float32);
+  static Tensor *bernoulli(Tensor &other, DType dtype = DType::float32);
 
   // arithmetic operators
   Tensor *add(Tensor *other, bool inplace);
@@ -78,12 +78,12 @@ public:
   Tensor *pow(float exp, bool inplace);
 
   // Comparison operators
-  Tensor logical_e(Tensor *other);
-  Tensor logical_ne(Tensor *other);
-  Tensor logical_gt(Tensor *other);
-  Tensor logical_gte(Tensor *other);
-  Tensor logical_lt(Tensor *other);
-  Tensor logical_lte(Tensor *other);
+  Tensor *logical_e(Tensor *other);
+  Tensor *logical_ne(Tensor *other);
+  Tensor *logical_gt(Tensor *other);
+  Tensor *logical_gte(Tensor *other);
+  Tensor *logical_lt(Tensor *other);
+  Tensor *logical_lte(Tensor *other);
 
   // Mathematical operations
   Tensor exp(bool inplace);

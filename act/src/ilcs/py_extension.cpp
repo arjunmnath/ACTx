@@ -14,13 +14,13 @@ static PyObject *add(PyObject *self, PyObject *args) {
     return NULL;
 
   std::vector<int> shape = {2, 3};
-  Tensor _a = Tensor::zeros(shape);
+  Tensor *_a = Tensor::zeros(shape);
   std::vector<float> ones = {0, 0, 0, 0, 0, 0};
   Tensor expected(ones, shape, DType::int32);
-  _a.print();
+  _a->print();
   expected.print();
-  Tensor _b = _a.logical_e(&expected);
-  _b.print();
+  Tensor *_b = _a->logical_e(&expected);
+  _b->print();
 
   return PyLong_FromLong(a + b);
 }

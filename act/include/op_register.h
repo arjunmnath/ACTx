@@ -5,9 +5,7 @@
 #include "tensor.h"
 #include <functional>
 
-using TensorOperation = std::function<void(
-    Tensor &, const std::optional<std::reference_wrapper<Tensor>> &,
-    const std::optional<std::reference_wrapper<Tensor>> &)>;
+using TensorOperation = std::function<void(Tensor *, Tensor *, Tensor *)>;
 
 struct Operation {
   TensorOperation func;
