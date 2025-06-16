@@ -54,11 +54,13 @@ file(GLOB METAL_SOURCES "${METAL_SOURCE_DIR}/*.metal")
 file(GLOB TEST_SOURCES "${TEST_DIR}/*.cpp")
 file(GLOB ALL_SOURCES "${CMAKE_SOURCE_DIR}/act/src/*.cpp"
      "${CMAKE_SOURCE_DIR}/act/src/*.mm")
+file(GLOB ILC_SOURCES "${CMAKE_SOURCE_DIR}/act/src/ilcs/*.cpp")
 
 # command source files
 set(COMMAN_SOURCES ${ALL_SOURCES})
 list(REMOVE_ITEM COMMAN_SOURCES "${CMAKE_SOURCE_DIR}/act/src/runner.cpp"
-     "${CMAKE_SOURCE_DIR}/act/src/wrapper.cpp")
+     ${ILC_SOURCES})
+
 # DEBUG and RELEASE specific sources
 set(DEBUG_SOURCES "")
 foreach(source ${COMMAN_SOURCES})
@@ -70,7 +72,7 @@ set(RELEASE_SOURCES "")
 foreach(source ${COMMAN_SOURCES})
   list(APPEND RELEASE_SOURCES ${source})
 endforeach()
-list(APPEND RELEASE_SOURCES "${CMAKE_SOURCE_DIR}/act/src/wrapper.cpp")
+list(APPEND RELEASE_SOURCES ${ILC_SOURCES})
 
 message(STATUS "Filtered COMMAND SOURCES: ${COMMAN_SOURCES}")
 message(STATUS "DEBUG specific sources: ${DEBUG_SOURCES}")
@@ -174,6 +176,13 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Test")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
   find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 
+  execute_process(
+    COMMAND ${Python3_EXECUTABLE} -c "import numpy; print(numpy.get_include())"
+    OUTPUT_VARIABLE NUMPY_INCLUDE_DIR
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+  message(STATUS "Numpy Include Path: ${NUMPY_INCLUDE_DIR}")
+  include_directories(${NUMPY_INCLUDE_DIR})
   add_library(extension MODULE ${RELEASE_SOURCES})
   target_include_directories(extension PRIVATE ${Python3_INCLUDE_DIRS})
   target_link_libraries(extension PRIVATE ${COMMON_LIBRARIES})

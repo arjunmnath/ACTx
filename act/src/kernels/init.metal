@@ -6,8 +6,6 @@ kernel void __ones__(device float *A [[buffer(0)]],
                      constant uint2 &meta [[buffer(1)]],
                      uint tid [[thread_position_in_grid]]) {
 
-  if (tid >= meta.x * meta.y)
-    return;
   A[tid] = 1;
 }
 kernel void __full__(device float *A [[buffer(0)]],
@@ -15,8 +13,6 @@ kernel void __full__(device float *A [[buffer(0)]],
                      constant uint2 &meta [[buffer(2)]],
                      uint tid [[thread_position_in_grid]]) {
 
-  if (tid >= meta.x * meta.y)
-    return;
   A[tid] = value;
 }
 kernel void __eye__(device float *A [[buffer(0)]],
@@ -34,7 +30,5 @@ kernel void __zeros__(device float *A [[buffer(0)]],
                       constant uint2 &meta [[buffer(1)]],
                       uint tid [[thread_position_in_grid]]) {
 
-  if (tid >= meta.x * meta.y)
-    return;
   A[tid] = 0;
 }

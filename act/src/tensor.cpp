@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstring>
 #include <functional>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <numeric>
@@ -16,6 +17,49 @@
 // ================================================================================================================================
 // COMPUTES
 // ================================================================================================================================
+
+Tensor *Tensor::view(std::vector<Slice> &slices) const {
+  assert(slices.size() <= this->ndim);
+
+  std::vector<int> view_dims = {1, 1};
+  Tensor *view_tensor = new Tensor(this->memory, view_dims);
+
+  view_tensor->ndim = static_cast<int>(slices.size());
+  view_tensor->dims.resize(view_tensor->ndim);
+  view_tensor->stride.resize(view_tensor->ndim);
+
+  view_tensor->dtype = this->dtype;
+  view_tensor->requires_grad = this->requires_grad;
+  view_tensor->device = this->device;
+  view_tensor->is_view = true;
+
+  int new_offset_elements = this->offset_elements;
+  for (int d = 0; d < view_tensor->ndim; d++) {
+    int start = slices[d].start;
+    int stop = slices[d].stop;
+    int step = slices[d].step;
+
+    if (start < 0)
+      start += this->dims[d];
+    if (stop < 0)
+      stop += this->dims[d];
+    if (start < 0)
+      start = 0;
+    if (stop > this->dims[d])
+      stop = this->dims[d];
+    if (stop < start)
+      stop = start;
+
+    int len = (stop - start + step - 1) / step;
+
+    view_tensor->dims[d] = len;
+    view_tensor->stride[d] = this->stride[d] * step;
+
+    new_offset_elements += start * this->stride[d];
+  }
+  view_tensor->offset_elements = new_offset_elements;
+  return view_tensor;
+}
 void Tensor::_compte_stride() {
   /*strides[i] = (j=i+1 ∏ len(dims) - 1){shape[j]}*/
   if (this->ndim == 0 || this->dims.empty()) {
@@ -95,6 +139,7 @@ Tensor::Tensor(std::vector<int> dims, DType dtype, bool requires_grad) {
   this->device = DeviceType::MPS;
   this->dtype = dtype;
   this->memory = pool->request_memory(this->device, this->size, this->dtype);
+  this->offset_elements = 0;
   this->reinterpret_pointer(this->memory->data_ptr);
   this->_compte_stride();
   this->requires_grad = requires_grad;
@@ -109,6 +154,8 @@ Tensor::Tensor(std::shared_ptr<Memory> memory, std::vector<int> dims,
   // TODO: change this to cpu
   this->device = DeviceType::MPS;
   this->ndim = dims.size();
+
+  this->offset_elements = 0;
   this->_compte_stride();
   this->size =
       std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
@@ -116,7 +163,7 @@ Tensor::Tensor(std::shared_ptr<Memory> memory, std::vector<int> dims,
   this->requires_grad = requires_grad;
 }
 
-// TODO: fix the vector<float> and dtype mismatch and allocate memory and do
+// FIX: fix the vector<float> and dtype mismatch and allocate memory and do
 // memcpy
 Tensor::Tensor(std::vector<float> &values, std::vector<int> dims, DType dtype,
                bool requires_grad) {
@@ -127,13 +174,14 @@ Tensor::Tensor(std::vector<float> &values, std::vector<int> dims, DType dtype,
   this->dims = dims;
   this->ndim = dims.size();
   this->_compte_stride();
+  this->offset_elements = 0;
   this->device = DeviceType::MPS;
   this->size =
       std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
   assert(values.size() == this->size);
   this->memory = pool->request_memory(this->device, this->size, this->dtype);
   mps->copy_vector_to_buffer(values.data(), *this->memory,
-                             values.size() * getDTypeSize(DType::float32));
+                             values.size() * getDTypeSize(dtype));
   this->reinterpret_pointer(this->memory->data_ptr);
   this->requires_grad = requires_grad;
 }
@@ -145,10 +193,11 @@ Tensor::Tensor(std::vector<float> &values, std::vector<int> dims, DType dtype,
 std::vector<int> Tensor::strides() { return this->stride; }
 
 float Tensor::_get_element(int offset) const {
+  int total_offset = (offset + offset_elements);
   if (std::holds_alternative<int *>(this->data_ptr)) {
-    return std::get<int *>(this->data_ptr)[offset];
+    return std::get<int *>(this->data_ptr)[total_offset];
   } else if (std::holds_alternative<float *>(this->data_ptr)) {
-    return std::get<float *>(this->data_ptr)[offset];
+    return std::get<float *>(this->data_ptr)[total_offset];
   } else if (std::holds_alternative<void *>(this->data_ptr)) {
     // return std::get<void *>(this->data_ptr)[offset];
   }
@@ -173,22 +222,78 @@ void Tensor::setElement(float value, Args... indexes) {
 // TODO: impelement this
 Tensor Tensor::transpose() const { throw std::logic_error("not implemented"); }
 void Tensor::print(int dim, int offset) const {
-  int size = this->dims[dim];
-  std::cout << "[";
-  for (int i = 0; i < size; ++i) {
-    int new_offset = offset + i * this->stride[dim];
-    if (dim == this->dims.size() - 1) {
-      std::cout << this->_get_element(new_offset);
-    } else {
-      print(dim + 1, new_offset);
-    }
-    if (i != size - 1)
-      std::cout << ", ";
-  }
-  std::cout << "]";
-  if (dim == 0)
-    std::cout << std::endl;
+  std::string builder;
+  builder.append("Tensor(");
+  this->tensor__repr__(0, 0, 0, builder);
+  builder.append(", dtype=" + getTypeName(this->dtype));
+  builder.append(")");
+  std::cout << builder << "\n";
+  return;
 }
+
+std::string Tensor::__repr__() const {
+  std::string builder;
+  builder.append("Tensor(");
+  this->tensor__repr__(0, 0, 0, builder);
+  builder.append(", dtype=" + getTypeName(this->dtype));
+  builder.append(", requires_grad=" +
+                 std::string((this->requires_grad ? "True" : "False")));
+  builder.append(")");
+  return builder;
+}
+
+void Tensor::tensor__repr__(int depth, int offset, int indent,
+                            std::string &builder) const {
+  int k = 3;
+  for (int i = 0; i < indent; ++i)
+    builder.append(" ");
+  builder.append("[");
+
+  if (depth == this->ndim - 1) {
+    for (int i = 0; i < this->dims[depth]; ++i) {
+      if (i == k && this->dims[depth] > 3 * k) {
+        builder.append("... ");
+        i = this->dims[depth] - k;
+      }
+      int index = offset + i * this->stride[depth];
+      if (this->dtype == DType::float16 || this->dtype == DType::float32) {
+        char buffer[32];
+        snprintf(buffer, sizeof(buffer), "%.6e", this->_get_element(index));
+        builder.append(buffer);
+      } else {
+        builder.append(std::to_string(this->_get_element(index)));
+      }
+      if (i < this->dims[depth] - 1) {
+        builder.append(", ");
+      }
+    }
+    builder.append("]");
+
+  } else {
+    builder.append("\n");
+    for (int i = 0; i < this->dims[depth]; ++i) {
+      if (i == k && this->dims[depth] > 3 * k) {
+        for (int j = 0; j < indent + 1; ++j)
+          builder.append(" ");
+        builder.append("...\n");
+        i = this->dims[depth] - k;
+      }
+
+      tensor__repr__(depth + 1, offset + i * this->stride[depth], indent + 1,
+                     builder);
+
+      if (i < this->dims[depth] - 1) {
+        builder.append(",\n");
+      }
+    }
+
+    builder.append("\n");
+    for (int i = 0; i < indent; ++i)
+      builder.append(" ");
+    builder.append("]");
+  }
+}
+
 void Tensor::print_buffer() const {
   for (int i = 0; i < this->memory->size; i++) {
     std::cout << this->_get_element(i) << " ";
@@ -196,41 +301,44 @@ void Tensor::print_buffer() const {
   std::cout << std::endl;
 }
 
-Tensor Tensor::execute_broadcastable_operation(OPType op, Tensor *other,
-                                               bool inplace) {
+Tensor *Tensor::execute_broadcastable_operation(OPType op, Tensor *other,
+                                                bool inplace) {
   if (this->requires_grad || other->requires_grad) {
     this->requires_grad = other->requires_grad = true;
   }
   if (inplace) {
-    dispatcher->call(op, this->device, *this, *other, *this);
-    return *this;
+    if (this->requires_grad)
+      return NULL;
+    dispatcher->call(op, this->device, this, other, this);
+    return this;
   }
-  auto result_shape = compute_broadcast_shape(*this, *other);
+  auto result_shape = compute_broadcast_shape(this, other);
   std::shared_ptr<Memory> result_memory = pool->request_memory(
       this->device,
       std::accumulate(result_shape.begin(), result_shape.end(), 1,
                       std::multiplies<int>()),
       this->dtype);
 
-  Tensor result(result_memory, result_shape, this->dtype, this->requires_grad);
-  dispatcher->call(op, this->device, *this, *other, result);
+  Tensor *result =
+      new Tensor(result_memory, result_shape, this->dtype, this->requires_grad);
+  dispatcher->call(op, this->device, this, other, result);
   return result;
 }
 
-Tensor Tensor::execute_init_operation(OPType op, std::vector<int> shape,
-                                      DType dtype, bool requires_grad,
-                                      DeviceType device) {
+Tensor *Tensor::execute_init_operation(OPType op, std::vector<int> shape,
+                                       DType dtype, bool requires_grad,
+                                       DeviceType device) {
   std::shared_ptr<Memory> result_memory = pool->request_memory(
       device,
       std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>()) *
           getDTypeSize(dtype),
       dtype);
-  Tensor result(result_memory, shape, dtype, requires_grad);
-  dispatcher->call(op, device, result, std::nullopt, std::nullopt);
+  Tensor *result = new Tensor(result_memory, shape, dtype, requires_grad);
+  dispatcher->call(op, device, result, nullptr, nullptr);
   return result;
 }
 
-Tensor Tensor::execute_binary_operation(OPType op, Tensor *other) {
+Tensor *Tensor::execute_binary_operation(OPType op, Tensor *other) {
   if (this->requires_grad || other->requires_grad) {
     this->requires_grad = other->requires_grad = true;
   }
@@ -240,8 +348,9 @@ Tensor Tensor::execute_binary_operation(OPType op, Tensor *other) {
                                            1, std::multiplies<int>()),
                            this->dtype);
 
-  Tensor result(result_memory, this->dims, this->dtype, this->requires_grad);
-  dispatcher->call(op, this->device, *this, *other, result);
+  Tensor *result =
+      new Tensor(result_memory, this->dims, this->dtype, this->requires_grad);
+  dispatcher->call(op, this->device, this, other, result);
   return result;
 }
 
@@ -267,61 +376,61 @@ bool Tensor::any() {
 // ================================================================================================================================
 // Arithemetic
 // ================================================================================================================================
-Tensor Tensor::add(Tensor *other, bool inplace) {
+Tensor *Tensor::add(Tensor *other, bool inplace) {
   return execute_broadcastable_operation(OPType::ADD, other, inplace);
 }
-Tensor Tensor::sub(Tensor *other, bool inplace) {
+Tensor *Tensor::sub(Tensor *other, bool inplace) {
   return execute_broadcastable_operation(OPType::SUB, other, inplace);
 }
 
-Tensor Tensor::mul(Tensor *other, bool inplace) {
+Tensor *Tensor::mul(Tensor *other, bool inplace) {
   return execute_broadcastable_operation(OPType::MUL, other, inplace);
 }
 
-Tensor Tensor::div(Tensor *other, bool inplace) {
+Tensor *Tensor::div(Tensor *other, bool inplace) {
   // TODO: fix this division by zero checking
-  Tensor zeros = Tensor::zeros(other->dims);
-  if (other->logical_e(&zeros).any()) {
+  Tensor *zeros = Tensor::zeros(other->dims);
+  if (other->logical_e(zeros)->any()) {
     throw std::runtime_error("division by zero");
   }
   return execute_broadcastable_operation(OPType::DIV, other, inplace);
 }
 
 // Comparison operators
-Tensor Tensor::logical_e(Tensor *other) {
+Tensor *Tensor::logical_e(Tensor *other) {
   if (this->dims != other->dims) {
     throw std::runtime_error("shape constraint failed");
   }
   return this->execute_binary_operation(OPType::LOGICAL_E, other);
 }
-Tensor Tensor::logical_ne(Tensor *other) {
+Tensor *Tensor::logical_ne(Tensor *other) {
   if (this->dims != other->dims) {
     throw std::runtime_error("shape constraint failed");
   }
   return this->execute_binary_operation(OPType::LOGICAL_NE, other);
 }
-Tensor Tensor::logical_gt(Tensor *other) {
+Tensor *Tensor::logical_gt(Tensor *other) {
   if (this->dims != other->dims) {
     throw std::runtime_error("shape constraint failed");
   }
   return this->execute_binary_operation(OPType::LOGICAL_GT, other);
 }
 
-Tensor Tensor::logical_gte(Tensor *other) {
+Tensor *Tensor::logical_gte(Tensor *other) {
   if (this->dims != other->dims) {
     throw std::runtime_error("shape contraint failed");
   }
   return this->execute_binary_operation(OPType::LOGICAL_GTE, other);
 }
 
-Tensor Tensor::logical_lt(Tensor *other) {
+Tensor *Tensor::logical_lt(Tensor *other) {
   if (this->dims != other->dims) {
     throw std::runtime_error("shape contraint failed");
   }
   return this->execute_binary_operation(OPType::LOGICAL_LT, other);
 }
 
-Tensor Tensor::logical_lte(Tensor *other) {
+Tensor *Tensor::logical_lte(Tensor *other) {
   if (this->dims != other->dims) {
     throw std::runtime_error("shape contraint failed");
   }
@@ -411,17 +520,20 @@ Tensor Tensor::sqrt(bool inplace) {
 // 6) Clone, tensor: ❌
 // 7) Linspace, logspace, arange: ❌
 // =====================================================================================================================
-Tensor Tensor::ones(std::vector<int> shape, DType dtype) {
-  return Tensor::execute_init_operation(OPType::ONES_INIT, shape, dtype);
+Tensor *Tensor::ones(std::vector<int> shape, DType dtype, bool requires_grad) {
+  return Tensor::execute_init_operation(OPType::ONES_INIT, shape, dtype,
+                                        requires_grad);
 }
 
-Tensor Tensor::zeros(std::vector<int> shape, DType dtype) {
-  return Tensor::execute_init_operation(OPType::ZEROES_INIT, shape, dtype);
+Tensor *Tensor::zeros(std::vector<int> shape, DType dtype, bool requires_grad) {
+  return Tensor::execute_init_operation(OPType::ZEROES_INIT, shape, dtype,
+                                        requires_grad);
 }
 
-Tensor Tensor::eye(int n, DType dtype) {
+Tensor *Tensor::eye(int n, DType dtype, bool requires_grad) {
   std::vector<int> shape = {n, n};
-  return Tensor::execute_init_operation(OPType::EYE_INIT, shape, dtype);
+  return Tensor::execute_init_operation(OPType::EYE_INIT, shape, dtype,
+                                        requires_grad);
 }
 
 /*

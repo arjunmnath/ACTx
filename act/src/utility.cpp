@@ -136,12 +136,12 @@ std::string getTypeName(DType dtype) {
   }
 }
 // TODO: complete remaining data types
-std::vector<int> compute_broadcast_shape(const Tensor &a, const Tensor &b) {
-  int max_rank = std::max(b.dims.size(), a.dims.size());
+std::vector<int> compute_broadcast_shape(const Tensor *a, const Tensor *b) {
+  int max_rank = std::max(b->dims.size(), a->dims.size());
   std::vector<int> result(max_rank);
   for (int i = 0; i < max_rank; ++i) {
-    int dim1 = (i < a.dims.size()) ? a.dims[(a.dims.size() - 1) - i] : 1;
-    int dim2 = (i < b.dims.size()) ? b.dims[(b.dims.size() - 1) - i] : 1;
+    int dim1 = (i < a->dims.size()) ? a->dims[(a->dims.size() - 1) - i] : 1;
+    int dim2 = (i < b->dims.size()) ? b->dims[(b->dims.size() - 1) - i] : 1;
     if (dim1 == dim2 || dim1 == 1 || dim2 == 1)
       result[(max_rank - 1) - i] = std::max(dim1, dim2);
     else

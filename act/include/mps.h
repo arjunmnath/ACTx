@@ -41,12 +41,12 @@ public:
                            id<MTLBuffer> meta, int N);
 
   void initiate_dispatch_broadcastable(std::string kernel_method,
-                                       const Tensor &a, const Tensor &b,
-                                       Tensor &result);
+                                       const Tensor *a, const Tensor *b,
+                                       Tensor *result);
 
-  void initiate_dispatch_comparison(std::string kernel_method, const Tensor &a,
-                                    const Tensor &b, Tensor &result);
-  void initiate_dispatch_init(std::string kernel_method, Tensor &a);
+  void initiate_dispatch_comparison(std::string kernel_method, const Tensor *a,
+                                    const Tensor *b, Tensor *result);
+  void initiate_dispatch_init(std::string kernel_method, Tensor *a);
 
   std::vector<id<MTLBuffer>> __dummy_data();
 
@@ -55,28 +55,28 @@ public:
   void copy_vector_to_buffer(void *ptr, Memory &memory, int buffer_size);
 
   // arithmetic kernels
-  void add(const Tensor &a, const Tensor &b, Tensor &result) override;
-  void sub(const Tensor &a, const Tensor &b, Tensor &result) override;
-  void mul(const Tensor &a, const Tensor &b, Tensor &result) override;
-  void div(const Tensor &a, const Tensor &b, Tensor &result) override;
+  void add(const Tensor *a, const Tensor *b, Tensor *result) override;
+  void sub(const Tensor *a, const Tensor *b, Tensor *result) override;
+  void mul(const Tensor *a, const Tensor *b, Tensor *result) override;
+  void div(const Tensor *a, const Tensor *b, Tensor *result) override;
 
   // init kernels
-  void ones(Tensor &a);
-  void zeros(Tensor &a);
-  void eye(Tensor &a);
+  void ones(Tensor *a);
+  void zeros(Tensor *a);
+  void eye(Tensor *a);
 
   // comparison
-  void logical_e(const Tensor &a, const Tensor &b, Tensor &result) override;
-  void logical_ne(const Tensor &a, const Tensor &b, Tensor &result) override;
-  void logical_gt(const Tensor &a, const Tensor &b, Tensor &result) override;
-  void logical_gte(const Tensor &a, const Tensor &b, Tensor &result) override;
-  void logical_lt(const Tensor &a, const Tensor &b, Tensor &result) override;
-  void logical_lte(const Tensor &a, const Tensor &b, Tensor &result) override;
+  void logical_e(const Tensor *a, const Tensor *b, Tensor *result) override;
+  void logical_ne(const Tensor *a, const Tensor *b, Tensor *result) override;
+  void logical_gt(const Tensor *a, const Tensor *b, Tensor *result) override;
+  void logical_gte(const Tensor *a, const Tensor *b, Tensor *result) override;
+  void logical_lt(const Tensor *a, const Tensor *b, Tensor *result) override;
+  void logical_lte(const Tensor *a, const Tensor *b, Tensor *result) override;
 
   // not implemented
   void eye(int n, DType dtype = DType::float32);
   void empty(std::vector<int> shape, DType dtype = DType::float32);
-  void matmul(const Tensor &a, const Tensor &b, Tensor &result) override;
-  void pow(const Tensor &a, const Tensor &b, Tensor &result) override;
+  void matmul(const Tensor *a, const Tensor *b, Tensor *result) override;
+  void pow(const Tensor *a, const Tensor *b, Tensor *result) override;
 };
 #endif

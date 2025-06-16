@@ -27,7 +27,7 @@ void print_buffer(id<MTLBuffer> buffer, DType dtype, const char *label = "") {
   size_t count = buffer.length / getDTypeSize(dtype);
   std::vector<T> data(count);
   std::cout << count << std::endl;
-  memcpy(data.data(), buffer.contents, buffer.length);
+  memcpy(data->data(), buffer.contents, buffer.length);
   std::cout << label << "[ ";
   for (size_t i = 0; i < count; ++i) {
     std::cout << data[i] << " ";
@@ -120,7 +120,7 @@ void MPS::execute_kernel_unary(std::string func, id<MTLBuffer> A,
   [computeEncoder setBuffer:result offset:0 atIndex:1];
 
   std::pair<size_t, size_t> threadinfo =
-      this->compute_threads(N, pipelineState.maxTotalThreadsPerThreadgroup);
+      this->compute_threads(N, pipelineState.threadExecutionWidth);
   [computeEncoder dispatchThreadgroups:MTLSizeMake(threadinfo.second, 1, 1)
                  threadsPerThreadgroup:MTLSizeMake(threadinfo.first, 1, 1)];
   [computeEncoder endEncoding];
@@ -152,8 +152,8 @@ void MPS::execute_kernel_init(std::string func, id<MTLBuffer> A,
 
   std::pair<size_t, size_t> threadinfo =
       this->compute_threads(N, pipelineState.maxTotalThreadsPerThreadgroup);
-  [computeEncoder dispatchThreadgroups:MTLSizeMake(2, 1, 1)
-                 threadsPerThreadgroup:MTLSizeMake(32, 1, 1)];
+  [computeEncoder dispatchThreadgroups:MTLSizeMake(threadinfo.second, 1, 1)
+                 threadsPerThreadgroup:MTLSizeMake(threadinfo.first, 1, 1)];
 
   [computeEncoder endEncoding];
   [commandBuffer commit];
@@ -276,31 +276,31 @@ void MPS::copy_vector_to_buffer(void *ptr, Memory &memory, int buffer_size) {
 }
 
 void MPS::initiate_dispatch_broadcastable(std::string kernel_method,
-                                          const Tensor &a, const Tensor &b,
-                                          Tensor &result) {
+                                          const Tensor *a, const Tensor *b,
+                                          Tensor *result) {
 
-  if (a.device != DeviceType::MPS || b.device != DeviceType::MPS ||
-      result.device != DeviceType::MPS) {
+  if (a->device != DeviceType::MPS || b->device != DeviceType::MPS ||
+      result->device != DeviceType::MPS) {
     throw std::runtime_error("All the tensor must live in Metal Buffers");
   }
   auto result_shape = compute_broadcast_shape(a, b);
   std::shared_ptr<Memory> ashape =
-      pool->request_memory(DeviceType::MPS, a.dims.size(), DType::int32);
-  this->copy_vector_to_buffer((void *)a.dims.data(), *ashape,
-                              a.dims.size() * getDTypeSize(DType::int32));
+      pool->request_memory(DeviceType::MPS, a->dims.size(), DType::int32);
+  this->copy_vector_to_buffer((void *)a->dims.data(), *ashape,
+                              a->dims.size() * getDTypeSize(DType::int32));
 
   std::shared_ptr<Memory> bshape =
-      pool->request_memory(DeviceType::MPS, b.dims.size(), DType::int32);
-  this->copy_vector_to_buffer((void *)b.dims.data(), *bshape,
-                              b.dims.size() * getDTypeSize(DType::int32));
+      pool->request_memory(DeviceType::MPS, b->dims.size(), DType::int32);
+  this->copy_vector_to_buffer((void *)b->dims.data(), *bshape,
+                              b->dims.size() * getDTypeSize(DType::int32));
 
   std::shared_ptr<Memory> result_shape_memory =
       pool->request_memory(DeviceType::MPS, result_shape.size(), DType::int32);
   this->copy_vector_to_buffer((void *)result_shape.data(), *result_shape_memory,
                               result_shape.size() * getDTypeSize(DType::int32));
 
-  std::vector<int> _ranks = {static_cast<int>(a.dims.size()),
-                             static_cast<int>(b.dims.size()),
+  std::vector<int> _ranks = {static_cast<int>(a->dims.size()),
+                             static_cast<int>(b->dims.size()),
                              static_cast<int>(result_shape.size())};
 
   std::shared_ptr<Memory> ranks =
@@ -308,8 +308,8 @@ void MPS::initiate_dispatch_broadcastable(std::string kernel_method,
   this->copy_vector_to_buffer((void *)_ranks.data(), *ranks,
                               _ranks.size() * getDTypeSize(DType::int32));
   /*
-    print_buffer<float>(a.memory->storage->metal, a.dtype, "A: ");
-    print_buffer<float>(b.memory->storage->metal, b.dtype, "B: ");
+    print_buffer<float>(a->memory->storage->metal, a->dtype, "A: ");
+    print_buffer<float>(b->memory->storage->metal, b->dtype, "B: ");
     print_buffer<int>(ashape->storage->metal, ashape->dtype, "ashape: ");
     print_buffer<int>(bshape->storage->metal, bshape->dtype, "bshape: ");
     print_buffer<int>(result_shape_memory->storage->metal,
@@ -318,15 +318,15 @@ void MPS::initiate_dispatch_broadcastable(std::string kernel_method,
     */
 
   this->execute_kernel_binary_with_broadcast(
-      kernel_method, a.memory->storage->metal, b.memory->storage->metal,
-      result.memory->storage->metal,
+      kernel_method, a->memory->storage->metal, b->memory->storage->metal,
+      result->memory->storage->metal,
       *reinterpret_cast<id<MTLBuffer> __strong *>(&ashape->storage->metal),
       *reinterpret_cast<id<MTLBuffer> __strong *>(&bshape->storage->metal),
       *reinterpret_cast<id<MTLBuffer> __strong *>(
           &result_shape_memory->storage->metal),
       *reinterpret_cast<id<MTLBuffer> __strong *>(&ranks->storage->metal),
-      result.size);
-  // print_buffer<float>(result.memory->storage->metal, result.dtype, "Result:
+      result->size);
+  // print_buffer<float>(result->memory->storage->metal, result->dtype, "Result:
   // ");
 
   pool->return_memory(ashape);
@@ -336,58 +336,58 @@ void MPS::initiate_dispatch_broadcastable(std::string kernel_method,
 }
 
 void MPS::initiate_dispatch_comparison(std::string kernel_method,
-                                       const Tensor &a, const Tensor &b,
-                                       Tensor &result) {
+                                       const Tensor *a, const Tensor *b,
+                                       Tensor *result) {
 
-  if (a.device != DeviceType::MPS || b.device != DeviceType::MPS ||
-      result.device != DeviceType::MPS) {
+  if (a->device != DeviceType::MPS || b->device != DeviceType::MPS ||
+      result->device != DeviceType::MPS) {
     throw std::runtime_error("All the tensor must live in Metal Buffers");
   }
   std::shared_ptr<Memory> meta =
-      pool->request_memory(DeviceType::MPS, a.dims.size(), DType::int32);
-  this->copy_vector_to_buffer((void *)a.dims.data(), *meta,
-                              a.dims.size() * getDTypeSize(DType::int32));
+      pool->request_memory(DeviceType::MPS, a->dims.size(), DType::int32);
+  this->copy_vector_to_buffer((void *)a->dims.data(), *meta,
+                              a->dims.size() * getDTypeSize(DType::int32));
 
   this->execute_kernel_binary(
-      kernel_method, a.memory->storage->metal, b.memory->storage->metal,
-      result.memory->storage->metal,
+      kernel_method, a->memory->storage->metal, b->memory->storage->metal,
+      result->memory->storage->metal,
       *reinterpret_cast<id<MTLBuffer> __strong *>(&meta->storage->metal),
-      result.size);
+      result->size);
   pool->return_memory(meta);
 }
 
-void MPS::initiate_dispatch_init(std::string kernel_method, Tensor &a) {
+void MPS::initiate_dispatch_init(std::string kernel_method, Tensor *a) {
   std::shared_ptr<Memory> meta_memory =
       pool->request_memory(DeviceType::MPS, 1, DType::int32);
-  this->copy_vector_to_buffer((void *)a.dims.data(), *meta_memory,
-                              a.dims.size() * getDTypeSize(DType::int32));
-  this->execute_kernel_init(kernel_method, a.memory->storage->metal,
-                            meta_memory->storage->metal, a.size);
+  this->copy_vector_to_buffer((void *)a->dims.data(), *meta_memory,
+                              a->dims.size() * getDTypeSize(DType::int32));
+  this->execute_kernel_init(kernel_method, a->memory->storage->metal,
+                            meta_memory->storage->metal, a->size);
   pool->return_memory(meta_memory);
 }
 
 // ==================================================
 //                     ARITHMETIC
 // ==================================================
-void MPS::add(const Tensor &a, const Tensor &b, Tensor &result) {
+void MPS::add(const Tensor *a, const Tensor *b, Tensor *result) {
   this->initiate_dispatch_broadcastable("__add__", a, b, result);
 };
 
-void MPS::sub(const Tensor &a, const Tensor &b, Tensor &result) {
+void MPS::sub(const Tensor *a, const Tensor *b, Tensor *result) {
   this->initiate_dispatch_broadcastable("__sub__", a, b, result);
 };
-void MPS::mul(const Tensor &a, const Tensor &b, Tensor &result) {
+void MPS::mul(const Tensor *a, const Tensor *b, Tensor *result) {
   this->initiate_dispatch_broadcastable("__mul__", a, b, result);
 };
-void MPS::div(const Tensor &a, const Tensor &b, Tensor &result) {
+void MPS::div(const Tensor *a, const Tensor *b, Tensor *result) {
   this->initiate_dispatch_broadcastable("__div__", a, b, result);
 };
 
-void MPS::matmul(const Tensor &a, const Tensor &b, Tensor &result) {
+void MPS::matmul(const Tensor *a, const Tensor *b, Tensor *result) {
   throw std::logic_error("not implemented");
   this->initiate_dispatch_broadcastable("__matmul__", a, b, result);
 };
-void MPS::pow(const Tensor &a, const Tensor &b, Tensor &result) {
+void MPS::pow(const Tensor *a, const Tensor *b, Tensor *result) {
   // this->initiate_dispatch("__pow__", a, b, result);
 }
 
@@ -395,35 +395,35 @@ void MPS::pow(const Tensor &a, const Tensor &b, Tensor &result) {
 //                      INIT
 // ==================================================
 
-void MPS::ones(Tensor &a) { this->initiate_dispatch_init("__ones__", a); }
+void MPS::ones(Tensor *a) { this->initiate_dispatch_init("__ones__", a); }
 
-void MPS::zeros(Tensor &a) { this->initiate_dispatch_init("__zeros__", a); }
+void MPS::zeros(Tensor *a) { this->initiate_dispatch_init("__zeros__", a); }
 
-void MPS::eye(Tensor &a) { this->initiate_dispatch_init("__eye__", a); }
+void MPS::eye(Tensor *a) { this->initiate_dispatch_init("__eye__", a); }
 
 // ==================================================
 //                     COMPARISON
 // ==================================================
 
-void MPS::logical_e(const Tensor &a, const Tensor &b, Tensor &result) {
+void MPS::logical_e(const Tensor *a, const Tensor *b, Tensor *result) {
   this->initiate_dispatch_comparison("logical_e", a, b, result);
 };
 
-void MPS::logical_ne(const Tensor &a, const Tensor &b, Tensor &result) {
+void MPS::logical_ne(const Tensor *a, const Tensor *b, Tensor *result) {
   this->initiate_dispatch_comparison("logical_ne", a, b, result);
 };
-void MPS::logical_gt(const Tensor &a, const Tensor &b, Tensor &result) {
+void MPS::logical_gt(const Tensor *a, const Tensor *b, Tensor *result) {
   this->initiate_dispatch_comparison("logical_gt", a, b, result);
 };
 
-void MPS::logical_lt(const Tensor &a, const Tensor &b, Tensor &result) {
+void MPS::logical_lt(const Tensor *a, const Tensor *b, Tensor *result) {
   this->initiate_dispatch_comparison("logical_lt", a, b, result);
 };
 
-void MPS::logical_gte(const Tensor &a, const Tensor &b, Tensor &result) {
+void MPS::logical_gte(const Tensor *a, const Tensor *b, Tensor *result) {
   this->initiate_dispatch_comparison("logical_gte", a, b, result);
 };
 
-void MPS::logical_lte(const Tensor &a, const Tensor &b, Tensor &result) {
+void MPS::logical_lte(const Tensor *a, const Tensor *b, Tensor *result) {
   this->initiate_dispatch_comparison("logical_lte", a, b, result);
 };
