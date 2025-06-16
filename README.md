@@ -131,7 +131,7 @@ Driven by this philosophy, this high-performance tensor library was built as a h
 pip install actx
 ```
 
-> 🚧 Not yet deployed on pypi.
+> 🚧 Only on MacOS at present
 
 ## Usage
 
