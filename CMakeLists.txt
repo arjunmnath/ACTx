@@ -5,7 +5,7 @@ if(NOT DEFINED PROJECT_VERSION)
 endif()
 
 project(
-  act
+  actx
   VERSION ${PROJECT_VERSION}
   LANGUAGES C CXX OBJCXX)
 set(CMAKE_CXX_STANDARD 17)
@@ -34,31 +34,31 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(spdlog)
 
-include_directories("${CMAKE_SOURCE_DIR}/act/include")
+include_directories("${CMAKE_SOURCE_DIR}/actx/include")
 
 # manually mention
-file(GLOB_RECURSE OBJCXX_HEADERS "${CMAKE_SOURCE_DIR}/act/include/mps.h"
-     "${CMAKE_SOURCE_DIR}/act/include/memory.h"
-     "${CMAKE_SOURCE_DIR}/act/include/storage.h")
+file(GLOB_RECURSE OBJCXX_HEADERS "${CMAKE_SOURCE_DIR}/actx/include/mps.h"
+     "${CMAKE_SOURCE_DIR}/actx/include/memory.h"
+     "${CMAKE_SOURCE_DIR}/actx/include/storage.h")
 set_source_files_properties(${OBJCXX_HEADERS} PROPERTIES COMPILE_FLAGS
                                                          "-x objective-c++")
 
 # Directories
-set(METAL_SOURCE_DIR "${CMAKE_SOURCE_DIR}/act/src/kernels")
+set(METAL_SOURCE_DIR "${CMAKE_SOURCE_DIR}/actx/src/kernels")
 set(METAL_BUILD_DIR "${CMAKE_BINARY_DIR}/build")
 set(METAL_LIB_NAME "kernels.metallib")
-set(TEST_DIR "${CMAKE_SOURCE_DIR}/act/tests")
+set(TEST_DIR "${CMAKE_SOURCE_DIR}/actx/tests")
 
 # Files
 file(GLOB METAL_SOURCES "${METAL_SOURCE_DIR}/*.metal")
 file(GLOB TEST_SOURCES "${TEST_DIR}/*.cpp")
-file(GLOB ALL_SOURCES "${CMAKE_SOURCE_DIR}/act/src/*.cpp"
-     "${CMAKE_SOURCE_DIR}/act/src/*.mm")
-file(GLOB ILC_SOURCES "${CMAKE_SOURCE_DIR}/act/src/ilcs/*.cpp")
+file(GLOB ALL_SOURCES "${CMAKE_SOURCE_DIR}/actx/src/*.cpp"
+     "${CMAKE_SOURCE_DIR}/actx/src/*.mm")
+file(GLOB ILC_SOURCES "${CMAKE_SOURCE_DIR}/actx/src/ilcs/*.cpp")
 
 # command source files
 set(COMMAN_SOURCES ${ALL_SOURCES})
-list(REMOVE_ITEM COMMAN_SOURCES "${CMAKE_SOURCE_DIR}/act/src/runner.cpp"
+list(REMOVE_ITEM COMMAN_SOURCES "${CMAKE_SOURCE_DIR}/actx/src/runner.cpp"
      ${ILC_SOURCES})
 
 # DEBUG and RELEASE specific sources
@@ -66,7 +66,7 @@ set(DEBUG_SOURCES "")
 foreach(source ${COMMAN_SOURCES})
   list(APPEND DEBUG_SOURCES ${source})
 endforeach()
-list(APPEND DEBUG_SOURCES "${CMAKE_SOURCE_DIR}/act/src/runner.cpp")
+list(APPEND DEBUG_SOURCES "${CMAKE_SOURCE_DIR}/actx/src/runner.cpp")
 
 set(RELEASE_SOURCES "")
 foreach(source ${COMMAN_SOURCES})
@@ -201,11 +201,11 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
   target_compile_definitions(extension PRIVATE RELEASE_BUILD NDEBUG)
   target_compile_options(extension PRIVATE -O3 -ObjC++ -fobjc-arc)
 
-  add_library(core-act SHARED ${COMMAN_SOURCES})
-  set_target_properties(core-act PROPERTIES PREFIX "" SUFFIX ".so")
-  target_link_libraries(core-act PRIVATE ${COMMON_LIBRARIES})
-  target_compile_options(core-act PRIVATE -DRELEASE_BUILD -O3 -DNDEBUG -ObjC++
-                                          -fobjc-arc)
-  install(TARGETS extension LIBRARY DESTINATION act)
-  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/kernels.metallib DESTINATION act)
+  add_library(core-actx SHARED ${COMMAN_SOURCES})
+  set_target_properties(core-actx PROPERTIES PREFIX "" SUFFIX ".so")
+  target_link_libraries(core-actx PRIVATE ${COMMON_LIBRARIES})
+  target_compile_options(core-actx PRIVATE -DRELEASE_BUILD -O3 -DNDEBUG -ObjC++
+                                           -fobjc-arc)
+  install(TARGETS extension LIBRARY DESTINATION actx)
+  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/kernels.metallib DESTINATION actx)
 endif()
