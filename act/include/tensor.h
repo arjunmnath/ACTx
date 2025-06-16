@@ -8,9 +8,16 @@
 #include <variant>
 #include <vector>
 
+struct Slice {
+  int start;
+  int stop;
+  int step;
+  Slice(int s = 0, int e = -1, int st = 1) : start(s), stop(e), step(st) {}
+};
 class Tensor {
 private:
-  int ndim;
+  bool is_view = false;
+  int offset_elements;
   std::variant<void *, float *, int *> data_ptr;
   void _compte_stride();
   int _compute_offset(std::vector<int> indexes) const;
@@ -32,6 +39,7 @@ private:
   float _get_element(int offset) const;
 
 public:
+  int ndim;
   std::vector<int> dims;
   std::vector<int> stride;
   bool requires_grad;
@@ -100,13 +108,15 @@ public:
 
   // Utility methods
   Tensor transpose() const;
-
+  Tensor *view(std::vector<Slice> &slices) const;
   // Input/Output
   //
 
   void print(int dim = 0, int offset = 0) const;
   void print_buffer() const;
-
+  std::string __repr__() const;
+  void tensor__repr__(int depth, int offset, int indent,
+                      std::string &builder) const;
   // getters & setters
   std::vector<int> strides();
   template <typename... Args> void setElement(float value, Args... indexes);

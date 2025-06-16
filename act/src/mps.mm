@@ -120,7 +120,7 @@ void MPS::execute_kernel_unary(std::string func, id<MTLBuffer> A,
   [computeEncoder setBuffer:result offset:0 atIndex:1];
 
   std::pair<size_t, size_t> threadinfo =
-      this->compute_threads(N, pipelineState.maxTotalThreadsPerThreadgroup);
+      this->compute_threads(N, pipelineState.threadExecutionWidth);
   [computeEncoder dispatchThreadgroups:MTLSizeMake(threadinfo.second, 1, 1)
                  threadsPerThreadgroup:MTLSizeMake(threadinfo.first, 1, 1)];
   [computeEncoder endEncoding];
@@ -152,8 +152,8 @@ void MPS::execute_kernel_init(std::string func, id<MTLBuffer> A,
 
   std::pair<size_t, size_t> threadinfo =
       this->compute_threads(N, pipelineState.maxTotalThreadsPerThreadgroup);
-  [computeEncoder dispatchThreadgroups:MTLSizeMake(2, 1, 1)
-                 threadsPerThreadgroup:MTLSizeMake(32, 1, 1)];
+  [computeEncoder dispatchThreadgroups:MTLSizeMake(threadinfo.second, 1, 1)
+                 threadsPerThreadgroup:MTLSizeMake(threadinfo.first, 1, 1)];
 
   [computeEncoder endEncoding];
   [commandBuffer commit];

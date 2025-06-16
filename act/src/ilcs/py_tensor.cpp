@@ -1,6 +1,7 @@
 #include "ilcs/py_tensor.h"
 #include "floatobject.h"
 #include "longobject.h"
+#include "numpy/ndarrayobject.h"
 #include "object.h"
 #include "tensor.h"
 #include "types.h"
@@ -49,10 +50,10 @@ static int PyTensor_init(PyTensorObject *self, PyObject *args,
   bool requires_grad = false;
   static const char *keywords[] = {"dims", "dtype", "requires_grad", NULL};
 
+  import_array();
   if (PyArg_ParseTupleAndKeywords(args, kwargs, "O|ip", (char **)keywords,
                                   &first, &DTypeInt, &requires_grad)) {
 
-    // shape bases init
     if (PyTuple_Check(first)) {
       Py_ssize_t ndim = PyTuple_Size(first);
       if (ndim <= 0) {
@@ -75,15 +76,61 @@ static int PyTensor_init(PyTensorObject *self, PyObject *args,
         dims.push_back(static_cast<int>(dim));
       }
       TensorInitdims(self->inner, dims, DTypeInt, requires_grad);
+      return 0;
+    } else if (first && PyArray_Check(first)) {
+      /*
+       * NPY_BOOL          // boolean
+       * NPY_BYTE          // signed 8-bit integer (int8)
+       * NPY_UBYTE         // unsigned 8-bit integer (uint8)
+       * NPY_SHORT         // signed 16-bit integer (int16)
+       * NPY_USHORT        // unsigned 16-bit integer (uint16)
+       * NPY_INT           // signed 32-bit integer (int32)
+       * NPY_UINT          // unsigned 32-bit integer (uint32)
+       * NPY_LONG          // signed long (platform dependent, usually int64 on
+       * 64-bit) NPY_ULONG         // unsigned long (platform dependent)
+       * NPY_LONGLONG      // signed 64-bit integer (int64)
+       * NPY_ULONGLONG     // unsigned 64-bit integer (uint64)
+       * NPY_FLOAT         // float32 (single precision)
+       * NPY_DOUBLE        // float64 (double precision)
+       * NPY_LONGDOUBLE    // extended precision float (usually 80 or 128 bit)
+       * NPY_CFLOAT        // complex64 (complex with float32 real and imag)
+       * NPY_CDOUBLE       // complex128 (complex with float64 real and imag)
+       * NPY_CLONGDOUBLE   // complex extended precision
+       * NPY_OBJECT        // Python objects
+       * NPY_STRING        // raw byte strings
+       * NPY_UNICODE       // unicode strings
+       * NPY_VOID          // raw data (structured or void type)
+       */
+
+      PyArrayObject *array = (PyArrayObject *)first;
+      if (PyArray_TYPE(array) != NPY_FLOAT32) {
+        PyErr_SetString(PyExc_TypeError, "expected np.float32 array");
+        return -1;
+      }
+      int ndim = PyArray_NDIM(array);
+      npy_intp *np_shape = PyArray_SHAPE(array);
+      std::vector<int> shape;
+      std::vector<float> values;
+      shape.reserve(ndim);
+      for (int i = 0; i < ndim; ++i) {
+        shape.push_back((int)np_shape[i]);
+      }
+      int size = PyArray_SIZE(array);
+      float *array_data = (float *)PyArray_DATA(array);
+      values.assign(array_data, array_data + size);
+
+      self->inner->_native_obj = new Tensor(values, shape);
+      return 0;
     } else if (PyList_Check(first)) {
-      throw std::runtime_error("not implemented");
-      // } else if (PyArray_Check(first)) {
-      //   throw std::runtime_error("not implemented");
+      return -1;
+    } else {
+      PyErr_SetString(PyExc_TypeError, "Invalid arguments.");
+      return -1;
     }
-    return 0;
+  } else {
+    PyErr_SetString(PyExc_TypeError, "Invalid arguments.");
+    return -1;
   }
-  PyErr_SetString(PyExc_TypeError, "Invalid arguments.");
-  return -1;
 }
 
 static PyObject *PyTensor_print(PyTensorObject *self,
@@ -316,6 +363,81 @@ static PyObject *PyTensor_mul_inplace(PyObject *a, PyObject *b) {
   Py_INCREF(a);
   return (PyObject *)a;
 }
+// ────────────────────────────────────────────
+// other dunder methods
+// ────────────────────────────────────────────
+
+static PyObject *PyTensor_repr(PyObject *self) {
+  // Format a string representation of your object
+  return PyUnicode_FromFormat(
+      ((PyTensorObject *)self)->inner->_native_obj->__repr__().c_str());
+}
+
+static Py_ssize_t PyTensor_len(PyObject *self) {
+  // called as len(tensor) or tensor.__len__()
+  return (Py_ssize_t)((PyTensorObject *)self)->inner->_native_obj->dims[0];
+}
+
+int PyTensor_setitem(PyObject *self, PyObject *key, PyObject *value) {
+  // called as tensor[key] = value or del tensor[key] (if value is null) or
+  // tensor.__setitem__(key, value);
+  return -1;
+}
+static PyObject *PyTensor_getitem(PyTensorObject *self, PyObject *item) {
+  // called as tensor[item], or tensor.__getitem__(item);
+  PyTensorObject *view = PyObject_New(PyTensorObject, &PyTensorType);
+  if (view == NULL)
+    return NULL;
+
+  std::vector<Slice> slices;
+  Py_ssize_t start, stop, step, slicelength;
+  if (PyTuple_Check(item)) {
+    Py_ssize_t ndim = PyTuple_GET_SIZE(item);
+    for (Py_ssize_t i = 0; i < ndim; i++) {
+      Slice s;
+      PyObject *item_i = PyTuple_GET_ITEM(item, i);
+      if (!PySlice_Check(item_i)) {
+        PyErr_SetString(PyExc_TypeError, "Index must be a slice.");
+
+        Py_DECREF((PyObject *)view);
+        return NULL;
+      }
+
+      if (PySlice_GetIndicesEx(item_i, self->inner->_native_obj->size, &start,
+                               &stop, &step, &slicelength) < 0) {
+        Py_DECREF((PyObject *)view);
+        return NULL;
+      }
+      s.step = step;
+      s.start = start;
+      s.stop = stop;
+      slices.push_back(s);
+    }
+
+    view->inner = new TensorStruct;
+    view->inner->_native_obj = self->inner->_native_obj->view(slices);
+    return (PyObject *)view;
+  } else if (PySlice_Check(item)) {
+    Slice s;
+    if (PySlice_GetIndicesEx(item, self->inner->_native_obj->size, &start,
+                             &stop, &step, &slicelength) < 0) {
+      Py_DECREF((PyObject *)view);
+      return NULL;
+    }
+    s.step = step;
+    s.start = start;
+    s.stop = stop;
+    slices.push_back(s);
+    view->inner = new TensorStruct;
+    view->inner->_native_obj = self->inner->_native_obj->view(slices);
+    return (PyObject *)view;
+  } else if (PyLong_Check(item)) {
+    PyErr_SetString(PyExc_TypeError, "Not Implemented.");
+    return NULL;
+  }
+  PyErr_SetString(PyExc_TypeError, "Invalid index.");
+  return NULL;
+}
 
 static PyMethodDef PyTensor_methods[] = {
     {"print", (PyCFunction)PyTensor_print, METH_NOARGS, "Print the tensor"},
@@ -326,7 +448,8 @@ static PyMethodDef PyTensor_methods[] = {
 static PyGetSetDef PyTensor_getsets[] = {
     {"requires_grad", (getter)PyTensor_get_requires_grad,
      (setter)PyTensor_set_requires_grad,
-     "Boolean flag indicating whether this tensor should track operations for "
+     "Boolean flag indicating whether this tensor should track operations "
+     "for "
      "gradient computation.\n"
      "When set to True, the tensor records operations to enable automatic "
      "differentiation during backpropagation.\n"
@@ -345,11 +468,20 @@ static PyNumberMethods PyTensor_as_number = {
     .nb_true_divide = PyTensor_div,
     .nb_inplace_true_divide = (binaryfunc)PyTensor_div_inplace,
 };
+static PyMappingMethods PyTensor_as_mapping = {
+    .mp_length = (lenfunc)PyTensor_len,
+    .mp_subscript = (binaryfunc)PyTensor_getitem,
+    .mp_ass_subscript = (objobjargproc)PyTensor_setitem
+
+};
+
 PyTypeObject PyTensorType = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_name = "extension.tensor.Tensor",
     .tp_basicsize = sizeof(PyTensorObject),
     .tp_dealloc = (destructor)PyTensor_dealloc,
+    .tp_repr = PyTensor_repr,
     .tp_as_number = &PyTensor_as_number,
+    .tp_as_mapping = &PyTensor_as_mapping,
     .tp_methods = PyTensor_methods,
     .tp_getset = PyTensor_getsets,
     .tp_init = (initproc)PyTensor_init,

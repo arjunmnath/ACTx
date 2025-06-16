@@ -22,5 +22,6 @@
 - [ ] enable mutex locks for memory
 - [ ] copying meta data to a buffer for every kernel operation is expensive, fix that;
 - [ ] simplify the compute_broadcast_index kernel helper logic
+- [ ] operations are not allowed on views currently, fix that
 - [x] use a different thread allocation logic (groups = 1, thread per group = maxThreadsAvailable if size < maxThreadsAvailable
       else groups = size // maxThreadsAvailable, thread per group = maxThreadsAvailable)
