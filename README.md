@@ -1,5 +1,16 @@
 # ACTx (Accelerated, Computegraph, Tensor, Execution)
 
+![PyPI version](https://img.shields.io/pypi/v/actx)
+![PyPI downloads](https://img.shields.io/pypi/dm/actx)
+![Build](https://github.com/arjunmnath/ACTx/actions/workflows/publish.yaml/badge.svg)
+![Codecov](https://codecov.io/gh/arjunmnath/ACTx/branch/main/graph/badge.svg)
+![License](https://img.shields.io/github/license/arjunmnath/ACTx)
+<!--![Platform](https://img.shields.io/badge/platform-linux%20|%20macOS%20|%20windows-blue)-->
+![Platform](https://img.shields.io/badge/platform-%20macOS%20-blue)
+![Wheel](https://img.shields.io/pypi/wheel/actx)
+![code style](https://img.shields.io/badge/code%20style-black-black)
+![Python version](https://img.shields.io/pypi/pyversions/actx)
+
 > "What I cannot create, I do not understand." - Richard Feynman
 
 Driven by this philosophy, this high-performance tensor library was built as a hands-on learning project. It leverages Metal for GPU acceleration, implements dynamic compute graphs for automatic differentiation (autograd), and provides Python bindings for ease of use in machine learning and scientific computing.
