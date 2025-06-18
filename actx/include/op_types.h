@@ -1,6 +1,7 @@
 #pragma once
 
 enum class OPType {
+  NO_OP,
   ADD,
   SUB,
   MUL,

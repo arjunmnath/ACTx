@@ -193,11 +193,6 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
                PREFIX ""
                SUFFIX ".so"
                LINK_FLAGS "-bundle -undefined dynamic_lookup")
-
-  if(APPLE)
-    target_link_options(extension PRIVATE "-undefined dynamic_lookup")
-  endif()
-
   target_compile_definitions(extension PRIVATE RELEASE_BUILD NDEBUG)
   target_compile_options(extension PRIVATE -O3 -ObjC++ -fobjc-arc)
 
