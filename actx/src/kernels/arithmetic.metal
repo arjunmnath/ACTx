@@ -93,6 +93,14 @@ kernel void __matmul__(device float *A [[buffer(0)]],
       compute_broadcast_index(flat_index, rshape, result_shape, rrank, trank);
   C[flat_index] = A[lindex] * B[rindex];
 }
+
+kernel void __neg__(device float *A [[buffer(0)]],
+                     constant uint2 &meta [[buffer(1)]],
+                     uint tid [[thread_position_in_grid]]) {
+
+  A[tid] = A[tid] * -1.0f;
+}
+
 /*
 kernel void tensor_matrix_multiply(
     device float *A [[buffer(0)]],       // Left tensor
@@ -136,3 +144,6 @@ kernel void tensor_matrix_multiply(
   C[global_output_index] = result;
 }
 */
+
+
+

@@ -17,3 +17,14 @@ TEST(TensorMultiplication, MultiplicationWorks) {
   EXPECT_TRUE(result->logical_e(expected)->all())
       << "Tensor multiplication failed";
 }
+
+TEST(TensorMultiplication, Negation) {
+  std::vector<float> data2 = {2, 3, 4, 5};
+  std::vector<int> shape = {2, 2};
+  Tensor *tensor2 = new Tensor(data2, shape);
+
+  Tensor *result = tensor2->negate();
+  std::vector<float> expected_data = {-2, -3, -4, -5};
+  Tensor *expected = new Tensor(expected_data, shape);
+  EXPECT_TRUE(result->logical_e(expected)->all()) << "Tensor Negation failed";
+}

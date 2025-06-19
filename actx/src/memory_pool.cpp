@@ -22,8 +22,10 @@ std::shared_ptr<Memory> MemoryPool::request_memory(DeviceType device,
                                                    size_t size, DType dtype) {
 
   int required_block_size = this->_compute_pool_size(size);
+  return std::make_shared<Memory>(device, required_block_size, dtype);
   std::shared_ptr<Memory> suitable_block =
       this->find_suitable_block(device, dtype, required_block_size);
+
   if (nullptr == suitable_block) {
     std::shared_ptr<Memory> memory =
         std::make_shared<Memory>(device, required_block_size, dtype);
@@ -42,7 +44,7 @@ std::shared_ptr<Memory> MemoryPool::request_memory(DeviceType device,
   this->used_pool.insert(suitable_block);
   this->available_pool.erase(suitable_block);
   logger->info(
-      COLOR("Requesting(allocating), ", BOLD_CYAN) +
+      COLOR("Requesting, ", BOLD_CYAN) +
           COLOR("Used Pool size: {} ", BOLD_RED) +
           COLOR("Available Pool Size: {} ", BOLD_GREEN) +
           COLOR("Pool size: ", BOLD_CYAN) + COLOR("{} bytes ", BOLD_WHITE) +

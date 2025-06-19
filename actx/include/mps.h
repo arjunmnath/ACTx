@@ -55,6 +55,7 @@ public:
   void copy_vector_to_buffer(void *ptr, Memory &memory, int buffer_size);
 
   // arithmetic kernels
+  void negate(Tensor *a);
   void add(const Tensor *a, const Tensor *b, Tensor *result) override;
   void sub(const Tensor *a, const Tensor *b, Tensor *result) override;
   void mul(const Tensor *a, const Tensor *b, Tensor *result) override;
@@ -64,6 +65,7 @@ public:
   void ones(Tensor *a);
   void zeros(Tensor *a);
   void eye(Tensor *a);
+  void full(Tensor *n, Tensor *result);
 
   // comparison
   void logical_e(const Tensor *a, const Tensor *b, Tensor *result) override;

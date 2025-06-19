@@ -2,10 +2,11 @@
 
 #include "op_register.h"
 #include "op_types.h"
+#include "tensor.h"
 #include <vector>
 struct OpNode {
-  Operation op;
+  Operation *op = nullptr;
   OPType type;
-  std::vector<OpNode *> inputs;
-  std::vector<OpNode *> outputs;
+  std::vector<Tensor *> inputs;
+  std::vector<Tensor *> outputs;
 };

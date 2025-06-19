@@ -2,6 +2,7 @@
 
 enum class OPType {
   NO_OP,
+  NEGATE,
   ADD,
   SUB,
   MUL,
@@ -10,10 +11,13 @@ enum class OPType {
   ONES_INIT,
   ZEROES_INIT,
   EYE_INIT,
+  FULL_INIT,
   LOGICAL_E,
   LOGICAL_NE,
   LOGICAL_GT,
   LOGICAL_GTE,
   LOGICAL_LT,
-  LOGICAL_LTE
+  LOGICAL_LTE,
+  POW,
+
 };

@@ -2,6 +2,8 @@
 #include "device_type.h"
 #include "main.h"
 #include "types.h"
+#import <objc/runtime.h>
+
 #include "utility.h"
 #import <Foundation/Foundation.h>
 #include <Metal/Metal.h>
@@ -240,6 +242,7 @@ void MPS::execute_kernel_binary_with_broadcast(
   [commandBuffer waitUntilCompleted];
 }
 id<MTLBuffer> MPS::createEmptyBuffer(int size, DType type) {
+  static int val = 0;
   if (size <= 0) {
     throw std::runtime_error("invalid buffer size");
   }
@@ -249,13 +252,12 @@ id<MTLBuffer> MPS::createEmptyBuffer(int size, DType type) {
   if (!buffer) {
     throw std::runtime_error("Failed to allocate MTLBuffer");
   }
-
-  /*
-  NSLog(@"Buffer length: %lu", buffer.length);
-  NSLog(@"Buffer: %@", buffer);
-  void *contents = buffer.contents;
-  NSLog(@"Buffer contents pointer: %p", contents);
-  */
+  buffer.label = [NSString stringWithFormat:@"buffer_%d", val];
+  val++;
+  /* NSLog(@"Retain: %@", buffer); */
+  /* CFRetain((__bridge CFTypeRef)buffer); */
+  /* NSLog(@"Release: %@", buffer); */
+  /* CFRelease((__bridge CFTypeRef)buffer); */
   return buffer;
 }
 
@@ -368,7 +370,9 @@ void MPS::initiate_dispatch_init(std::string kernel_method, Tensor *a) {
 
 // ==================================================
 //                     ARITHMETIC
+//
 // ==================================================
+void MPS::negate(Tensor *a) { this->initiate_dispatch_init("__neg__", a); }
 void MPS::add(const Tensor *a, const Tensor *b, Tensor *result) {
   this->initiate_dispatch_broadcastable("__add__", a, b, result);
 };
@@ -388,9 +392,21 @@ void MPS::matmul(const Tensor *a, const Tensor *b, Tensor *result) {
   this->initiate_dispatch_broadcastable("__matmul__", a, b, result);
 };
 void MPS::pow(const Tensor *a, const Tensor *b, Tensor *result) {
-  // this->initiate_dispatch("__pow__", a, b, result);
+  if (a->device != DeviceType::MPS || b->device != DeviceType::MPS ||
+      result->device != DeviceType::MPS) {
+    throw std::runtime_error("All the tensor must live in Metal Buffers");
+  }
+  std::shared_ptr<Memory> meta =
+      pool->request_memory(DeviceType::MPS, a->dims.size(), DType::int32);
+  this->copy_vector_to_buffer((void *)a->dims.data(), *meta,
+                              a->dims.size() * getDTypeSize(DType::int32));
+  execute_kernel_binary(
+      "__pow__", a->memory->storage->metal, b->memory->storage->metal,
+      result->memory->storage->metal,
+      *reinterpret_cast<id<MTLBuffer> __strong *>(&meta->storage->metal),
+      result->size);
+  pool->return_memory(meta);
 }
-
 // ==================================================
 //                      INIT
 // ==================================================
@@ -400,6 +416,20 @@ void MPS::ones(Tensor *a) { this->initiate_dispatch_init("__ones__", a); }
 void MPS::zeros(Tensor *a) { this->initiate_dispatch_init("__zeros__", a); }
 
 void MPS::eye(Tensor *a) { this->initiate_dispatch_init("__eye__", a); }
+void MPS::full(Tensor *n, Tensor *result) {
+  if (n->device != DeviceType::MPS || result->device != DeviceType::MPS) {
+    throw std::runtime_error("All the tensor must live in Metal Buffers");
+  }
+  std::shared_ptr<Memory> meta =
+      pool->request_memory(DeviceType::MPS, result->dims.size(), DType::int32);
+  this->copy_vector_to_buffer((void *)result->dims.data(), *meta,
+                              result->dims.size() * getDTypeSize(DType::int32));
+  execute_kernel_unary(
+      "__full__", result->memory->storage->metal, n->memory->storage->metal,
+      *reinterpret_cast<id<MTLBuffer> __strong *>(&meta->storage->metal),
+      result->size);
+  pool->return_memory(meta);
+}
 
 // ==================================================
 //                     COMPARISON

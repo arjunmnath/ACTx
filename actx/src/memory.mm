@@ -2,10 +2,34 @@
 #include "main.h"
 #include "storage.h"
 #include "utility.h"
+#include <cstring>
 #include <stdexcept>
 
 bool Memory::does_live_on(DeviceType type) { return this->device == type; }
 
+void Memory::copy(std::shared_ptr<Memory> src, std::shared_ptr<Memory> dest) {
+  id<MTLBuffer> buffer = src->storage->metal;
+  id<MTLBuffer> bufferout = dest->storage->metal;
+  NSLog(@"dest Buffer length: %lu", buffer.length);
+  NSLog(@"dest Buffer: %@", buffer);
+  void *destin = buffer.contents;
+  NSLog(@"dest cBuffer contents pointer: %p", destin);
+  NSLog(@"src Buffer length: %lu", buffer.length);
+  NSLog(@"src Buffer: %@", buffer);
+  void *source = buffer.contents;
+  NSLog(@"src Buffer contents pointer: %p", source);
+  assert(src->size <= dest->size);
+  // NOTE: add more methods
+  /* if (src->device == DeviceType::MPS && dest->device == DeviceType::MPS) { */
+  /*   memcpy([dest->storage->metal contents], [src->storage->metal contents],
+   */
+  /*          src -> size); */
+  /* } */
+};
+void Memory::copy_from_vector(std::vector<type_variant> src,
+                              std::shared_ptr<Memory> dest) {}
+void Memory::copy_to_vector(std::shared_ptr<Memory> src,
+                            std::vector<type_variant> dest) {}
 Memory::Memory(DeviceType type, size_t count, DType dtype) {
   this->device = type;
   this->size = count;

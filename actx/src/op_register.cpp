@@ -1,7 +1,8 @@
 #include "op_register.h"
+#include <functional>
 
 void OpRegister::register_op(OPType op, DeviceType device, TensorOperation func,
-                             TensorOperation backward) {
+                             std::function<void(OpNode *node)> backward) {
   Operation *operation = new Operation;
   operation->func = func;
   operation->backward = backward;

@@ -44,3 +44,11 @@ TEST(TensorInitalization, Eye) {
   Tensor *expected = new Tensor(ones, shape);
   EXPECT_TRUE(a->logical_e(expected)->all()) << "Initalization of eye failed";
 }
+TEST(TensorInitalization, FULL) {
+  std::vector<int> shape = {3, 3};
+  Tensor *a = Tensor::full(shape, 3.0f);
+  std::vector<float> ones = {3.0f, 3.0f, 3.0f, 3.0f, 3.0f,
+                             3.0f, 3.0f, 3.0f, 3.0f};
+  Tensor *expected = new Tensor(ones, shape);
+  EXPECT_TRUE(a->logical_e(expected)->all()) << "Initalization of eye failed";
+}

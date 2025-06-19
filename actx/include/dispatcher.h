@@ -6,13 +6,13 @@
 #include "tensor.h"
 #include <memory>
 #include <optional>
+#include <vector>
 
 class Dispatcher {
 private:
   std::unique_ptr<OpRegister> _register = std::make_unique<OpRegister>();
 
 public:
-  void call(OPType op, DeviceType device, Tensor *a, Tensor *b = nullptr,
-            Tensor *result = nullptr);
+  void call(OPType op, DeviceType device, std::vector<Tensor *> inputs);
   void init_register();
 };

@@ -5,13 +5,12 @@
 #include <Metal/Metal.h>
 #endif
 
-union Storage {
+struct Storage {
 #ifdef __OBJC__
   id<MTLBuffer> metal;
 #endif
   void *cpu;
   Storage() {};
-  ~Storage() {};
   void clear() {
 #ifdef __OBJC__
     if (metal) {
@@ -22,5 +21,11 @@ union Storage {
     if (cpu) {
       cpu = nullptr;
     }
+  }
+
+  ~Storage() {
+#ifdef __OBJC__
+    NSLog(@"Releasing buffer: %@", metal.label);
+#endif
   }
 };
