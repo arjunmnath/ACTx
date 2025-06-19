@@ -5,8 +5,8 @@ kernel void logical_e(device float *A [[buffer(0)]],
                       device float *B [[buffer(1)]],
                       device float *C [[buffer(2)]],
                       uint tid [[thread_position_in_grid]]) {
-    float epsilon = 1e-5;
-    C[tid] = fabs(A[tid] - B[tid]) < epsilon ? 1.0 : 0.0;
+  float epsilon = 1e-5;
+  C[tid] = fabs(A[tid] - B[tid]) < epsilon ? 1.0 : 0.0;
 }
 
 kernel void logical_ne(device float *A [[buffer(0)]],
@@ -15,8 +15,8 @@ kernel void logical_ne(device float *A [[buffer(0)]],
                        uint tid [[thread_position_in_grid]]) {
 
   C[tid] = A[tid] != B[tid];
-    float epsilon = 1e-5;
-    C[tid] = fabs(A[tid] - B[tid]) > epsilon ? 1.0 : 0.0;
+  float epsilon = 1e-5;
+  C[tid] = fabs(A[tid] - B[tid]) > epsilon ? 1.0 : 0.0;
 }
 
 kernel void logical_gt(device float *A [[buffer(0)]],

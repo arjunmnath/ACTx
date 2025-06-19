@@ -95,8 +95,8 @@ kernel void __matmul__(device float *A [[buffer(0)]],
 }
 
 kernel void __neg__(device float *A [[buffer(0)]],
-                     constant uint2 &meta [[buffer(1)]],
-                     uint tid [[thread_position_in_grid]]) {
+                    constant uint2 &meta [[buffer(1)]],
+                    uint tid [[thread_position_in_grid]]) {
 
   A[tid] = A[tid] * -1.0f;
 }
@@ -144,6 +144,3 @@ kernel void tensor_matrix_multiply(
   C[global_output_index] = result;
 }
 */
-
-
-
