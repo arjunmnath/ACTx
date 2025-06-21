@@ -7,24 +7,15 @@
 
 bool Memory::does_live_on(DeviceType type) { return this->device == type; }
 
-void Memory::copy(std::shared_ptr<Memory> src, std::shared_ptr<Memory> dest) {
+void Memory::copy(Memory *src, Memory *dest) {
   id<MTLBuffer> buffer = src->storage->metal;
   id<MTLBuffer> bufferout = dest->storage->metal;
-  NSLog(@"dest Buffer length: %lu", buffer.length);
-  NSLog(@"dest Buffer: %@", buffer);
-  void *destin = buffer.contents;
-  NSLog(@"dest cBuffer contents pointer: %p", destin);
-  NSLog(@"src Buffer length: %lu", buffer.length);
-  NSLog(@"src Buffer: %@", buffer);
-  void *source = buffer.contents;
-  NSLog(@"src Buffer contents pointer: %p", source);
+
   assert(src->size <= dest->size);
   // NOTE: add more methods
-  /* if (src->device == DeviceType::MPS && dest->device == DeviceType::MPS) { */
-  /*   memcpy([dest->storage->metal contents], [src->storage->metal contents],
-   */
-  /*          src -> size); */
-  /* } */
+  if (src->device == DeviceType::MPS && dest->device == DeviceType::MPS) {
+    memcpy(dest->data_ptr, src->data_ptr, src->size);
+  }
 };
 void Memory::copy_from_vector(std::vector<type_variant> src,
                               std::shared_ptr<Memory> dest) {}
@@ -35,15 +26,16 @@ Memory::Memory(DeviceType type, size_t count, DType dtype) {
   this->size = count;
   this->dtype = dtype;
   switch (type) {
-  case DeviceType::MPS:
+  case DeviceType::MPS: {
 #ifdef __APPLE__
-    this->storage = std::make_unique<Storage>();
-    this->storage->metal = mps->createEmptyBuffer(count, dtype);
-    this->data_ptr = (void *)[this->storage->metal contents];
+    this->storage = new Storage;
+    mps->createEmptyBuffer(count, dtype, this->storage);
+    this->data_ptr = [this->storage->metal contents];
 #else
     throw std::runtime_error("Metal Not available");
-#endif // __APPLE__
+#endif
     break;
+  }
   case DeviceType::CPU:
     break;
   case DeviceType::WEBGPU:

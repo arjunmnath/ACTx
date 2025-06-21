@@ -40,8 +40,8 @@ include_directories("${CMAKE_SOURCE_DIR}/actx/include")
 file(GLOB_RECURSE OBJCXX_HEADERS "${CMAKE_SOURCE_DIR}/actx/include/mps.h"
      "${CMAKE_SOURCE_DIR}/actx/include/memory.h"
      "${CMAKE_SOURCE_DIR}/actx/include/storage.h")
-set_source_files_properties(${OBJCXX_HEADERS} PROPERTIES COMPILE_FLAGS
-                                                         "-x objective-c++")
+set_source_files_properties(
+  ${OBJCXX_HEADERS} PROPERTIES COMPILE_FLAGS "-x objective-c++ -fno-objc-arc")
 
 # Directories
 set(METAL_SOURCE_DIR "${CMAKE_SOURCE_DIR}/actx/src/kernels")
@@ -143,7 +143,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
             -g
             -O0
             -ObjC++
-            -fobjc-arc
+            # -fobjc-arc
+            -fno-objc-arc
             -fsanitize=address
             -Wno-unused-command-line-argument)
 
@@ -194,13 +195,13 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
                SUFFIX ".so"
                LINK_FLAGS "-bundle -undefined dynamic_lookup")
   target_compile_definitions(extension PRIVATE RELEASE_BUILD NDEBUG)
-  target_compile_options(extension PRIVATE -O3 -ObjC++ -fobjc-arc)
+  target_compile_options(extension PRIVATE -O3 -ObjC++) # -fobjc-arc)
 
   add_library(core-actx SHARED ${COMMAN_SOURCES})
   set_target_properties(core-actx PROPERTIES PREFIX "" SUFFIX ".so")
   target_link_libraries(core-actx PRIVATE ${COMMON_LIBRARIES})
-  target_compile_options(core-actx PRIVATE -DRELEASE_BUILD -O3 -DNDEBUG -ObjC++
-                                           -fobjc-arc)
+  target_compile_options(core-actx PRIVATE -DRELEASE_BUILD -O3 -DNDEBUG -ObjC++)
+  # -fobjc-arc)
   install(TARGETS extension LIBRARY DESTINATION actx)
   install(FILES ${CMAKE_CURRENT_BINARY_DIR}/kernels.metallib DESTINATION actx)
 endif()

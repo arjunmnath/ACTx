@@ -151,8 +151,8 @@ Tensor::Tensor(std::vector<int> dims, DType dtype, bool requires_grad,
   }
 }
 
-Tensor::Tensor(std::shared_ptr<Memory> memory, std::vector<int> dims,
-               DType dtype, bool requires_grad, DeviceType device) {
+Tensor::Tensor(Memory *memory, std::vector<int> dims, DType dtype,
+               bool requires_grad, DeviceType device) {
   this->dims = dims;
   this->memory = memory;
   this->dtype = dtype;
@@ -329,7 +329,7 @@ Tensor *Tensor::execute_broadcastable_operation(OPType op, Tensor *other,
     return this;
   }
   auto result_shape = compute_broadcast_shape(this, other);
-  std::shared_ptr<Memory> result_memory = pool->request_memory(
+  Memory *result_memory = pool->request_memory(
       this->device,
       std::accumulate(result_shape.begin(), result_shape.end(), 1,
                       std::multiplies<int>()),
@@ -344,7 +344,7 @@ Tensor *Tensor::execute_broadcastable_operation(OPType op, Tensor *other,
 Tensor *Tensor::execute_init_operation(OPType op, std::vector<int> shape,
                                        DType dtype, bool requires_grad,
                                        DeviceType device) {
-  std::shared_ptr<Memory> result_memory = pool->request_memory(
+  Memory *result_memory = pool->request_memory(
       device,
       std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>()) *
           getDTypeSize(dtype),
@@ -359,7 +359,7 @@ Tensor *Tensor::execute_binary_operation(OPType op, Tensor *other) {
   if (this->requires_grad || other->requires_grad) {
     this->requires_grad = other->requires_grad = true;
   }
-  std::shared_ptr<Memory> result_memory =
+  Memory *result_memory =
       pool->request_memory(this->device,
                            std::accumulate(this->dims.begin(), this->dims.end(),
                                            1, std::multiplies<int>()),
@@ -587,7 +587,7 @@ Tensor *Tensor::full(std::vector<int> shape, float n, DType dtype,
                      bool requires_grad, DeviceType device) {
   std::vector<float> val = {n};
   Tensor *other = new Tensor(val, {1});
-  std::shared_ptr<Memory> result_memory = pool->request_memory(
+  Memory *result_memory = pool->request_memory(
       device,
       std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>()),
       dtype);
@@ -598,9 +598,12 @@ Tensor *Tensor::full(std::vector<int> shape, float n, DType dtype,
   return result;
 }
 Tensor *Tensor::clone(Tensor *other) {
-  std::shared_ptr<Memory> new_buffer =
+  // NSLog(@"Buffer retain count: %ld",
+  //       CFGetRetainCount((__bridge CFTypeRef)other->memory->storage->metal));
+  Memory *new_buffer =
       pool->request_memory(other->device, other->memory->size, other->dtype);
   Memory::copy(other->memory, new_buffer);
+    
   Tensor *cloned = new Tensor(new_buffer, other->dims, other->dtype,
                               other->requires_grad, other->device);
   return cloned;

@@ -57,9 +57,8 @@ MPS::MPS() {
   NSString *metallibPath =
       [moduleDir stringByAppendingPathComponent:@"kernels.metallib"];
   NSData *libraryData = [NSData dataWithContentsOfFile:metallibPath];
-  if (!libraryData) {
+  if (!libraryData)
     NSLog(@"Error: Failed to load .metallib file");
-  }
   dispatch_data_t dispatchData = dispatch_data_create(
       [libraryData bytes], [libraryData length], NULL, NULL);
   this->library = [device newLibraryWithData:dispatchData error:&error];
@@ -69,16 +68,26 @@ MPS::MPS() {
     exit(1);
   }
   this->commandQueue = [device newCommandQueue];
+  MTLHeapDescriptor *heapDesc = [[MTLHeapDescriptor alloc] init];
+  heapDesc.storageMode =
+      MTLStorageModeShared; // or .Private for GPU-only access
+  heapDesc.size =
+      4096 * 10; // total heap size in bytes (align to resource size)
+  heapDesc.cpuCacheMode = MTLCPUCacheModeDefaultCache;
+  heapDesc.type = MTLHeapTypeAutomatic;
+  this->heap = [device newHeapWithDescriptor:heapDesc];
   if (!this->commandQueue) {
     std::cerr << "command queue creation failed" << std::endl;
     exit(1);
   }
 }
+
 std::pair<size_t, size_t> MPS::compute_threads(size_t N, size_t maxTPG) {
   uint32_t TPG = (N < maxTPG) ? N : maxTPG;
   uint32_t TGs = static_cast<uint32_t>(std::ceil(static_cast<float>(N) / TPG));
   return {TPG, TGs};
 }
+
 void MPS::_init_pipeline(std::string metal_function_name) {
   NSError *error = nil;
   id<MTLFunction> function = [this->library
@@ -198,10 +207,10 @@ void MPS::execute_kernel_binary(std::string func, id<MTLBuffer> A,
   [commandBuffer waitUntilCompleted];
 }
 
-void MPS::execute_kernel_binary_with_broadcast(
-    std::string func, id<MTLBuffer> A, id<MTLBuffer> B, id<MTLBuffer> result,
-    id<MTLBuffer> ashape, id<MTLBuffer> bshape, id<MTLBuffer> target,
-    id<MTLBuffer> ranks, int N) {
+void MPS::execute_kernel_binary_with_broadcast(std::string func,
+                                               id<MTLBuffer> A, id<MTLBuffer> B,
+                                               id<MTLBuffer> result,
+                                               id<MTLBuffer> metadata, int N) {
   std::string metal_function_name = func;
   if (!pipelines[metal_function_name]) {
     this->_init_pipeline(metal_function_name);
@@ -225,10 +234,7 @@ void MPS::execute_kernel_binary_with_broadcast(
   [computeEncoder setBuffer:A offset:0 atIndex:0];
   [computeEncoder setBuffer:B offset:0 atIndex:1];
   [computeEncoder setBuffer:result offset:0 atIndex:2];
-  [computeEncoder setBuffer:ashape offset:0 atIndex:3];
-  [computeEncoder setBuffer:bshape offset:0 atIndex:4];
-  [computeEncoder setBuffer:target offset:0 atIndex:5];
-  [computeEncoder setBuffer:ranks offset:0 atIndex:6];
+  [computeEncoder setBuffer:metadata offset:0 atIndex:3];
 
   size_t threadsPerThreadgroup = pipelineState.threadExecutionWidth;
   size_t threadgroups =
@@ -241,24 +247,20 @@ void MPS::execute_kernel_binary_with_broadcast(
   [commandBuffer commit];
   [commandBuffer waitUntilCompleted];
 }
-id<MTLBuffer> MPS::createEmptyBuffer(int size, DType type) {
+void MPS::createEmptyBuffer(int size, DType type, Storage *storage) {
   static int val = 0;
   if (size <= 0) {
     throw std::runtime_error("invalid buffer size");
   }
-  id<MTLBuffer> buffer =
-      [this->device newBufferWithLength:size * getDTypeSize(type)
-                                options:MTLResourceStorageModeShared];
-  if (!buffer) {
+  storage->metal =
+      [this->heap newBufferWithLength:size * getDTypeSize(type)
+                              options:MTLResourceStorageModeShared];
+  if (!storage->metal) {
     throw std::runtime_error("Failed to allocate MTLBuffer");
   }
-  buffer.label = [NSString stringWithFormat:@"buffer_%d", val];
-  val++;
-  /* NSLog(@"Retain: %@", buffer); */
-  /* CFRetain((__bridge CFTypeRef)buffer); */
-  /* NSLog(@"Release: %@", buffer); */
-  /* CFRelease((__bridge CFTypeRef)buffer); */
-  return buffer;
+  /* NSLog(@"Buffer %@: %p, contents: %p, heap used: %lu", storage->metal.label,
+   */
+  /*       storage->metal, storage->metal.contents, this->heap.usedSize); */
 }
 
 id<MTLBuffer> MPS::clone(id<MTLBuffer> buffer) {
@@ -285,30 +287,19 @@ void MPS::initiate_dispatch_broadcastable(std::string kernel_method,
       result->device != DeviceType::MPS) {
     throw std::runtime_error("All the tensor must live in Metal Buffers");
   }
-  auto result_shape = compute_broadcast_shape(a, b);
-  std::shared_ptr<Memory> ashape =
-      pool->request_memory(DeviceType::MPS, a->dims.size(), DType::int32);
-  this->copy_vector_to_buffer((void *)a->dims.data(), *ashape,
-                              a->dims.size() * getDTypeSize(DType::int32));
-
-  std::shared_ptr<Memory> bshape =
-      pool->request_memory(DeviceType::MPS, b->dims.size(), DType::int32);
-  this->copy_vector_to_buffer((void *)b->dims.data(), *bshape,
-                              b->dims.size() * getDTypeSize(DType::int32));
-
-  std::shared_ptr<Memory> result_shape_memory =
-      pool->request_memory(DeviceType::MPS, result_shape.size(), DType::int32);
-  this->copy_vector_to_buffer((void *)result_shape.data(), *result_shape_memory,
-                              result_shape.size() * getDTypeSize(DType::int32));
-
-  std::vector<int> _ranks = {static_cast<int>(a->dims.size()),
-                             static_cast<int>(b->dims.size()),
-                             static_cast<int>(result_shape.size())};
-
-  std::shared_ptr<Memory> ranks =
-      pool->request_memory(DeviceType::MPS, _ranks.size(), DType::int32);
-  this->copy_vector_to_buffer((void *)_ranks.data(), *ranks,
-                              _ranks.size() * getDTypeSize(DType::int32));
+  std::vector<int> _ranks = {
+      (int)result->size, static_cast<int>(a->dims.size()),
+      static_cast<int>(b->dims.size()), static_cast<int>(result->dims.size())};
+  std::vector<int> meta_data;
+  meta_data.reserve(a->dims.size() + b->dims.size() + result->dims.size() + 4);
+  meta_data.insert(meta_data.end(), _ranks.begin(), _ranks.end());
+  meta_data.insert(meta_data.end(), a->dims.begin(), a->dims.end());
+  meta_data.insert(meta_data.end(), b->dims.begin(), b->dims.end());
+  meta_data.insert(meta_data.end(), result->dims.begin(), result->dims.end());
+  Memory *meta_data_memory =
+      pool->request_memory(DeviceType::MPS, meta_data.size(), DType::int32);
+  this->copy_vector_to_buffer((void *)meta_data.data(), *meta_data_memory,
+                              meta_data.size() * getDTypeSize(DType::int32));
   /*
     print_buffer<float>(a->memory->storage->metal, a->dtype, "A: ");
     print_buffer<float>(b->memory->storage->metal, b->dtype, "B: ");
@@ -322,19 +313,13 @@ void MPS::initiate_dispatch_broadcastable(std::string kernel_method,
   this->execute_kernel_binary_with_broadcast(
       kernel_method, a->memory->storage->metal, b->memory->storage->metal,
       result->memory->storage->metal,
-      *reinterpret_cast<id<MTLBuffer> __strong *>(&ashape->storage->metal),
-      *reinterpret_cast<id<MTLBuffer> __strong *>(&bshape->storage->metal),
       *reinterpret_cast<id<MTLBuffer> __strong *>(
-          &result_shape_memory->storage->metal),
-      *reinterpret_cast<id<MTLBuffer> __strong *>(&ranks->storage->metal),
+          &meta_data_memory->storage->metal),
       result->size);
   // print_buffer<float>(result->memory->storage->metal, result->dtype, "Result:
   // ");
 
-  pool->return_memory(ashape);
-  pool->return_memory(bshape);
-  pool->return_memory(result_shape_memory);
-  pool->return_memory(ranks);
+  pool->return_memory(meta_data_memory);
 }
 
 void MPS::initiate_dispatch_comparison(std::string kernel_method,
@@ -345,7 +330,7 @@ void MPS::initiate_dispatch_comparison(std::string kernel_method,
       result->device != DeviceType::MPS) {
     throw std::runtime_error("All the tensor must live in Metal Buffers");
   }
-  std::shared_ptr<Memory> meta =
+  Memory *meta =
       pool->request_memory(DeviceType::MPS, a->dims.size(), DType::int32);
   this->copy_vector_to_buffer((void *)a->dims.data(), *meta,
                               a->dims.size() * getDTypeSize(DType::int32));
@@ -359,8 +344,7 @@ void MPS::initiate_dispatch_comparison(std::string kernel_method,
 }
 
 void MPS::initiate_dispatch_init(std::string kernel_method, Tensor *a) {
-  std::shared_ptr<Memory> meta_memory =
-      pool->request_memory(DeviceType::MPS, 1, DType::int32);
+  Memory *meta_memory = pool->request_memory(DeviceType::MPS, 1, DType::int32);
   this->copy_vector_to_buffer((void *)a->dims.data(), *meta_memory,
                               a->dims.size() * getDTypeSize(DType::int32));
   this->execute_kernel_init(kernel_method, a->memory->storage->metal,
@@ -396,7 +380,7 @@ void MPS::pow(const Tensor *a, const Tensor *b, Tensor *result) {
       result->device != DeviceType::MPS) {
     throw std::runtime_error("All the tensor must live in Metal Buffers");
   }
-  std::shared_ptr<Memory> meta =
+  Memory *meta =
       pool->request_memory(DeviceType::MPS, a->dims.size(), DType::int32);
   this->copy_vector_to_buffer((void *)a->dims.data(), *meta,
                               a->dims.size() * getDTypeSize(DType::int32));
@@ -420,7 +404,7 @@ void MPS::full(Tensor *n, Tensor *result) {
   if (n->device != DeviceType::MPS || result->device != DeviceType::MPS) {
     throw std::runtime_error("All the tensor must live in Metal Buffers");
   }
-  std::shared_ptr<Memory> meta =
+  Memory *meta =
       pool->request_memory(DeviceType::MPS, result->dims.size(), DType::int32);
   this->copy_vector_to_buffer((void *)result->dims.data(), *meta,
                               result->dims.size() * getDTypeSize(DType::int32));

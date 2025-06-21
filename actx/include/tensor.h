@@ -51,14 +51,13 @@ public:
   DType dtype;
   size_t size;
   DeviceType device;
-  std::shared_ptr<Memory> memory;
+  Memory *memory;
 
   // TODO: change default devicetype to cpu
   Tensor(std::vector<int> dims, DType dtype = DType::float32,
          bool requires_grad = false, DeviceType device = DeviceType::MPS);
-  Tensor(std::shared_ptr<Memory> memory, std::vector<int> dims,
-         DType dtype = DType::float32, bool requires_grad = false,
-         DeviceType device = DeviceType::MPS);
+  Tensor(Memory *memory, std::vector<int> dims, DType dtype = DType::float32,
+         bool requires_grad = false, DeviceType device = DeviceType::MPS);
 
   Tensor(std::vector<float> &values, std::vector<int> dims,
          DType dtype = DType::float32, bool requires_grad = false,
