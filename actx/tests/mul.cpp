@@ -22,8 +22,7 @@ TEST(TensorMultiplication, Negation) {
   std::vector<float> data2 = {2, 3, 4, 5};
   std::vector<int> shape = {2, 2};
   Tensor *tensor2 = new Tensor(data2, shape);
-
-  Tensor *result = tensor2->negate();
+  Tensor *result = tensor2->negate(true);
   std::vector<float> expected_data = {-2, -3, -4, -5};
   Tensor *expected = new Tensor(expected_data, shape);
   EXPECT_TRUE(result->logical_e(expected)->all()) << "Tensor Negation failed";

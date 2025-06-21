@@ -419,18 +419,25 @@ void Tensor::backward() {
     if ((*it)->type == OPType::NO_OP)
       continue;
     (*it)->op->backward(*it);
-    for (auto x : (*it)->outputs) {
-      x->print();
-    }
+    // for (auto x : (*it)->outputs) {
+    //   x->print();
+    // }
   }
 }
 
 // ================================================================================================================================
 // Arithemetic
 // ================================================================================================================================
-Tensor *Tensor::negate() {
-  dispatcher->call(OPType::NEGATE, this->device, {this});
-  return this;
+Tensor *Tensor::negate(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::NEGATE, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::NEGATE, this->device, {this, result});
+    return result;
+  }
 }
 Tensor *Tensor::add(Tensor *other, bool inplace) {
   return execute_broadcastable_operation(OPType::ADD, other, inplace);

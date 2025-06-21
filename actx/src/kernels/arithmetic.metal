@@ -7,13 +7,14 @@ kernel void __add__(device const float *A [[buffer(0)]],
                     device float *C [[buffer(2)]],
                     constant int *metadata [[buffer(3)]],
                     uint tid [[thread_position_in_grid]]) {
-  int total_elements = metadata[0];
-  if ((int)tid >= total_elements)
+
+  if ((int)tid >= metadata[0])
     return;
+
   int arank = metadata[1];
   int brank = metadata[2];
   int rrank = metadata[3];
-  const constant int *ashape = metadata + 3;
+  const constant int *ashape = metadata + 4;
   const constant int *bshape = ashape + arank;
   const constant int *result_shape = bshape + brank;
 
@@ -27,13 +28,12 @@ kernel void __sub__(device const float *A [[buffer(0)]],
                     device float *C [[buffer(2)]],
                     constant int *metadata [[buffer(3)]],
                     uint tid [[thread_position_in_grid]]) {
-  int total_elements = metadata[0];
-  if ((int)tid >= total_elements)
+  if ((int)tid >= metadata[0])
     return;
   int arank = metadata[1];
   int brank = metadata[2];
   int rrank = metadata[3];
-  const constant int *ashape = metadata + 3;
+  const constant int *ashape = metadata + 4;
   const constant int *bshape = ashape + arank;
   const constant int *result_shape = bshape + brank;
 
@@ -46,13 +46,12 @@ kernel void __div__(device const float *A [[buffer(0)]],
                     device float *C [[buffer(2)]],
                     constant int *metadata [[buffer(3)]],
                     uint tid [[thread_position_in_grid]]) {
-  int total_elements = metadata[0];
-  if ((int)tid >= total_elements)
+  if ((int)tid >= metadata[0])
     return;
   int arank = metadata[1];
   int brank = metadata[2];
   int rrank = metadata[3];
-  const constant int *ashape = metadata + 3;
+  const constant int *ashape = metadata + 4;
   const constant int *bshape = ashape + arank;
   const constant int *result_shape = bshape + brank;
 
@@ -66,13 +65,12 @@ kernel void __mul__(device const float *A [[buffer(0)]],
                     device float *C [[buffer(2)]],
                     constant int *metadata [[buffer(3)]],
                     uint tid [[thread_position_in_grid]]) {
-  int total_elements = metadata[0];
-  if ((int)tid >= total_elements)
+  if ((int)tid >= metadata[0])
     return;
   int arank = metadata[1];
   int brank = metadata[2];
   int rrank = metadata[3];
-  const constant int *ashape = metadata + 3;
+  const constant int *ashape = metadata + 4;
   const constant int *bshape = ashape + arank;
   const constant int *result_shape = bshape + brank;
 
@@ -101,11 +99,14 @@ kernel void __matmul__(device float *A [[buffer(0)]],
   C[flat_index] = A[lindex] * B[rindex];
 }
 
-kernel void __neg__(device float *A [[buffer(0)]],
-                    constant uint2 &meta [[buffer(1)]],
+kernel void __neg__(device float *input [[buffer(0)]],
+                    device float *output [[buffer(1)]],
+                    constant int *metadata [[buffer(2)]],
                     uint tid [[thread_position_in_grid]]) {
 
-  A[tid] = A[tid] * -1.0f;
+  if ((int)tid >= metadata[0])
+    return;
+  output[tid] = input[tid] * -1.0f;
 }
 
 /*

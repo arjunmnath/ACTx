@@ -39,7 +39,6 @@ TEST(TensorAutodiff, SubBackwardWorks) {
   EXPECT_TRUE(x->grad->logical_e(ones)->all()) << "x grad incorrect";
   EXPECT_TRUE(y->grad->logical_e(neg_ones)->all()) << "y grad incorrect";
 }
-/*
 // ---- MUL ----
 TEST(TensorAutodiff, MulBackwardWorks) {
   std::vector<float> x_data = {1.0, 2.0, 3.0, 4.0};
@@ -55,12 +54,9 @@ TEST(TensorAutodiff, MulBackwardWorks) {
   Tensor *expected_x_grad = new Tensor(y_data, shape);
   Tensor *expected_y_grad = new Tensor(x_data, shape);
 
-  EXPECT_TRUE(x->grad_tensor->logical_e(expected_x_grad)->all())
-      << "x grad incorrect";
-  EXPECT_TRUE(y->grad_tensor->logical_e(expected_y_grad)->all())
-      << "y grad incorrect";
+  EXPECT_TRUE(x->grad->logical_e(expected_x_grad)->all()) << "x grad incorrect";
+  EXPECT_TRUE(y->grad->logical_e(expected_y_grad)->all()) << "y grad incorrect";
 }
-
 // ---- DIV ----
 TEST(TensorAutodiff, DivBackwardWorks) {
   std::vector<float> x_data = {8.0, 18.0, 32.0, 50.0};
@@ -79,9 +75,6 @@ TEST(TensorAutodiff, DivBackwardWorks) {
   Tensor *expected_dx = new Tensor(dx_data, shape);
   Tensor *expected_dy = new Tensor(dy_data, shape);
 
-  EXPECT_TRUE(x->grad_tensor->logical_e(expected_dx)->all())
-      << "x grad incorrect";
-  EXPECT_TRUE(y->grad_tensor->logical_e(expected_dy)->all())
-      << "y grad incorrect";
+  EXPECT_TRUE(x->grad->logical_e(expected_dx)->all()) << "x grad incorrect";
+  EXPECT_TRUE(y->grad->logical_e(expected_dy)->all()) << "y grad incorrect";
 }
-*/

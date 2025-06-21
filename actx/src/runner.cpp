@@ -25,45 +25,25 @@ int main() {
   // Tensor *t8 = new Tensor(vals4, dims);
   // Tensor *t9 = t7->div(t8, false); // t9 = t7 / t8
   // t9->backward();
-  //
 
-  Tensor *a = make_tensor({10.0f, 20.0f});
-  Tensor *b = make_tensor({2.0f, 5.0f});
-  Tensor *result = make_tensor({0.0f, 0.0f});
-  a->print();
-  b->print();
-  result->print();
-  dispatcher->call(OPType::DIV, DeviceType::MPS, {a, b, result});
+  std::vector<float> x_data = {8.0, 18.0, 32.0, 50.0};
+  std::vector<float> y_data = {2.0, 3.0, 4.0, 5.0};
+  std::vector<int> shape = {2, 2};
 
-  // Tensor *a = Tensor::eye(5);
-  // Tensor *b = Tensor::clone(a);
-  // Tensor *c = Tensor::ones(std::vector<int>{5, 5});
-  // Tensor *d = Tensor::full(std::vector<int>{5, 5}, -1.0f);
-  // a->add(c, true);
-  // a->sub(c, true);
-  // a->print();
-  // b->print();
-  //
-  // Memory *a = pool->request_memory(DeviceType::MPS, 512, DType::float32);
-  // a->storage->metal.label = [NSString stringWithUTF8String:"a"];
-  // Memory *b = pool->request_memory(DeviceType::MPS, 512, DType::float32);
-  // Memory::copy(a, b);
-  // std::vector<float> x_data = {10.0, 20.0, 30.0, 40.0};
-  // std::vector<float> y_data = {1.0, 2.0, 3.0, 4.0};
-  // std::vector<int> shape = {2, 2};
-  //
-  // Tensor *x = new Tensor(x_data, shape, DType::float32, true,
-  // DeviceType::MPS); Tensor *y = new Tensor(y_data, shape, DType::float32,
-  // true, DeviceType::MPS);
-  //
-  // Tensor *z = x->sub(y, false);
-  // z->backward();
-  // Tensor *neg_ones = Tensor::full(shape, -1.0f);
-  // x->grad->print();
-  // y->grad->print();
-  //
-  // EXPECT_TRUE(x->grad->logical_e(ones)->all()) << "x grad incorrect";
-  // EXPECT_TRUE(y->grad->logical_e(neg_ones)->all()) << "y grad incorrect";
-  //
+  Tensor *x = new Tensor(x_data, shape, DType::float32, true, DeviceType::MPS);
+  Tensor *y = new Tensor(y_data, shape, DType::float32, true, DeviceType::MPS);
+
+  Tensor *z = x->div(y, false);
+  z->backward();
+
+  std::vector<float> dx_data = {1.0f / 2, 1.0f / 3, 1.0f / 4, 1.0f / 5};
+  std::vector<float> dy_data = {-8.0f / (2 * 2), -18.0f / (3 * 3),
+                                -32.0f / (4 * 4), -50.0f / (5 * 5)};
+  Tensor *expected_dx = new Tensor(dx_data, shape);
+  Tensor *expected_dy = new Tensor(dy_data, shape);
+
+  y->grad->print();
+  expected_dy->print();
+  y->grad->logical_e(expected_dy)->print();
   return 0;
 }
