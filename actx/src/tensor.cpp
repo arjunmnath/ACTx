@@ -603,7 +603,7 @@ Tensor *Tensor::clone(Tensor *other) {
   Memory *new_buffer =
       pool->request_memory(other->device, other->memory->size, other->dtype);
   Memory::copy(other->memory, new_buffer);
-    
+
   Tensor *cloned = new Tensor(new_buffer, other->dims, other->dtype,
                               other->requires_grad, other->device);
   return cloned;

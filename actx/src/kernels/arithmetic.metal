@@ -2,80 +2,84 @@
 #include <metal_stdlib>
 using namespace metal;
 
-kernel void
-__add__(device const float *A [[buffer(0)]],
-        device const float *B [[buffer(1)]], device float *C [[buffer(2)]],
-        constant int *metadata [[buffer(3)]],        uint tid [[thread_position_in_grid]]) {
-    int total_elements = metadata[0];
-    if ((int)tid >= total_elements) return;
+kernel void __add__(device const float *A [[buffer(0)]],
+                    device const float *B [[buffer(1)]],
+                    device float *C [[buffer(2)]],
+                    constant int *metadata [[buffer(3)]],
+                    uint tid [[thread_position_in_grid]]) {
+  int total_elements = metadata[0];
+  if ((int)tid >= total_elements)
+    return;
   int arank = metadata[1];
   int brank = metadata[2];
   int rrank = metadata[3];
-    const constant int*ashape = metadata + 3;
-    const constant int*bshape = ashape + arank;
-    const constant int*result_shape = bshape + brank;
-    
+  const constant int *ashape = metadata + 3;
+  const constant int *bshape = ashape + arank;
+  const constant int *result_shape = bshape + brank;
+
   int ai = compute_broadcast_index(tid, ashape, result_shape, arank, rrank);
   int bi = compute_broadcast_index(tid, bshape, result_shape, brank, rrank);
   C[tid] = A[ai] + B[bi];
 }
 
-
-kernel void
-__sub__(device const float *A [[buffer(0)]],
-        device const float *B [[buffer(1)]], device float *C [[buffer(2)]],
-        constant int *metadata [[buffer(3)]],        uint tid [[thread_position_in_grid]]) {
-    int total_elements = metadata[0];
-    if ((int)tid >= total_elements) return;
+kernel void __sub__(device const float *A [[buffer(0)]],
+                    device const float *B [[buffer(1)]],
+                    device float *C [[buffer(2)]],
+                    constant int *metadata [[buffer(3)]],
+                    uint tid [[thread_position_in_grid]]) {
+  int total_elements = metadata[0];
+  if ((int)tid >= total_elements)
+    return;
   int arank = metadata[1];
   int brank = metadata[2];
   int rrank = metadata[3];
-    const constant int*ashape = metadata + 3;
-    const constant int*bshape = ashape + arank;
-    const constant int*result_shape = bshape + brank;
-    
+  const constant int *ashape = metadata + 3;
+  const constant int *bshape = ashape + arank;
+  const constant int *result_shape = bshape + brank;
+
   int ai = compute_broadcast_index(tid, ashape, result_shape, arank, rrank);
   int bi = compute_broadcast_index(tid, bshape, result_shape, brank, rrank);
   C[tid] = A[ai] - B[bi];
 }
-kernel void
-__div__(device const float *A [[buffer(0)]],
-        device const float *B [[buffer(1)]], device float *C [[buffer(2)]],
-        constant int *metadata [[buffer(3)]],        uint tid [[thread_position_in_grid]]) {
-    int total_elements = metadata[0];
-    if ((int)tid >= total_elements) return;
+kernel void __div__(device const float *A [[buffer(0)]],
+                    device const float *B [[buffer(1)]],
+                    device float *C [[buffer(2)]],
+                    constant int *metadata [[buffer(3)]],
+                    uint tid [[thread_position_in_grid]]) {
+  int total_elements = metadata[0];
+  if ((int)tid >= total_elements)
+    return;
   int arank = metadata[1];
   int brank = metadata[2];
   int rrank = metadata[3];
-    const constant int*ashape = metadata + 3;
-    const constant int*bshape = ashape + arank;
-    const constant int*result_shape = bshape + brank;
-    
+  const constant int *ashape = metadata + 3;
+  const constant int *bshape = ashape + arank;
+  const constant int *result_shape = bshape + brank;
+
   int ai = compute_broadcast_index(tid, ashape, result_shape, arank, rrank);
   int bi = compute_broadcast_index(tid, bshape, result_shape, brank, rrank);
   C[tid] = A[ai] / B[bi];
 }
 
-kernel void
-__mul__(device const float *A [[buffer(0)]],
-        device const float *B [[buffer(1)]], device float *C [[buffer(2)]],
-        constant int *metadata [[buffer(3)]],        uint tid [[thread_position_in_grid]]) {
-    int total_elements = metadata[0];
-    if ((int)tid >= total_elements) return;
+kernel void __mul__(device const float *A [[buffer(0)]],
+                    device const float *B [[buffer(1)]],
+                    device float *C [[buffer(2)]],
+                    constant int *metadata [[buffer(3)]],
+                    uint tid [[thread_position_in_grid]]) {
+  int total_elements = metadata[0];
+  if ((int)tid >= total_elements)
+    return;
   int arank = metadata[1];
   int brank = metadata[2];
   int rrank = metadata[3];
-    const constant int*ashape = metadata + 3;
-    const constant int*bshape = ashape + arank;
-    const constant int*result_shape = bshape + brank;
-    
+  const constant int *ashape = metadata + 3;
+  const constant int *bshape = ashape + arank;
+  const constant int *result_shape = bshape + brank;
+
   int ai = compute_broadcast_index(tid, ashape, result_shape, arank, rrank);
   int bi = compute_broadcast_index(tid, bshape, result_shape, brank, rrank);
-  C[tid] = A[ai] *  B[bi];
+  C[tid] = A[ai] * B[bi];
 }
-
-
-
 
 // FIX: matmul algorithm to match n dimensional tensors
 kernel void __matmul__(device float *A [[buffer(0)]],
