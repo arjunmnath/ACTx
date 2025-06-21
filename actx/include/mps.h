@@ -1,6 +1,7 @@
 #pragma once
 
 #include "device.h"
+#include "storage.h"
 #include "types.h"
 #include <string>
 #include <sys/types.h>
@@ -15,6 +16,8 @@ private:
   id<MTLDevice> device;
   id<MTLLibrary> library;
   id<MTLCommandQueue> commandQueue;
+  id<MTLHeap> heap;
+
   std::unordered_map<std::string, id<MTLComputePipelineState>> pipelines;
   std::string name = "mps";
 
@@ -23,19 +26,14 @@ public:
   void _init_pipeline(std::string metal_function_name);
   void execute_kernel_binary(std::string func, id<MTLBuffer> A, id<MTLBuffer> B,
                              id<MTLBuffer> result, id<MTLBuffer> meta, int N);
-  void execute_kernel_binary_with_broadcast(
-      std::string func, id<MTLBuffer> A, id<MTLBuffer> B, id<MTLBuffer> result,
-      id<MTLBuffer> lshape, id<MTLBuffer> rshape, id<MTLBuffer> target,
-      id<MTLBuffer> ranks, int N);
-
-  void execute_kernel_unary_with_broadcast(
-      std::string func, id<MTLBuffer> A, id<MTLBuffer> B, id<MTLBuffer> result,
-      id<MTLBuffer> lshape, id<MTLBuffer> rshape, id<MTLBuffer> target,
-      id<MTLBuffer> ranks, int N);
-
+  void execute_kernel_binary_with_broadcast(std::string func, id<MTLBuffer> A,
+                                            id<MTLBuffer> B,
+                                            id<MTLBuffer> result,
+                                            id<MTLBuffer> metadata, int N);
   std::pair<size_t, size_t> compute_threads(size_t N, size_t maxTPG);
-  void execute_kernel_unary(std::string func, id<MTLBuffer> A,
-                            id<MTLBuffer> result, id<MTLBuffer> meta, int N);
+  void execute_kernel_unary(std::string func, id<MTLBuffer> input,
+                            id<MTLBuffer> output, id<MTLBuffer> metadata,
+                            int N);
 
   void execute_kernel_init(std::string func, id<MTLBuffer> A,
                            id<MTLBuffer> meta, int N);
@@ -48,14 +46,17 @@ public:
                                     const Tensor *b, Tensor *result);
   void initiate_dispatch_init(std::string kernel_method, Tensor *a);
 
+  void initiate_dispatch_unary(std::string kernel_method, const Tensor *input,
+                               Tensor *output);
   std::vector<id<MTLBuffer>> __dummy_data();
 
-  id<MTLBuffer> createEmptyBuffer(int size, DType type);
+  // id<MTLBuffer> createEmptyBuffer(int size, DType type);
+  void createEmptyBuffer(int size, DType type, Storage *storage);
   id<MTLBuffer> clone(id<MTLBuffer> buffer);
   void copy_vector_to_buffer(void *ptr, Memory &memory, int buffer_size);
 
   // arithmetic kernels
-  void negate(Tensor *a);
+  void negate(Tensor *input, Tensor *output);
   void add(const Tensor *a, const Tensor *b, Tensor *result) override;
   void sub(const Tensor *a, const Tensor *b, Tensor *result) override;
   void mul(const Tensor *a, const Tensor *b, Tensor *result) override;

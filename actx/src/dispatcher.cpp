@@ -43,10 +43,11 @@ void Dispatcher::call(OPType op, DeviceType device,
 
 void Dispatcher::init_register() {
   REGISTER_OP(NEGATE, MPS, ({
-                assert(inputs.size() == 1);
+                assert(inputs.size() == 2);
                 a = inputs[0];
+                b = inputs[1];
               }),
-              ({ mps->negate(a); }), {});
+              ({ mps->negate(a, b); }), {});
 
   REGISTER_OP(ADD, MPS, ({
                 assert(inputs.size() == 3);
@@ -84,7 +85,7 @@ void Dispatcher::init_register() {
                 b = node->inputs[1];
                 out = node->outputs[0];
                 a->grad = out->grad;
-                // b->grad = new Tensor(out->grad->negate());
+                b->grad = out->grad->negate(false);
               });
   REGISTER_OP(MUL, MPS, ({
                 assert(inputs.size() == 3);
@@ -123,8 +124,9 @@ void Dispatcher::init_register() {
                 b = node->inputs[1];
                 out = node->outputs[0];
                 a->grad = out->grad->div(b, false);
-                b->grad =
-                    a->div(b->pow(2.0f, false), false)->mul(out->grad, false);
+                b->grad = a->div(b->pow(2.0f, false), false)
+                              ->mul(out->grad, false)
+                              ->negate(false);
               }));
   REGISTER_OP(POW, MPS, ({
                 assert(inputs.size() == 3);
