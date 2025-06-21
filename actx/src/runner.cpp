@@ -25,25 +25,5 @@ int main() {
   // Tensor *t8 = new Tensor(vals4, dims);
   // Tensor *t9 = t7->div(t8, false); // t9 = t7 / t8
   // t9->backward();
-
-  std::vector<float> x_data = {8.0, 18.0, 32.0, 50.0};
-  std::vector<float> y_data = {2.0, 3.0, 4.0, 5.0};
-  std::vector<int> shape = {2, 2};
-
-  Tensor *x = new Tensor(x_data, shape, DType::float32, true, DeviceType::MPS);
-  Tensor *y = new Tensor(y_data, shape, DType::float32, true, DeviceType::MPS);
-
-  Tensor *z = x->div(y, false);
-  z->backward();
-
-  std::vector<float> dx_data = {1.0f / 2, 1.0f / 3, 1.0f / 4, 1.0f / 5};
-  std::vector<float> dy_data = {-8.0f / (2 * 2), -18.0f / (3 * 3),
-                                -32.0f / (4 * 4), -50.0f / (5 * 5)};
-  Tensor *expected_dx = new Tensor(dx_data, shape);
-  Tensor *expected_dy = new Tensor(dy_data, shape);
-
-  y->grad->print();
-  expected_dy->print();
-  y->grad->logical_e(expected_dy)->print();
   return 0;
 }

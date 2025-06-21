@@ -125,8 +125,6 @@ if(NOT CMAKE_BUILD_TYPE)
       CACHE STRING "Choose the build type" FORCE)
 endif()
 
-message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
-
 find_library(FOUNDATION_FRAMEWORK Foundation)
 find_library(METAL_FRAMEWORK Metal)
 if(NOT FOUNDATION_FRAMEWORK OR NOT METAL_FRAMEWORK)
@@ -143,8 +141,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
             -g
             -O0
             -ObjC++
-            # -fobjc-arc
-            -fno-objc-arc
+            -fobjc-arc
             -fsanitize=address
             -Wno-unused-command-line-argument)
 
@@ -158,7 +155,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Test")
   enable_testing()
   set(SOURCE_FILES ${COMMAN_SOURCES} ${TEST_SOURCES})
-  message(STATUS "Test build selected")
   message(STATUS "Test BUILD SOURCES: ${SOURCE_FILES}")
   add_executable(AllTests ${SOURCE_FILES})
   target_link_libraries(AllTests PRIVATE ${COMMON_LIBRARIES} gtest_main)
@@ -195,7 +191,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
                SUFFIX ".so"
                LINK_FLAGS "-bundle -undefined dynamic_lookup")
   target_compile_definitions(extension PRIVATE RELEASE_BUILD NDEBUG)
-  target_compile_options(extension PRIVATE -O3 -ObjC++) # -fobjc-arc)
+  target_compile_options(extension PRIVATE -O3 -ObjC++ -fobjc-arc)
 
   add_library(core-actx SHARED ${COMMAN_SOURCES})
   set_target_properties(core-actx PROPERTIES PREFIX "" SUFFIX ".so")

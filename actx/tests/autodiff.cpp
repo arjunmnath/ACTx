@@ -78,3 +78,18 @@ TEST(TensorAutodiff, DivBackwardWorks) {
   EXPECT_TRUE(x->grad->logical_e(expected_dx)->all()) << "x grad incorrect";
   EXPECT_TRUE(y->grad->logical_e(expected_dy)->all()) << "y grad incorrect";
 }
+
+// TEST(TensorAutodiff, SqrtBackwardWorks) {
+//   std::vector<float> x_data = {4.0, 9.0, 16.0, 25.0};
+//   std::vector<int> shape = {2, 2};
+//
+//   Tensor *x = new Tensor(x_data, shape, DType::float32, true,
+//   DeviceType::MPS); Tensor *z = x->sqrt(); z->backward();
+//
+//   std::vector<float> expected_grad = {0.5f / 2.0f, 0.5f / 3.0f, 0.5f / 4.0f,
+//                                       0.5f / 5.0f};
+//   Tensor *expected_dx = new Tensor(expected_grad, shape);
+//
+//   EXPECT_TRUE(x->grad->logical_e(expected_dx)->all()) << "sqrt grad
+//   incorrect";
+// }

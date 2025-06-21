@@ -454,9 +454,6 @@ Tensor *Tensor::div(Tensor *other, bool inplace) {
   // TODO: fix this division by zero checking
   Tensor *zeros =
       Tensor::zeros(other->dims, other->dtype, false, other->device);
-  if (other->logical_e(zeros)->any()) {
-    throw std::runtime_error("division by zero");
-  }
   free(zeros);
   return execute_broadcastable_operation(OPType::DIV, other, inplace);
 }
@@ -507,7 +504,6 @@ Tensor *Tensor::logical_lte(Tensor *other) {
   }
   return this->execute_binary_operation(OPType::LOGICAL_LTE, other);
 }
-
 /*
 Tensor Tensor::matmul(Tensor *other) const {
   // TODO: implement broadcastable matmul;
@@ -518,49 +514,69 @@ Tensor Tensor::matmul(Tensor *other) const {
   std::vector<int> m = {this->dims[0], this->dims[1], other->dims[1]};
   return Tensor(m, true);
 }
-// Mathematical operations
-Tensor Tensor::exp(bool inplace) {
-  id<MTLBuffer> meta =
-      device_mps->createBuffer(this->dims.data(), 2, this->dtype);
-  id<MTLBuffer> result;
-  if (!inplace) {
-    // TODO: fix fixed float
-    result = device_mps->createEmptyBuffer(this->size, this->dtype);
-    device_mps->execute_kernel_unary("exp", this->storage, result, meta);
-  } else {
-    device_mps->execute_kernel_unary("exp", this->storage, this->storage, meta);
-  }
-  return inplace ? *this : Tensor(result, this->dims);
-}
-
-Tensor Tensor::log(bool inplace) {
-  id<MTLBuffer> meta =
-      device_mps->createBuffer(this->dims.data(), 2, this->dtype);
-  id<MTLBuffer> result;
-  if (!inplace) {
-    // TODO: fix fixed float
-    result = device_mps->createEmptyBuffer(this->size, this->dtype);
-    device_mps->execute_kernel_unary("log", this->storage, result, meta);
-  } else {
-    device_mps->execute_kernel_unary("log", this->storage, this->storage, meta);
-  }
-  return inplace ? *this : Tensor(result, this->dims);
-}
-
-Tensor Tensor::sqrt(bool inplace) {
-  id<MTLBuffer> meta =
-      device_mps->createBuffer(this->dims.data(), 2, this->dtype);
-  id<MTLBuffer> result;
-  if (!inplace) {
-    result = device_mps->createEmptyBuffer(this->size, this->dtype);
-    device_mps->execute_kernel_unary("sqrt", this->storage, result, meta);
-  } else {
-    device_mps->execute_kernel_unary("sqrt", this->storage, this->storage,
-                                     meta);
-  }
-  return inplace ? *this : Tensor(result, this->dims);
-}
 */
+
+// Mathematical operations
+Tensor *Tensor::exp(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::EXP, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::EXP, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::sqrt(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::SQRT, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::SQRT, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::log(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::LOG, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::LOG, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::log10(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::LOG10, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::LOG10, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::log2(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::LOG2, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::LOG2, this->device, {this, result});
+    return result;
+  }
+}
+
 // ================================================================================================================================
 //                            INIT
 // ================================================================================================================================

@@ -36,9 +36,6 @@ private:
   static Tensor *execute_init_operation(OPType op, std::vector<int> shape,
                                         DType dtype, bool requires_grad,
                                         DeviceType device);
-  // FIX: template type
-  float _get_element(int offset) const;
-
   std::vector<OpNode *> topo_sort();
 
 public:
@@ -66,6 +63,10 @@ public:
   // Tensor(std::vector<T> &values, std::vector<int> dims,
   //        DType dtype = DType::float32, bool requires_grad = false);
   //
+  //
+  // FIX: template type
+  float _get_element(int offset) const;
+
   // initialization methods
   static Tensor *ones(std::vector<int> shape, DType dtype = DType::float32,
                       bool requires_grad = false,
@@ -94,11 +95,11 @@ public:
   static Tensor *bernoulli(Tensor &other, DType dtype = DType::float32);
 
   // arithmetic operators
-  Tensor *negate(bool inplace = true);
-  Tensor *add(Tensor *other, bool inplace);
-  Tensor *sub(Tensor *other, bool inplace);
-  Tensor *mul(Tensor *other, bool inplace);
-  Tensor *div(Tensor *other, bool inplace);
+  Tensor *negate(bool inplace = false);
+  Tensor *add(Tensor *other, bool inplace = false);
+  Tensor *sub(Tensor *other, bool inplace = false);
+  Tensor *mul(Tensor *other, bool inplace = false);
+  Tensor *div(Tensor *other, bool inplace = false);
   Tensor *matmul(Tensor *other) const;
   Tensor *pow(float exp, bool inplace);
 
@@ -111,13 +112,15 @@ public:
   Tensor *logical_lte(Tensor *other);
 
   // Mathematical operations
-  Tensor exp(bool inplace);
-  Tensor log(bool inplace);
+  Tensor *exp(bool inplace = false);
+  Tensor *sqrt(bool inplace = false);
+  Tensor *log(bool inplace = false);
+  Tensor *log10(bool inplace = false);
+  Tensor *log2(bool inplace = false);
 
   // TODO: modify this to have a numpy like behaviour
   bool all();
   bool any();
-  Tensor sqrt(bool inplace);
 
   // Utility methods
   Tensor transpose() const;

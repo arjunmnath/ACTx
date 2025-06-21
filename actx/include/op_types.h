@@ -19,5 +19,10 @@ enum class OPType {
   LOGICAL_LT,
   LOGICAL_LTE,
   POW,
+  SQRT,
+  EXP,
+  LOG,
+  LOG10,
+  LOG2,
 
 };

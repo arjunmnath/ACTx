@@ -26,28 +26,21 @@ public:
   void _init_pipeline(std::string metal_function_name);
   void execute_kernel_binary(std::string func, id<MTLBuffer> A, id<MTLBuffer> B,
                              id<MTLBuffer> result, id<MTLBuffer> meta, int N);
-  void execute_kernel_binary_with_broadcast(std::string func, id<MTLBuffer> A,
-                                            id<MTLBuffer> B,
-                                            id<MTLBuffer> result,
-                                            id<MTLBuffer> metadata, int N);
+
   std::pair<size_t, size_t> compute_threads(size_t N, size_t maxTPG);
   void execute_kernel_unary(std::string func, id<MTLBuffer> input,
                             id<MTLBuffer> output, id<MTLBuffer> metadata,
                             int N);
 
-  void execute_kernel_init(std::string func, id<MTLBuffer> A,
-                           id<MTLBuffer> meta, int N);
-
-  void initiate_dispatch_broadcastable(std::string kernel_method,
-                                       const Tensor *a, const Tensor *b,
-                                       Tensor *result);
-
-  void initiate_dispatch_comparison(std::string kernel_method, const Tensor *a,
-                                    const Tensor *b, Tensor *result);
-  void initiate_dispatch_init(std::string kernel_method, Tensor *a);
+  void execute_kernel_nullary(std::string func, id<MTLBuffer> A,
+                              id<MTLBuffer> meta, int N);
+  void initiate_dispatch_nullary(std::string kernel_method, Tensor *input);
 
   void initiate_dispatch_unary(std::string kernel_method, const Tensor *input,
                                Tensor *output);
+
+  void initiate_dispatch_binary(std::string kernel_method, const Tensor *a,
+                                const Tensor *b, Tensor *result);
   std::vector<id<MTLBuffer>> __dummy_data();
 
   // id<MTLBuffer> createEmptyBuffer(int size, DType type);
@@ -61,6 +54,7 @@ public:
   void sub(const Tensor *a, const Tensor *b, Tensor *result) override;
   void mul(const Tensor *a, const Tensor *b, Tensor *result) override;
   void div(const Tensor *a, const Tensor *b, Tensor *result) override;
+  void pow(const Tensor *a, const Tensor *b, Tensor *result) override;
 
   // init kernels
   void ones(Tensor *a);
@@ -76,10 +70,15 @@ public:
   void logical_lt(const Tensor *a, const Tensor *b, Tensor *result) override;
   void logical_lte(const Tensor *a, const Tensor *b, Tensor *result) override;
 
+  // math functions
+  void sqrt(const Tensor *input, Tensor *output) override;
+  void exp(const Tensor *input, Tensor *output) override;
+  void log(const Tensor *input, Tensor *output) override;
+  void log10(const Tensor *input, Tensor *output) override;
+  void log2(const Tensor *input, Tensor *output) override;
+
   // not implemented
-  void eye(int n, DType dtype = DType::float32);
   void empty(std::vector<int> shape, DType dtype = DType::float32);
   void matmul(const Tensor *a, const Tensor *b, Tensor *result) override;
-  void pow(const Tensor *a, const Tensor *b, Tensor *result) override;
 };
 #endif

@@ -151,6 +151,7 @@ void Dispatcher::init_register() {
                     a->div(b->pow(2.0f, false), false)->mul(out->grad, false);
               }));
 
+  // comparison;
   REGISTER_OP(LOGICAL_E, MPS, ({
                 assert(inputs.size() == 3);
                 a = inputs[0];
@@ -229,6 +230,42 @@ void Dispatcher::init_register() {
               }),
               {});
 
+  // math functions;
+  REGISTER_OP(SQRT, MPS, ({
+                assert(inputs.size() == 2);
+                a = inputs[0];
+                b = inputs[1];
+              }),
+              ({ mps->sqrt(a, b); }), {});
+
+  REGISTER_OP(EXP, MPS, ({
+                assert(inputs.size() == 2);
+                a = inputs[0];
+                b = inputs[1];
+              }),
+              ({ mps->exp(a, b); }), {});
+
+  REGISTER_OP(LOG, MPS, ({
+                assert(inputs.size() == 2);
+                a = inputs[0];
+                b = inputs[1];
+              }),
+              ({ mps->log(a, b); }), {});
+  REGISTER_OP(LOG10, MPS, ({
+                assert(inputs.size() == 2);
+                a = inputs[0];
+                b = inputs[1];
+              }),
+              ({ mps->log10(a, b); }), {});
+
+  REGISTER_OP(LOG2, MPS, ({
+                assert(inputs.size() == 2);
+                a = inputs[0];
+                b = inputs[1];
+              }),
+              ({ mps->log2(a, b); }), {});
+
+  // initalisations;
   REGISTER_OP(ONES_INIT, MPS, ({
                 assert(inputs.size() == 1);
                 a = inputs[0];

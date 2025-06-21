@@ -29,11 +29,13 @@ public:
                            Tensor *result) = 0;
 
   // Mathematical operations
-  Tensor exp(bool inplace);
-  Tensor log(bool inplace);
+  virtual void sqrt(const Tensor *input, Tensor *output) = 0;
+  virtual void exp(const Tensor *input, Tensor *output) = 0;
+  virtual void log(const Tensor *input, Tensor *output) = 0;
+  virtual void log10(const Tensor *input, Tensor *output) = 0;
+  virtual void log2(const Tensor *input, Tensor *output) = 0;
 
   // TODO: modify this to have a numpy like behaviour
   bool all();
   bool any();
-  Tensor sqrt(bool inplace);
 };
