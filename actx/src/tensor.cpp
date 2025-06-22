@@ -466,42 +466,24 @@ Tensor *Tensor::pow(float exp, bool inplace) {
 
 // Comparison operators
 Tensor *Tensor::logical_e(Tensor *other) {
-  if (this->dims != other->dims) {
-    throw std::runtime_error("shape constraint failed");
-  }
   return this->execute_binary_operation(OPType::LOGICAL_E, other);
 }
 Tensor *Tensor::logical_ne(Tensor *other) {
-  if (this->dims != other->dims) {
-    throw std::runtime_error("shape constraint failed");
-  }
   return this->execute_binary_operation(OPType::LOGICAL_NE, other);
 }
 Tensor *Tensor::logical_gt(Tensor *other) {
-  if (this->dims != other->dims) {
-    throw std::runtime_error("shape constraint failed");
-  }
   return this->execute_binary_operation(OPType::LOGICAL_GT, other);
 }
 
 Tensor *Tensor::logical_gte(Tensor *other) {
-  if (this->dims != other->dims) {
-    throw std::runtime_error("shape contraint failed");
-  }
   return this->execute_binary_operation(OPType::LOGICAL_GTE, other);
 }
 
 Tensor *Tensor::logical_lt(Tensor *other) {
-  if (this->dims != other->dims) {
-    throw std::runtime_error("shape contraint failed");
-  }
   return this->execute_binary_operation(OPType::LOGICAL_LT, other);
 }
 
 Tensor *Tensor::logical_lte(Tensor *other) {
-  if (this->dims != other->dims) {
-    throw std::runtime_error("shape contraint failed");
-  }
   return this->execute_binary_operation(OPType::LOGICAL_LTE, other);
 }
 /*
@@ -621,28 +603,22 @@ Tensor *Tensor::full(std::vector<int> shape, float n, DType dtype,
   return result;
 }
 Tensor *Tensor::clone(Tensor *other) {
-  // NSLog(@"Buffer retain count: %ld",
-  //       CFGetRetainCount((__bridge CFTypeRef)other->memory->storage->metal));
   Memory *new_buffer =
       pool->request_memory(other->device, other->memory->size, other->dtype);
   Memory::copy(other->memory, new_buffer);
-
   Tensor *cloned = new Tensor(new_buffer, other->dims, other->dtype,
                               other->requires_grad, other->device);
   return cloned;
 }
-/*
-Tensor Tensor::empty(std::vector<int> shape, DType dtype) {
+Tensor *Tensor::empty(std::vector<int> shape, DType dtype, bool requires_grad,
+                      DeviceType device) {
   int size =
       std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
-  id<MTLBuffer> result = device_mps->createEmptyBuffer(size, dtype);
-
-  return Tensor(result, shape);
+  Memory *new_buffer = pool->request_memory(device, size, dtype);
+  Tensor *tensor = new Tensor(new_buffer, shape, dtype, requires_grad, device);
+  return tensor;
 }
-
-
-
-
+/*
 // TODO: configure the seed && change vector type from float to dynamic;
 Tensor Tensor::rand(std::vector<int> shape, DType dtype) {
   id<MTLBuffer> meta =

@@ -15,11 +15,15 @@ kernel void __add__(device const float *A [[buffer(0)]],
   int brank = metadata[2];
   int rrank = metadata[3];
   const constant int *ashape = metadata + 4;
-  const constant int *bshape = ashape + arank;
-  const constant int *result_shape = bshape + brank;
-
-  int ai = compute_broadcast_index(tid, ashape, result_shape, arank, rrank);
-  int bi = compute_broadcast_index(tid, bshape, result_shape, brank, rrank);
+  const constant int *astride = ashape + arank;
+  const constant int *bshape = astride + arank;
+  const constant int *bstride = bshape + brank;
+  const constant int *result_shape = bstride + brank;
+  const constant int *result_stride = bstride + rrank;
+  int ai =
+      compute_broadcast_index(tid, ashape, astride, result_shape, arank, rrank);
+  int bi =
+      compute_broadcast_index(tid, bshape, bstride, result_shape, brank, rrank);
   C[tid] = A[ai] + B[bi];
 }
 
@@ -34,11 +38,16 @@ kernel void __sub__(device const float *A [[buffer(0)]],
   int brank = metadata[2];
   int rrank = metadata[3];
   const constant int *ashape = metadata + 4;
-  const constant int *bshape = ashape + arank;
-  const constant int *result_shape = bshape + brank;
+  const constant int *astride = ashape + arank;
+  const constant int *bshape = astride + arank;
+  const constant int *bstride = bshape + brank;
+  const constant int *result_shape = bstride + brank;
+  const constant int *result_stride = bstride + rrank;
 
-  int ai = compute_broadcast_index(tid, ashape, result_shape, arank, rrank);
-  int bi = compute_broadcast_index(tid, bshape, result_shape, brank, rrank);
+  int ai =
+      compute_broadcast_index(tid, ashape, astride, result_shape, arank, rrank);
+  int bi =
+      compute_broadcast_index(tid, bshape, bstride, result_shape, brank, rrank);
   C[tid] = A[ai] - B[bi];
 }
 kernel void __div__(device const float *A [[buffer(0)]],
@@ -52,11 +61,16 @@ kernel void __div__(device const float *A [[buffer(0)]],
   int brank = metadata[2];
   int rrank = metadata[3];
   const constant int *ashape = metadata + 4;
-  const constant int *bshape = ashape + arank;
-  const constant int *result_shape = bshape + brank;
+  const constant int *astride = ashape + arank;
+  const constant int *bshape = astride + arank;
+  const constant int *bstride = bshape + brank;
+  const constant int *result_shape = bstride + brank;
+  const constant int *result_stride = bstride + rrank;
 
-  int ai = compute_broadcast_index(tid, ashape, result_shape, arank, rrank);
-  int bi = compute_broadcast_index(tid, bshape, result_shape, brank, rrank);
+  int ai =
+      compute_broadcast_index(tid, ashape, astride, result_shape, arank, rrank);
+  int bi =
+      compute_broadcast_index(tid, bshape, bstride, result_shape, brank, rrank);
   C[tid] = A[ai] / B[bi];
 }
 
@@ -71,32 +85,40 @@ kernel void __mul__(device const float *A [[buffer(0)]],
   int brank = metadata[2];
   int rrank = metadata[3];
   const constant int *ashape = metadata + 4;
-  const constant int *bshape = ashape + arank;
-  const constant int *result_shape = bshape + brank;
-
-  int ai = compute_broadcast_index(tid, ashape, result_shape, arank, rrank);
-  int bi = compute_broadcast_index(tid, bshape, result_shape, brank, rrank);
+  const constant int *astride = ashape + arank;
+  const constant int *bshape = astride + arank;
+  const constant int *bstride = bshape + brank;
+  const constant int *result_shape = bstride + brank;
+  const constant int *result_stride = bstride + rrank;
+  int ai =
+      compute_broadcast_index(tid, ashape, astride, result_shape, arank, rrank);
+  int bi =
+      compute_broadcast_index(tid, bshape, bstride, result_shape, brank, rrank);
   C[tid] = A[ai] * B[bi];
 }
 
 // FIX: matmul algorithm to match n dimensional tensors
-kernel void __matmul__(device float *A [[buffer(0)]],
-                       device float *B [[buffer(1)]],
+kernel void __matmul__(device const float *A [[buffer(0)]],
+                       device const float *B [[buffer(1)]],
                        device float *C [[buffer(2)]],
-                       constant int *lshape [[buffer(3)]],
-                       constant int *rshape [[buffer(4)]],
-                       constant int *result_shape [[buffer(5)]],
-                       constant int *ranks [[buffer(6)]],
+                       constant int *metadata [[buffer(3)]],
                        uint tid [[thread_position_in_grid]]) {
-  int flat_index = tid;
-  int lrank = ranks[0];
-  int rrank = ranks[1];
-  int trank = ranks[2];
-  int lindex =
-      compute_broadcast_index(flat_index, lshape, result_shape, lrank, trank);
-  int rindex =
-      compute_broadcast_index(flat_index, rshape, result_shape, rrank, trank);
-  C[flat_index] = A[lindex] * B[rindex];
+  if ((int)tid >= metadata[0])
+    return;
+  int arank = metadata[1];
+  int brank = metadata[2];
+  int rrank = metadata[3];
+  const constant int *ashape = metadata + 4;
+  const constant int *astride = ashape + arank;
+  const constant int *bshape = astride + arank;
+  const constant int *bstride = bshape + brank;
+  const constant int *result_shape = bstride + brank;
+  const constant int *result_stride = bstride + rrank;
+  int ai =
+      compute_broadcast_index(tid, ashape, astride, result_shape, arank, rrank);
+  int bi =
+      compute_broadcast_index(tid, bshape, bstride, result_shape, brank, rrank);
+  C[tid] = A[ai] * B[bi];
 }
 
 kernel void __neg__(device float *input [[buffer(0)]],

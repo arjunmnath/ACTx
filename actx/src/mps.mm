@@ -28,7 +28,6 @@ template <typename T>
 void print_buffer(id<MTLBuffer> buffer, DType dtype, const char *label = "") {
   size_t count = buffer.length / getDTypeSize(dtype);
   std::vector<T> data(count);
-  std::cout << count << std::endl;
   memcpy(data.data(), buffer.contents, buffer.length);
   std::cout << label << "[ ";
   for (size_t i = 0; i < count; ++i) {
@@ -270,11 +269,16 @@ void MPS::initiate_dispatch_binary(std::string kernel_method, const Tensor *a,
       (int)result->size, static_cast<int>(a->dims.size()),
       static_cast<int>(b->dims.size()), static_cast<int>(result->dims.size())};
   std::vector<int> meta_data;
-  meta_data.reserve(a->dims.size() + b->dims.size() + result->dims.size() + 4);
+  meta_data.reserve(
+      (a->dims.size() + b->dims.size() + result->dims.size()) * 2 + 4);
   meta_data.insert(meta_data.end(), _ranks.begin(), _ranks.end());
   meta_data.insert(meta_data.end(), a->dims.begin(), a->dims.end());
+  meta_data.insert(meta_data.end(), a->stride.begin(), a->stride.end());
   meta_data.insert(meta_data.end(), b->dims.begin(), b->dims.end());
+  meta_data.insert(meta_data.end(), b->stride.begin(), b->stride.end());
   meta_data.insert(meta_data.end(), result->dims.begin(), result->dims.end());
+  meta_data.insert(meta_data.end(), result->stride.begin(),
+                   result->stride.end());
   Memory *meta_data_memory =
       pool->request_memory(DeviceType::MPS, meta_data.size(), DType::int32);
   this->copy_vector_to_buffer((void *)meta_data.data(), *meta_data_memory,
@@ -355,7 +359,6 @@ void MPS::eye(Tensor *a) { this->initiate_dispatch_nullary("__eye__", a); }
 void MPS::full(Tensor *n, Tensor *result) {
   assert(n->size == 1);
   initiate_dispatch_unary("__full__", n, result);
-  // 0 --> input -> result;
 }
 
 // ==================================================

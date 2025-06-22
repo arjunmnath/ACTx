@@ -35,6 +35,12 @@ public:
   virtual void log10(const Tensor *input, Tensor *output) = 0;
   virtual void log2(const Tensor *input, Tensor *output) = 0;
 
+  // basic inits
+  virtual void ones(Tensor *a) = 0;
+  virtual void zeros(Tensor *a) = 0;
+  virtual void eye(Tensor *a) = 0;
+  virtual void full(Tensor *n, Tensor *result) = 0;
+
   // TODO: modify this to have a numpy like behaviour
   bool all();
   bool any();

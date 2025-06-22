@@ -57,10 +57,10 @@ public:
   void pow(const Tensor *a, const Tensor *b, Tensor *result) override;
 
   // init kernels
-  void ones(Tensor *a);
-  void zeros(Tensor *a);
-  void eye(Tensor *a);
-  void full(Tensor *n, Tensor *result);
+  void ones(Tensor *a) override;
+  void zeros(Tensor *a) override;
+  void eye(Tensor *a) override;
+  void full(Tensor *n, Tensor *result) override;
 
   // comparison
   void logical_e(const Tensor *a, const Tensor *b, Tensor *result) override;
@@ -78,7 +78,6 @@ public:
   void log2(const Tensor *input, Tensor *output) override;
 
   // not implemented
-  void empty(std::vector<int> shape, DType dtype = DType::float32);
   void matmul(const Tensor *a, const Tensor *b, Tensor *result) override;
 };
 #endif
