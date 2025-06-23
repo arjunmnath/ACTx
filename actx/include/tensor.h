@@ -66,6 +66,7 @@ public:
   //
   // FIX: template type
   float _get_element(int offset) const;
+  int offset() const;
 
   // initialization methods
   static Tensor *ones(std::vector<int> shape, DType dtype = DType::float32,

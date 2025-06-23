@@ -24,6 +24,7 @@ kernel void logical_e(device const float *A [[buffer(0)]],
       compute_broadcast_index(tid, bshape, bstride, result_shape, brank, rrank);
   float epsilon = 1e-5;
   C[tid] = fabs(A[ai] - B[bi]) < epsilon ? 1.0 : 0.0;
+  // C[tid] = A[0];
 }
 
 kernel void logical_ne(device const float *A [[buffer(0)]],

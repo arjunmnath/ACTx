@@ -24,16 +24,18 @@ private:
 public:
   MPS();
   void _init_pipeline(std::string metal_function_name);
-  void execute_kernel_binary(std::string func, id<MTLBuffer> A, id<MTLBuffer> B,
-                             id<MTLBuffer> result, id<MTLBuffer> meta, int N);
-
   std::pair<size_t, size_t> compute_threads(size_t N, size_t maxTPG);
-  void execute_kernel_unary(std::string func, id<MTLBuffer> input,
-                            id<MTLBuffer> output, id<MTLBuffer> metadata,
-                            int N);
 
   void execute_kernel_nullary(std::string func, id<MTLBuffer> A,
                               id<MTLBuffer> meta, int N);
+  void execute_kernel_unary(std::string func, id<MTLBuffer> input,
+                            id<MTLBuffer> output, id<MTLBuffer> metadata,
+                            int N);
+  void execute_kernel_binary(std::string func, id<MTLBuffer> A, id<MTLBuffer> B,
+                             id<MTLBuffer> result, id<MTLBuffer> meta, int N,
+                             int offset_a = 0, int offset_b = 0,
+                             int offset_result = 0);
+
   void initiate_dispatch_nullary(std::string kernel_method, Tensor *input);
 
   void initiate_dispatch_unary(std::string kernel_method, const Tensor *input,
@@ -41,9 +43,7 @@ public:
 
   void initiate_dispatch_binary(std::string kernel_method, const Tensor *a,
                                 const Tensor *b, Tensor *result);
-  std::vector<id<MTLBuffer>> __dummy_data();
 
-  // id<MTLBuffer> createEmptyBuffer(int size, DType type);
   void createEmptyBuffer(int size, DType type, Storage *storage);
   id<MTLBuffer> clone(id<MTLBuffer> buffer);
   void copy_vector_to_buffer(void *ptr, Memory &memory, int buffer_size);

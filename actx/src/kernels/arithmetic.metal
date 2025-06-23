@@ -19,7 +19,6 @@ kernel void __add__(device const float *A [[buffer(0)]],
   const constant int *bshape = astride + arank;
   const constant int *bstride = bshape + brank;
   const constant int *result_shape = bstride + brank;
-  const constant int *result_stride = bstride + rrank;
   int ai =
       compute_broadcast_index(tid, ashape, astride, result_shape, arank, rrank);
   int bi =
@@ -42,7 +41,6 @@ kernel void __sub__(device const float *A [[buffer(0)]],
   const constant int *bshape = astride + arank;
   const constant int *bstride = bshape + brank;
   const constant int *result_shape = bstride + brank;
-  const constant int *result_stride = bstride + rrank;
 
   int ai =
       compute_broadcast_index(tid, ashape, astride, result_shape, arank, rrank);
@@ -65,7 +63,6 @@ kernel void __div__(device const float *A [[buffer(0)]],
   const constant int *bshape = astride + arank;
   const constant int *bstride = bshape + brank;
   const constant int *result_shape = bstride + brank;
-  const constant int *result_stride = bstride + rrank;
 
   int ai =
       compute_broadcast_index(tid, ashape, astride, result_shape, arank, rrank);
@@ -89,7 +86,6 @@ kernel void __mul__(device const float *A [[buffer(0)]],
   const constant int *bshape = astride + arank;
   const constant int *bstride = bshape + brank;
   const constant int *result_shape = bstride + brank;
-  const constant int *result_stride = bstride + rrank;
   int ai =
       compute_broadcast_index(tid, ashape, astride, result_shape, arank, rrank);
   int bi =
@@ -113,7 +109,6 @@ kernel void __matmul__(device const float *A [[buffer(0)]],
   const constant int *bshape = astride + arank;
   const constant int *bstride = bshape + brank;
   const constant int *result_shape = bstride + brank;
-  const constant int *result_stride = bstride + rrank;
   int ai =
       compute_broadcast_index(tid, ashape, astride, result_shape, arank, rrank);
   int bi =

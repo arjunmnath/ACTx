@@ -26,8 +26,25 @@ int main() {
   // Tensor *t9 = t7->div(t8, false); // t9 = t7 / t8
   // t9->backward();
 
-  Tensor *a = Tensor::ones({3, 4});
-  Tensor *b = Tensor::ones({1, 4});
-  a->logical_e(b)->print();
+  std::vector<float> data = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+  std::vector<int> shape = {10};
+  std::vector<Slice> slices = {Slice(2, 7, 1)};
+  Tensor *tensor = new Tensor(data, shape);
+
+  // Slice [2:7]
+  Tensor *result = tensor->view(slices);
+  std::cout << result->size << std::endl;
+  std::vector<float> expected_data = {2, 3, 4, 5, 6};
+
+  Tensor *expected = new Tensor(expected_data, {5});
+  Tensor *newb = Tensor::ones(result->dims);
+  // tensor->print();
+  result->print();
+  // expected->print_buffer();
+  result->add(newb, true);
+  // tensor->print();
+  result->print();
+  // expected->print_buffer();
+  // result->logical_e(expected)->print();
   return 0;
 }

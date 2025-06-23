@@ -60,6 +60,9 @@ Tensor *Tensor::view(std::vector<Slice> &slices) const {
     new_offset_elements += start * this->stride[d];
   }
   view_tensor->offset_elements = new_offset_elements;
+  view_tensor->size =
+      std::accumulate(view_tensor->dims.begin(), view_tensor->dims.end(), 1,
+                      std::multiplies<int>());
   return view_tensor;
 }
 void Tensor::_compte_stride() {
@@ -317,6 +320,7 @@ void Tensor::print_buffer() const {
   std::cout << std::endl;
 }
 
+int Tensor::offset() const { return this->offset_elements; }
 Tensor *Tensor::execute_broadcastable_operation(OPType op, Tensor *other,
                                                 bool inplace) {
   if (this->requires_grad || other->requires_grad) {

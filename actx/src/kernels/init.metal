@@ -25,7 +25,7 @@ kernel void __eye__(device float *A [[buffer(0)]],
                     uint tid [[thread_position_in_grid]]) {
   if ((int)tid >= metadata[0])
     return;
-  uint n = metadata[2]; // 0 -> total elements, 1-> rank(A), 2->n
+  uint n = metadata[2]; // 0 -> total elements, 1-> rank(A) == 2, 2->n
   uint row = tid / n;
   uint col = tid % n;
   if (row < n && col < n) {

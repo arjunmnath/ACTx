@@ -172,7 +172,8 @@ void MPS::execute_kernel_unary(std::string func, id<MTLBuffer> input,
 }
 void MPS::execute_kernel_binary(std::string func, id<MTLBuffer> A,
                                 id<MTLBuffer> B, id<MTLBuffer> result,
-                                id<MTLBuffer> meta, int N) {
+                                id<MTLBuffer> meta, int N, int offset_a,
+                                int offset_b, int offset_result) {
   std::string metal_function_name = func;
   if (!pipelines[metal_function_name]) {
     this->_init_pipeline(metal_function_name);
@@ -192,10 +193,11 @@ void MPS::execute_kernel_binary(std::string func, id<MTLBuffer> A,
   }
 
   [computeEncoder setComputePipelineState:pipelineState];
-  [computeEncoder setBuffer:A offset:0 atIndex:0];
-  [computeEncoder setBuffer:B offset:0 atIndex:1];
-  [computeEncoder setBuffer:result offset:0 atIndex:2];
+  [computeEncoder setBuffer:A offset:offset_a atIndex:0];
+  [computeEncoder setBuffer:B offset:offset_b atIndex:1];
+  [computeEncoder setBuffer:result offset:offset_result atIndex:2];
   [computeEncoder setBuffer:meta offset:0 atIndex:3];
+
   std::pair<uint32_t, uint32_t> threadinfo =
       this->compute_threads(N, pipelineState.maxTotalThreadsPerThreadgroup);
 
@@ -283,12 +285,14 @@ void MPS::initiate_dispatch_binary(std::string kernel_method, const Tensor *a,
       pool->request_memory(DeviceType::MPS, meta_data.size(), DType::int32);
   this->copy_vector_to_buffer((void *)meta_data.data(), *meta_data_memory,
                               meta_data.size() * getDTypeSize(DType::int32));
-  this->execute_kernel_binary(kernel_method, a->memory->storage->metal,
-                              b->memory->storage->metal,
-                              result->memory->storage->metal,
-                              *reinterpret_cast<id<MTLBuffer> __strong *>(
-                                  &meta_data_memory->storage->metal),
-                              result->size);
+  this->execute_kernel_binary(
+      kernel_method, a->memory->storage->metal, b->memory->storage->metal,
+      result->memory->storage->metal,
+      *reinterpret_cast<id<MTLBuffer> __strong *>(
+          &meta_data_memory->storage->metal),
+      result->size, a->offset() * getDTypeSize(a->dtype),
+      b->offset() * getDTypeSize(b->dtype),
+      result->offset() * getDTypeSize(result->dtype));
   pool->return_memory(meta_data_memory);
 };
 
