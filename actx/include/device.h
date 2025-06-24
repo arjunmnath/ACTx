@@ -35,6 +35,16 @@ public:
   virtual void log10(const Tensor *input, Tensor *output) = 0;
   virtual void log2(const Tensor *input, Tensor *output) = 0;
 
+  // trignometric
+
+  virtual void sin(const Tensor *input, Tensor *output) = 0;
+  virtual void cos(const Tensor *input, Tensor *output) = 0;
+  virtual void tan(const Tensor *input, Tensor *output) = 0;
+  virtual void asin(const Tensor *input, Tensor *output) = 0;
+  virtual void acos(const Tensor *input, Tensor *output) = 0;
+  virtual void atan(const Tensor *input, Tensor *output) = 0;
+  virtual void atan2(const Tensor *x, const Tensor *y, Tensor *output) = 0;
+
   // basic inits
   virtual void ones(Tensor *a) = 0;
   virtual void zeros(Tensor *a) = 0;

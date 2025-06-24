@@ -49,7 +49,8 @@ public:
   size_t size;
   DeviceType device;
   Memory *memory;
-
+  bool is_contigous = true;
+  bool is_leaf = this->node == nullptr;
   // TODO: change default devicetype to cpu
   Tensor(std::vector<int> dims, DType dtype = DType::float32,
          bool requires_grad = false, DeviceType device = DeviceType::MPS);
@@ -85,6 +86,11 @@ public:
   static Tensor *full(std::vector<int> shape, float n,
                       DType dtype = DType::float32, bool requires_grad = false,
                       DeviceType device = DeviceType::MPS);
+
+  static Tensor *empty_like(Tensor *a);
+  static Tensor *ones_like(Tensor *a);
+  static Tensor *zeros_like(Tensor *a);
+  static Tensor *full_like(Tensor *a, float n);
   static Tensor *clone(Tensor *other);
   static Tensor *rand(std::vector<int> shape, DType dtype);
   static Tensor *randn(std::vector<int> shape, DType dtype = DType::float32);
@@ -118,6 +124,14 @@ public:
   Tensor *log(bool inplace = false);
   Tensor *log10(bool inplace = false);
   Tensor *log2(bool inplace = false);
+
+  Tensor *sin(bool inplace = false);
+  Tensor *cos(bool inplace = false);
+  Tensor *tan(bool inplace = false);
+  Tensor *atan(bool inplace = false);
+  Tensor *acos(bool inplace = false);
+  Tensor *asin(bool inplace = false);
+  Tensor *atan2(Tensor *other, bool inplace = false);
 
   // TODO: modify this to have a numpy like behaviour
   bool all();

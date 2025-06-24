@@ -563,6 +563,81 @@ Tensor *Tensor::log2(bool inplace) {
   }
 }
 
+Tensor *Tensor::sin(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::SIN, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::SIN, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::cos(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::COS, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::COS, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::tan(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::TAN, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::TAN, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::asin(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::ASIN, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::ASIN, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::acos(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::ACOS, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::ACOS, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::atan(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::ATAN, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::ATAN, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::atan2(Tensor *other, bool inplace) {
+  return execute_broadcastable_operation(OPType::ATAN2, other, inplace);
+}
 // ================================================================================================================================
 //                            INIT
 // ================================================================================================================================
@@ -574,6 +649,14 @@ Tensor *Tensor::log2(bool inplace) {
 // 6) Clone, tensor: ❌
 // 7) Linspace, logspace, arange: ❌
 // =====================================================================================================================
+Tensor *Tensor::empty(std::vector<int> shape, DType dtype, bool requires_grad,
+                      DeviceType device) {
+  int size =
+      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+  Memory *new_buffer = pool->request_memory(device, size, dtype);
+  Tensor *tensor = new Tensor(new_buffer, shape, dtype, requires_grad, device);
+  return tensor;
+}
 Tensor *Tensor::ones(std::vector<int> shape, DType dtype, bool requires_grad,
                      DeviceType device) {
   return Tensor::execute_init_operation(OPType::ONES_INIT, shape, dtype,
@@ -606,6 +689,19 @@ Tensor *Tensor::full(std::vector<int> shape, float n, DType dtype,
   free(other);
   return result;
 }
+Tensor *Tensor::empty_like(Tensor *a) {
+  return Tensor::empty(a->dims, a->dtype, a->requires_grad, a->device);
+}
+Tensor *Tensor::ones_like(Tensor *a) {
+  return Tensor::ones(a->dims, a->dtype, a->requires_grad, a->device);
+}
+Tensor *Tensor::zeros_like(Tensor *a) {
+  return Tensor::zeros(a->dims, a->dtype, a->requires_grad, a->device);
+}
+Tensor *Tensor::full_like(Tensor *a, float n) {
+  return Tensor::full(a->dims, n, a->dtype, a->requires_grad, a->device);
+}
+
 Tensor *Tensor::clone(Tensor *other) {
   Memory *new_buffer =
       pool->request_memory(other->device, other->memory->size, other->dtype);
@@ -614,14 +710,7 @@ Tensor *Tensor::clone(Tensor *other) {
                               other->requires_grad, other->device);
   return cloned;
 }
-Tensor *Tensor::empty(std::vector<int> shape, DType dtype, bool requires_grad,
-                      DeviceType device) {
-  int size =
-      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
-  Memory *new_buffer = pool->request_memory(device, size, dtype);
-  Tensor *tensor = new Tensor(new_buffer, shape, dtype, requires_grad, device);
-  return tensor;
-}
+
 /*
 // TODO: configure the seed && change vector type from float to dynamic;
 Tensor Tensor::rand(std::vector<int> shape, DType dtype) {

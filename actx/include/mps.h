@@ -77,6 +77,14 @@ public:
   void log10(const Tensor *input, Tensor *output) override;
   void log2(const Tensor *input, Tensor *output) override;
 
+  void sin(const Tensor *input, Tensor *output) override;
+  void cos(const Tensor *input, Tensor *output) override;
+  void tan(const Tensor *input, Tensor *output) override;
+  void asin(const Tensor *input, Tensor *output) override;
+  void acos(const Tensor *input, Tensor *output) override;
+  void atan(const Tensor *input, Tensor *output) override;
+  void atan2(const Tensor *x, const Tensor *y, Tensor *output) override;
+
   // not implemented
   void matmul(const Tensor *a, const Tensor *b, Tensor *result) override;
 };

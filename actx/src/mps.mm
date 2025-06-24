@@ -410,3 +410,28 @@ void MPS::log10(const Tensor *input, Tensor *output) {
 void MPS::log2(const Tensor *input, Tensor *output) {
   this->initiate_dispatch_unary("__log2__", input, output);
 }
+// ==================================================
+//                    TRIG FUNCTIONS
+// ==================================================
+void MPS::sin(const Tensor *input, Tensor *output) {
+  this->initiate_dispatch_unary("__sin__", input, output);
+}
+void MPS::cos(const Tensor *input, Tensor *output) {
+  this->initiate_dispatch_unary("__cos__", input, output);
+}
+
+void MPS::tan(const Tensor *input, Tensor *output) {
+  this->initiate_dispatch_unary("__tan__", input, output);
+}
+void MPS::asin(const Tensor *input, Tensor *output) {
+  this->initiate_dispatch_unary("__asin__", input, output);
+}
+void MPS::acos(const Tensor *input, Tensor *output) {
+  this->initiate_dispatch_unary("__acos__", input, output);
+}
+void MPS::atan(const Tensor *input, Tensor *output) {
+  this->initiate_dispatch_unary("__atan__", input, output);
+}
+void MPS::atan2(const Tensor *x, const Tensor *y, Tensor *result) {
+  this->initiate_dispatch_binary("__atan2__", x, y, result);
+}

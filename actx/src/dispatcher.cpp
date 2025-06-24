@@ -265,6 +265,52 @@ void Dispatcher::init_register() {
               }),
               ({ mps->log2(a, b); }), {});
 
+  // Trigometric functions
+  REGISTER_OP(SIN, MPS, ({
+                assert(inputs.size() == 2);
+                a = inputs[0];
+                b = inputs[1];
+              }),
+              ({ mps->sin(a, b); }), {});
+
+  REGISTER_OP(COS, MPS, ({
+                assert(inputs.size() == 2);
+                a = inputs[0];
+                b = inputs[1];
+              }),
+              ({ mps->cos(a, b); }), {});
+  REGISTER_OP(TAN, MPS, ({
+                assert(inputs.size() == 2);
+                a = inputs[0];
+                b = inputs[1];
+              }),
+              ({ mps->tan(a, b); }), {});
+  REGISTER_OP(ASIN, MPS, ({
+                assert(inputs.size() == 2);
+                a = inputs[0];
+                b = inputs[1];
+              }),
+              ({ mps->asin(a, b); }), {});
+  REGISTER_OP(ACOS, MPS, ({
+                assert(inputs.size() == 2);
+                a = inputs[0];
+                b = inputs[1];
+              }),
+              ({ mps->acos(a, b); }), {});
+  REGISTER_OP(ATAN, MPS, ({
+                assert(inputs.size() == 2);
+                a = inputs[0];
+                b = inputs[1];
+              }),
+              ({ mps->atan(a, b); }), {});
+  REGISTER_OP(ATAN2, MPS, ({
+                assert(inputs.size() == 3);
+                a = inputs[0];
+                b = inputs[1];
+                result = inputs[2];
+              }),
+              ({ mps->atan2(a, b, result); }), {});
+
   // initalisations;
   REGISTER_OP(ONES_INIT, MPS, ({
                 assert(inputs.size() == 1);

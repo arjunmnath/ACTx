@@ -24,5 +24,17 @@ enum class OPType {
   LOG,
   LOG10,
   LOG2,
-
+  SIN,
+  COS,
+  TAN,
+  ASIN,
+  ACOS,
+  ATAN,
+  ATAN2,
+  SINH,
+  COSH,
+  TANH,
+  ASINH,
+  ACOSH,
+  ATANH
 };
