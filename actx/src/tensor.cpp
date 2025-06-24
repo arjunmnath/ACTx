@@ -638,6 +638,76 @@ Tensor *Tensor::atan(bool inplace) {
 Tensor *Tensor::atan2(Tensor *other, bool inplace) {
   return execute_broadcastable_operation(OPType::ATAN2, other, inplace);
 }
+Tensor *Tensor::sinh(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::SINH, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::SINH, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::cosh(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::COSH, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::COSH, this->device, {this, result});
+    return result;
+  }
+}
+Tensor *Tensor::tanh(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::TANH, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::TANH, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::asinh(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::ASINH, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::ASINH, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::acosh(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::ACOSH, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::ACOSH, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::atanh(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::ATANH, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::ATANH, this->device, {this, result});
+    return result;
+  }
+}
 // ================================================================================================================================
 //                            INIT
 // ================================================================================================================================

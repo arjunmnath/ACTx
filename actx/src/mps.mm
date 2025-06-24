@@ -435,3 +435,25 @@ void MPS::atan(const Tensor *input, Tensor *output) {
 void MPS::atan2(const Tensor *x, const Tensor *y, Tensor *result) {
   this->initiate_dispatch_binary("__atan2__", x, y, result);
 }
+// ==================================================
+//              HYPERBOLIC FUNCTIONS
+// ==================================================
+void MPS::sinh(const Tensor *input, Tensor *output) {
+  this->initiate_dispatch_unary("__sinh__", input, output);
+}
+void MPS::cosh(const Tensor *input, Tensor *output) {
+  this->initiate_dispatch_unary("__cosh__", input, output);
+}
+
+void MPS::tanh(const Tensor *input, Tensor *output) {
+  this->initiate_dispatch_unary("__tanh__", input, output);
+}
+void MPS::asinh(const Tensor *input, Tensor *output) {
+  this->initiate_dispatch_unary("__asinh__", input, output);
+}
+void MPS::acosh(const Tensor *input, Tensor *output) {
+  this->initiate_dispatch_unary("__acosh__", input, output);
+}
+void MPS::atanh(const Tensor *input, Tensor *output) {
+  this->initiate_dispatch_unary("__atanh__", input, output);
+}

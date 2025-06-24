@@ -77,6 +77,7 @@ public:
   void log10(const Tensor *input, Tensor *output) override;
   void log2(const Tensor *input, Tensor *output) override;
 
+  // trignometric
   void sin(const Tensor *input, Tensor *output) override;
   void cos(const Tensor *input, Tensor *output) override;
   void tan(const Tensor *input, Tensor *output) override;
@@ -84,6 +85,14 @@ public:
   void acos(const Tensor *input, Tensor *output) override;
   void atan(const Tensor *input, Tensor *output) override;
   void atan2(const Tensor *x, const Tensor *y, Tensor *output) override;
+
+  // hyperbolic
+  void sinh(const Tensor *input, Tensor *output) override;
+  void cosh(const Tensor *input, Tensor *output) override;
+  void tanh(const Tensor *input, Tensor *output) override;
+  void asinh(const Tensor *input, Tensor *output) override;
+  void acosh(const Tensor *input, Tensor *output) override;
+  void atanh(const Tensor *input, Tensor *output) override;
 
   // not implemented
   void matmul(const Tensor *a, const Tensor *b, Tensor *result) override;

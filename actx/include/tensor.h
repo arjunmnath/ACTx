@@ -125,6 +125,7 @@ public:
   Tensor *log10(bool inplace = false);
   Tensor *log2(bool inplace = false);
 
+  // trignometric operations
   Tensor *sin(bool inplace = false);
   Tensor *cos(bool inplace = false);
   Tensor *tan(bool inplace = false);
@@ -132,6 +133,14 @@ public:
   Tensor *acos(bool inplace = false);
   Tensor *asin(bool inplace = false);
   Tensor *atan2(Tensor *other, bool inplace = false);
+
+  // hyperbolic
+  Tensor *sinh(bool inplace = false);
+  Tensor *cosh(bool inplace = false);
+  Tensor *tanh(bool inplace = false);
+  Tensor *atanh(bool inplace = false);
+  Tensor *acosh(bool inplace = false);
+  Tensor *asinh(bool inplace = false);
 
   // TODO: modify this to have a numpy like behaviour
   bool all();

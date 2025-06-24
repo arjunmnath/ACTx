@@ -311,6 +311,44 @@ void Dispatcher::init_register() {
               }),
               ({ mps->atan2(a, b, result); }), {});
 
+  // Hyperbolic functions
+  REGISTER_OP(SINH, MPS, ({
+                assert(inputs.size() == 2);
+                a = inputs[0];
+                b = inputs[1];
+              }),
+              ({ mps->sinh(a, b); }), {});
+
+  REGISTER_OP(COSH, MPS, ({
+                assert(inputs.size() == 2);
+                a = inputs[0];
+                b = inputs[1];
+              }),
+              ({ mps->cosh(a, b); }), {});
+  REGISTER_OP(TANH, MPS, ({
+                assert(inputs.size() == 2);
+                a = inputs[0];
+                b = inputs[1];
+              }),
+              ({ mps->tanh(a, b); }), {});
+  REGISTER_OP(ASINH, MPS, ({
+                assert(inputs.size() == 2);
+                a = inputs[0];
+                b = inputs[1];
+              }),
+              ({ mps->asinh(a, b); }), {});
+  REGISTER_OP(ACOSH, MPS, ({
+                assert(inputs.size() == 2);
+                a = inputs[0];
+                b = inputs[1];
+              }),
+              ({ mps->acosh(a, b); }), {});
+  REGISTER_OP(ATANH, MPS, ({
+                assert(inputs.size() == 2);
+                a = inputs[0];
+                b = inputs[1];
+              }),
+              ({ mps->atanh(a, b); }), {});
   // initalisations;
   REGISTER_OP(ONES_INIT, MPS, ({
                 assert(inputs.size() == 1);
