@@ -36,5 +36,6 @@ enum class OPType {
   TANH,
   ASINH,
   ACOSH,
-  ATANH
+  ATANH,
+  CLONE,
 };

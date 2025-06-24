@@ -11,7 +11,7 @@ TEST(MemoryPool, RequestAndReturnMemory) {
 
   auto mem1 = pool.request_memory(DeviceType::MPS, 1024, DType::float32);
   ASSERT_NE(mem1, nullptr);
-  EXPECT_EQ(mem1->size, 1024);
+  EXPECT_EQ(mem1->bytesize, 1024 * getDTypeSize(DType::float32));
   EXPECT_EQ(mem1->dtype, DType::float32);
 
   pool.return_memory(mem1);
@@ -59,7 +59,7 @@ TEST(MemoryPool, NonPowerOfTwoSizes) {
 
   auto mem1 = pool.request_memory(DeviceType::MPS, 11, DType::float32);
   ASSERT_NE(mem1, nullptr);
-  EXPECT_EQ(mem1->size, 16);
+  EXPECT_EQ(mem1->bytesize, 16 * getDTypeSize(DType::float32));
 
   pool.return_memory(mem1);
 
@@ -68,9 +68,8 @@ TEST(MemoryPool, NonPowerOfTwoSizes) {
 
   auto mem3 = pool.request_memory(DeviceType::MPS, 33, DType::float32);
   ASSERT_NE(mem3, nullptr);
-  EXPECT_GE(mem3->size, 64);
+  EXPECT_GE(mem3->bytesize, 64 * getDTypeSize(DType ::float32));
   EXPECT_NE(mem3, mem1);
-
   pool.return_memory(mem2);
   pool.return_memory(mem3);
 }

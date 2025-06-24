@@ -92,14 +92,6 @@ public:
   static Tensor *zeros_like(Tensor *a);
   static Tensor *full_like(Tensor *a, float n);
   static Tensor *clone(Tensor *other);
-  static Tensor *rand(std::vector<int> shape, DType dtype);
-  static Tensor *randn(std::vector<int> shape, DType dtype = DType::float32);
-  static Tensor *normal(std::vector<int> shape, float mean = 0,
-                        float stddev = 1, DType dtype = DType::float32);
-  static Tensor *randint(std::vector<int> shape, int min, int max,
-                         DType dtype = DType::float32);
-  static Tensor *poission(Tensor &other, DType dtype = DType::float32);
-  static Tensor *bernoulli(Tensor &other, DType dtype = DType::float32);
 
   // arithmetic operators
   Tensor *negate(bool inplace = false);
@@ -107,8 +99,8 @@ public:
   Tensor *sub(Tensor *other, bool inplace = false);
   Tensor *mul(Tensor *other, bool inplace = false);
   Tensor *div(Tensor *other, bool inplace = false);
+  Tensor *pow(float exp, bool inplace = false);
   Tensor *matmul(Tensor *other) const;
-  Tensor *pow(float exp, bool inplace);
 
   // Comparison operators
   Tensor *logical_e(Tensor *other);
@@ -142,6 +134,16 @@ public:
   Tensor *acosh(bool inplace = false);
   Tensor *asinh(bool inplace = false);
 
+  // not implemented
+  static Tensor *rand(std::vector<int> shape, DType dtype);
+  static Tensor *randn(std::vector<int> shape, DType dtype = DType::float32);
+  static Tensor *normal(std::vector<int> shape, float mean = 0,
+                        float stddev = 1, DType dtype = DType::float32);
+  static Tensor *randint(std::vector<int> shape, int min, int max,
+                         DType dtype = DType::float32);
+  static Tensor *poission(Tensor &other, DType dtype = DType::float32);
+  static Tensor *bernoulli(Tensor &other, DType dtype = DType::float32);
+
   // TODO: modify this to have a numpy like behaviour
   bool all();
   bool any();
@@ -151,6 +153,7 @@ public:
   Tensor *view(std::vector<Slice> &slices) const;
 
   void backward();
+  void detach();
   // Input/Output
 
   void print(int dim = 0, int offset = 0) const;

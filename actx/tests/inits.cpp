@@ -52,3 +52,13 @@ TEST(TensorInitalization, FULL) {
   Tensor *expected = new Tensor(ones, shape);
   EXPECT_TRUE(a->logical_e(expected)->all()) << "Initalization of eye failed";
 }
+
+TEST(TensorInitalization, CLONE) {
+  std::vector<int> shape = {3, 3};
+  std::vector<float> data = {3.0f, -1.0f, 3.1f, 3.0f, 3.0f,
+                             3.0f, 7.0f,  2.0f, 3.0f};
+  Tensor *expected = new Tensor(data, shape);
+  Tensor *copied = Tensor::clone(expected);
+  EXPECT_TRUE(copied->logical_e(expected)->all())
+      << "Initalization of eye failed";
+}

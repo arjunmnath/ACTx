@@ -13,11 +13,11 @@ private:
 
 public:
   void *data_ptr;
-  size_t size;
+  size_t bytesize; // bytes
   DeviceType device;
   DType dtype;
   Storage *storage;
-  Memory(DeviceType type, size_t count, DType dtype);
+  Memory(DeviceType type, size_t bytesize, DType dtype);
   static void copy(Memory *src, Memory *dest);
   static void copy_from_vector(std::vector<type_variant> src,
                                std::shared_ptr<Memory> dest);
@@ -28,5 +28,5 @@ public:
   void release_lock();
   void guarded_lock();
 
-  ~Memory() { std::cout << "Memory destroyed (size=" << size << ")\n"; }
+  ~Memory() { std::cout << "Memory destroyed (size=" << bytesize << ")\n"; }
 };

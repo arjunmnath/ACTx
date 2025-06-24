@@ -44,7 +44,7 @@ public:
   void initiate_dispatch_binary(std::string kernel_method, const Tensor *a,
                                 const Tensor *b, Tensor *result);
 
-  void createEmptyBuffer(int size, DType type, Storage *storage);
+  void createEmptyBuffer(int bytesize, DType type, Storage *storage);
   id<MTLBuffer> clone(id<MTLBuffer> buffer);
   void copy_vector_to_buffer(void *ptr, Memory &memory, int buffer_size);
 

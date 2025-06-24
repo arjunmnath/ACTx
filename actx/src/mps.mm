@@ -247,17 +247,11 @@ void MPS::initiate_dispatch_unary(std::string kernel_method,
   this->copy_vector_to_buffer((void *)meta_data.data(), *meta_data_memory,
                               meta_data.size() * getDTypeSize(DType::int32));
 
-  print_buffer<int>(meta_data_memory->storage->metal, DType::int32,
-                    "metadata: ");
-  print_buffer<float>(input->memory->storage->metal, DType::float32, "input: ");
-
   this->execute_kernel_unary(kernel_method, input->memory->storage->metal,
                              output->memory->storage->metal,
                              *reinterpret_cast<id<MTLBuffer> __strong *>(
                                  &meta_data_memory->storage->metal),
                              output->size);
-  print_buffer<float>(output->memory->storage->metal, DType::float32,
-                      "output: ");
   pool->return_memory(meta_data_memory);
 };
 void MPS::initiate_dispatch_binary(std::string kernel_method, const Tensor *a,
@@ -296,14 +290,15 @@ void MPS::initiate_dispatch_binary(std::string kernel_method, const Tensor *a,
   pool->return_memory(meta_data_memory);
 };
 
-void MPS::createEmptyBuffer(int size, DType type, Storage *storage) {
-  static int val = 0;
-  if (size <= 0) {
+void MPS::createEmptyBuffer(int bytesize, DType type, Storage *storage) {
+  if (bytesize <= 0) {
     throw std::runtime_error("invalid buffer size");
   }
   storage->metal =
-      [this->heap newBufferWithLength:size * getDTypeSize(type)
+      [this->heap newBufferWithLength:bytesize
                               options:MTLResourceStorageModeShared];
+
+  /* NSLog(@"Buffer: %@", storage->metal); */
   if (!storage->metal) {
     throw std::runtime_error("Failed to allocate MTLBuffer");
   }

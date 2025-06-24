@@ -14,5 +14,6 @@ private:
 
 public:
   void call(OPType op, DeviceType device, std::vector<Tensor *> inputs);
+  Operation *get(OPType op, DeviceType device);
   void init_register();
 };

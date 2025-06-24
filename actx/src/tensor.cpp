@@ -314,7 +314,7 @@ void Tensor::tensor__repr__(int depth, int offset, int indent,
 }
 
 void Tensor::print_buffer() const {
-  for (int i = 0; i < this->memory->size; i++) {
+  for (int i = 0; i < this->size; i++) {
     std::cout << this->_get_element(i) << " ";
   }
   std::cout << std::endl;
@@ -350,8 +350,7 @@ Tensor *Tensor::execute_init_operation(OPType op, std::vector<int> shape,
                                        DeviceType device) {
   Memory *result_memory = pool->request_memory(
       device,
-      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>()) *
-          getDTypeSize(dtype),
+      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>()),
       dtype);
   Tensor *result =
       new Tensor(result_memory, shape, dtype, requires_grad, device);
@@ -419,16 +418,36 @@ void Tensor::backward() {
       Tensor::ones(this->dims, this->dtype, this->requires_grad, this->device);
 
   std::vector<OpNode *> sorted = this->topo_sort();
+  OpNode *current_node;
   for (auto it = sorted.rbegin(); it != sorted.rend(); ++it) {
+    current_node = *it;
     if ((*it)->type == OPType::NO_OP)
       continue;
     (*it)->op->backward(*it);
+    // bool has_nonleaf = false;
+    // for (Tensor *tensor = current_node->inputs.begin();
+    //      tensor != current_node->inputs.end(); ++tensor) {
+    //   if (tensor->requires_grad) {
+    //     if (tensor->node->type == OPType::NO_OP) {
+    //       Tensor *accumulated_grad = current_node->outputs[0]->grad;
+    //       if (!tensor->grad) {
+    //         tensor->grad = Tensor::clone(accumulated_grad);
+    //       } else {
+    //         tensor->grad->add(accumulated_grad, true);
+    //       }
+    //     } else {
+    //       has_nonleaf = true;
+    //     }
+    //   }
+    // }
+    // if (has_nonleaf) {
+    //   current_node->op->backward(current_node);
+    // }
     // for (auto x : (*it)->outputs) {
     //   x->print();
     // }
   }
 }
-
 // ================================================================================================================================
 // Arithemetic
 // ================================================================================================================================
@@ -774,10 +793,25 @@ Tensor *Tensor::full_like(Tensor *a, float n) {
 
 Tensor *Tensor::clone(Tensor *other) {
   Memory *new_buffer =
-      pool->request_memory(other->device, other->memory->size, other->dtype);
+      pool->request_memory(other->device, other->size, other->dtype);
   Memory::copy(other->memory, new_buffer);
   Tensor *cloned = new Tensor(new_buffer, other->dims, other->dtype,
                               other->requires_grad, other->device);
+  if (other->grad) {
+    Memory *new_grad_buffer = pool->request_memory(
+        other->grad->device, other->grad->memory->bytesize, other->grad->dtype);
+    Memory::copy(other->grad->memory, new_grad_buffer);
+    Tensor *grad_tensor =
+        new Tensor(new_grad_buffer, other->grad->dims, other->grad->dtype,
+                   other->grad->requires_grad, other->grad->device);
+    cloned->grad = grad_tensor;
+  }
+  if (cloned->requires_grad) {
+    cloned->node->outputs = {cloned};
+    cloned->node->inputs = {other};
+    cloned->node->type = OPType::CLONE;
+    cloned->node->op = dispatcher->get(OPType::CLONE, cloned->device);
+  }
   return cloned;
 }
 
