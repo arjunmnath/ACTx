@@ -25,4 +25,4 @@ int main() {
   // Tensor *t8 = new Tensor(vals4, dims);
   // Tensor *t9 = t7->div(t8, false); // t9 = t7 / t8
   // t9->backward();
-  }
+}
