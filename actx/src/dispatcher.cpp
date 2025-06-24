@@ -8,6 +8,7 @@
 #include <iostream>
 #include <optional>
 #include <stdexcept>
+#include <stdio.h>
 
 #define REGISTER_OP(OP, DEVICE, FUNC_PRE, FUNC_POST, BACKWARD)                 \
   this->_register->register_op(                                                \
@@ -16,10 +17,6 @@
         Tensor *a, *b, *result;                                                \
         a = b = result = nullptr;                                              \
         FUNC_PRE;                                                              \
-        if (a && b) {                                                          \
-          a->requires_grad = b->requires_grad =                                \
-              a->requires_grad || b->requires_grad;                            \
-        }                                                                      \
         if (result) {                                                          \
           result->node = new OpNode;                                           \
           result->node->op =                                                   \
@@ -62,10 +59,14 @@ void Dispatcher::init_register() {
                 a = node->inputs[0];
                 out = node->outputs[0];
                 assert(node->inputs.size() == 1 && node->outputs.size() == 1);
-                if (a->requires_grad)
-                  a->grad = a->grad != nullptr
-                                ? a->grad->add(out->grad->negate(false), true)
-                                : Tensor::clone(out->grad)->negate(false);
+                if (a->requires_grad) {
+                  if (a->grad) {
+                    a->grad = a->grad->add(out->grad->negate(false), true);
+                  } else {
+                    a->grad = out->grad->negate(false);
+                    a->grad->requires_grad = false;
+                  }
+                }
               });
 
   REGISTER_OP(ADD, MPS, ({
@@ -84,12 +85,22 @@ void Dispatcher::init_register() {
                 a = node->inputs[0];
                 b = node->inputs[1];
                 out = node->outputs[0];
-                if (a->requires_grad)
-                  a->grad = a->grad != nullptr ? a->grad->add(out->grad, true)
-                                               : Tensor::clone(out->grad);
-                if (b->requires_grad)
-                  b->grad = b->grad != nullptr ? b->grad->add(out->grad)
-                                               : Tensor::clone(out->grad);
+                if (a->requires_grad) {
+                  if (a->grad) {
+                    a->grad = a->grad->add(out->grad, true);
+                  } else {
+                    a->grad = Tensor::clone(out->grad);
+                    a->grad->requires_grad = false;
+                  }
+                }
+                if (b->requires_grad) {
+                  if (b->grad) {
+                    b->grad = b->grad->add(out->grad);
+                  } else {
+                    b->grad = Tensor::clone(out->grad);
+                    b->grad->requires_grad = false;
+                  }
+                }
               }));
   REGISTER_OP(SUB, MPS, ({
                 assert(inputs.size() == 3);
@@ -107,13 +118,22 @@ void Dispatcher::init_register() {
                 a = node->inputs[0];
                 b = node->inputs[1];
                 out = node->outputs[0];
-                if (a->requires_grad)
-                  a->grad = a->grad != nullptr ? a->grad->add(out->grad, true)
-                                               : Tensor::clone(out->grad);
-                if (b->requires_grad)
-                  b->grad = b->grad != nullptr
-                                ? b->grad->add(out->grad->negate(false), true)
-                                : Tensor::clone(out->grad)->negate(false);
+                if (a->requires_grad) {
+                  if (a->grad) {
+                    a->grad = a->grad->add(out->grad, true);
+                  } else {
+                    a->grad = Tensor::clone(out->grad);
+                    a->grad->requires_grad = false;
+                  }
+                }
+                if (b->requires_grad) {
+                  if (b->grad) {
+                    b->grad = b->grad->add(out->grad->negate(false), true);
+                  } else {
+                    b->grad = out->grad->negate(false);
+                    b->grad->requires_grad = false;
+                  }
+                }
               });
   REGISTER_OP(MUL, MPS, ({
                 assert(inputs.size() == 3);
@@ -131,12 +151,22 @@ void Dispatcher::init_register() {
                 a = node->inputs[0];
                 b = node->inputs[1];
                 out = node->outputs[0];
-                if (a->requires_grad)
-                  a->grad = a->grad ? a->grad->add(b->mul(out->grad), true)
-                                    : b->mul(Tensor::clone(out->grad));
-                if (b->requires_grad)
-                  b->grad = b->grad ? b->grad->add(a->mul(out->grad), true)
-                                    : a->mul(Tensor::clone(out->grad));
+                if (a->requires_grad) {
+                  if (a->grad) {
+                    a->grad = a->grad->add(b->mul(out->grad), true);
+                  } else {
+                    a->grad = b->mul(out->grad);
+                    a->grad->requires_grad = false;
+                  }
+                }
+                if (b->requires_grad) {
+                  if (b->grad) {
+                    b->grad = b->grad->add(a->mul(out->grad), true);
+                  } else {
+                    b->grad = a->mul(out->grad);
+                    b->grad->requires_grad = false;
+                  }
+                }
               }));
 
   REGISTER_OP(DIV, MPS, ({
@@ -155,19 +185,27 @@ void Dispatcher::init_register() {
                 a = node->inputs[0];
                 b = node->inputs[1];
                 out = node->outputs[0];
-                if (a->requires_grad)
-                  a->grad = a->grad
-                                ? a->grad->add(out->grad->div(b, false), true)
-                                : Tensor::clone(out->grad)->div(b, false);
-                if (b->requires_grad)
-                  b->grad =
-                      b->grad ? b->grad->add(a->div(b->pow(2.0f, false), false)
-                                                 ->mul(out->grad, false)
-                                                 ->negate(false),
-                                             true)
-                              : a->div(b->pow(2.0f, false), false)
-                                    ->mul(Tensor::clone(out->grad), false)
-                                    ->negate(false);
+                if (a->requires_grad) {
+                  if (a->grad) {
+                    a->grad = a->grad->add(out->grad->div(b, false), true);
+                  } else {
+                    a->grad = Tensor::clone(out->grad)->div(b, false);
+                    a->grad->requires_grad = false;
+                  }
+                }
+                if (b->requires_grad) {
+                  if (b->grad) {
+                    b->grad = b->grad->add(a->div(b->pow(2.0f, false), false)
+                                               ->mul(out->grad, false)
+                                               ->negate(false),
+                                           true);
+                  } else {
+                    b->grad = a->div(b->pow(2.0f, false), false)
+                                  ->mul(out->grad, false)
+                                  ->negate(false);
+                    b->grad->requires_grad = false;
+                  }
+                }
               }));
   REGISTER_OP(
       POW, MPS, ({
@@ -187,14 +225,15 @@ void Dispatcher::init_register() {
         a = node->inputs[0];
         b = node->inputs[1];
         out = node->outputs[0];
-        if (a->requires_grad)
-          a->grad =
-              a->grad
-                  ? a->grad->add(
-                        b->mul(a->pow(b->_get_element(0) - 1))->mul(out->grad),
-                        true)
-                  : b->mul(a->pow(b->_get_element(0) - 1))
-                        ->mul(Tensor::clone(out->grad));
+        if (a->requires_grad) {
+          if (a->grad) {
+            a->grad = a->grad->add(
+                b->mul(a->pow(b->_get_element(0) - 1))->mul(out->grad), true);
+          } else {
+            a->grad = b->mul(a->pow(b->_get_element(0) - 1))->mul(out->grad);
+            a->grad->requires_grad = false;
+          }
+        }
       }));
 
   // comparison;
@@ -322,9 +361,18 @@ void Dispatcher::init_register() {
         a = node->inputs[0];
         out = node->outputs[0];
         assert(node->inputs.size() == 1 && node->outputs.size() == 1);
-        if (a->requires_grad)
-          a->grad =
-              a->pow(-0.5f)->div(Tensor::full_like(a, 2.0f))->mul(out->grad);
+
+        if (a->requires_grad) {
+          if (a->grad) {
+            a->grad = a->grad->add(
+                a->pow(-0.5f)->div(Tensor::full_like(a, 2.0f))->mul(out->grad),
+                true);
+          } else {
+            a->grad =
+                a->pow(-0.5f)->div(Tensor::full_like(a, 2.0f))->mul(out->grad);
+            a->grad->requires_grad = false;
+          }
+        }
       });
 
   REGISTER_OP(EXP, MPS, ({
@@ -341,8 +389,15 @@ void Dispatcher::init_register() {
                 a = node->inputs[0];
                 out = node->outputs[0];
                 assert(node->inputs.size() == 1 && node->outputs.size() == 1);
-                if (a->requires_grad)
-                  a->grad = a->exp()->mul(out->grad);
+
+                if (a->requires_grad) {
+                  if (a->grad) {
+                    a->grad = a->grad->add(a->exp()->mul(out->grad), true);
+                  } else {
+                    a->grad = a->exp()->mul(out->grad);
+                    a->grad->requires_grad = false;
+                  }
+                }
               });
 
   REGISTER_OP(LOG, MPS, ({
@@ -359,8 +414,15 @@ void Dispatcher::init_register() {
                 a = node->inputs[0];
                 out = node->outputs[0];
                 assert(node->inputs.size() == 1 && node->outputs.size() == 1);
-                if (a->requires_grad)
-                  a->grad = Tensor::ones_like(a)->div(a)->mul(out->grad);
+                if (a->requires_grad) {
+                  if (a->grad) {
+                    a->grad = a->grad->add(
+                        Tensor::ones_like(a)->div(a)->mul(out->grad), true);
+                  } else {
+                    a->grad = Tensor::ones_like(a)->div(a)->mul(out->grad);
+                    a->grad->requires_grad = false;
+                  }
+                }
               });
   REGISTER_OP(LOG10, MPS, ({
                 assert(inputs.size() == 2);
@@ -376,10 +438,20 @@ void Dispatcher::init_register() {
                 a = node->inputs[0];
                 out = node->outputs[0];
                 assert(node->inputs.size() == 1 && node->outputs.size() == 1);
-                if (a->requires_grad)
-                  a->grad = Tensor::full_like(a, 1.0f / (float)log(10))
-                                ->div(a)
-                                ->mul(out->grad);
+                if (a->requires_grad) {
+                  if (a->grad) {
+                    a->grad =
+                        a->grad->add(Tensor::full_like(a, 1.0f / (float)log(10))
+                                         ->div(a)
+                                         ->mul(out->grad),
+                                     true);
+                  } else {
+                    a->grad = Tensor::full_like(a, 1.0f / (float)log(10))
+                                  ->div(a)
+                                  ->mul(out->grad);
+                    a->grad->requires_grad = false;
+                  }
+                }
               });
 
   REGISTER_OP(LOG2, MPS, ({
@@ -396,10 +468,20 @@ void Dispatcher::init_register() {
                 a = node->inputs[0];
                 out = node->outputs[0];
                 assert(node->inputs.size() == 1 && node->outputs.size() == 1);
-                if (a->requires_grad)
-                  a->grad = Tensor::full_like(a, 1.0f / (float)log(2))
-                                ->div(a)
-                                ->mul(out->grad);
+                if (a->requires_grad) {
+                  if (a->grad) {
+                    a->grad =
+                        a->grad->add(Tensor::full_like(a, 1.0f / (float)log(2))
+                                         ->div(a)
+                                         ->mul(out->grad),
+                                     true);
+                  } else {
+                    a->grad = Tensor::full_like(a, 1.0f / (float)log(2))
+                                  ->div(a)
+                                  ->mul(out->grad);
+                    a->grad->requires_grad = false;
+                  }
+                }
               });
 
   // Trigometric functions

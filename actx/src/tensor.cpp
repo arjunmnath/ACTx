@@ -323,11 +323,9 @@ void Tensor::print_buffer() const {
 int Tensor::offset() const { return this->offset_elements; }
 Tensor *Tensor::execute_broadcastable_operation(OPType op, Tensor *other,
                                                 bool inplace) {
-  if (this->requires_grad || other->requires_grad) {
-    this->requires_grad = other->requires_grad = true;
-  }
   if (inplace) {
-    if (this->requires_grad)
+    // TODO: recheck this return null logic
+    if (this->requires_grad && other->requires_grad)
       return NULL;
     dispatcher->call(op, this->device, {this, other, this});
     return this;
@@ -339,8 +337,8 @@ Tensor *Tensor::execute_broadcastable_operation(OPType op, Tensor *other,
                       std::multiplies<int>()),
       this->dtype);
 
-  Tensor *result =
-      new Tensor(result_memory, result_shape, this->dtype, this->requires_grad);
+  Tensor *result = new Tensor(result_memory, result_shape, this->dtype,
+                              this->requires_grad || other->requires_grad);
   dispatcher->call(op, this->device, {this, other, result});
   return result;
 }
@@ -359,17 +357,14 @@ Tensor *Tensor::execute_init_operation(OPType op, std::vector<int> shape,
 }
 
 Tensor *Tensor::execute_binary_operation(OPType op, Tensor *other) {
-  if (this->requires_grad || other->requires_grad) {
-    this->requires_grad = other->requires_grad = true;
-  }
   Memory *result_memory =
       pool->request_memory(this->device,
                            std::accumulate(this->dims.begin(), this->dims.end(),
                                            1, std::multiplies<int>()),
                            this->dtype);
 
-  Tensor *result =
-      new Tensor(result_memory, this->dims, this->dtype, this->requires_grad);
+  Tensor *result = new Tensor(result_memory, this->dims, this->dtype,
+                              this->requires_grad || other->requires_grad);
   dispatcher->call(op, this->device, {this, other, result});
   return result;
 }
@@ -414,8 +409,7 @@ std::vector<OpNode *> Tensor::topo_sort() {
 void Tensor::backward() {
   if (!this->requires_grad)
     return;
-  this->grad =
-      Tensor::ones(this->dims, this->dtype, this->requires_grad, this->device);
+  this->grad = Tensor::ones(this->dims, this->dtype, false, this->device);
 
   std::vector<OpNode *> sorted = this->topo_sort();
   OpNode *current_node;
