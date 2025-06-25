@@ -31,7 +31,6 @@ bool operator==(const std::vector<T> &lhs, const std::vector<T> &rhs) {
       return false;
     }
   }
-
   return true;
 }
 float __rand(int seed) {
@@ -83,59 +82,6 @@ int __bernoulli(float p, int seed) {
   return dist(gen);
 }
 
-int getDTypeSize(DType dtype) {
-  switch (dtype) {
-  case DType::int8:
-    return 1;
-    break;
-  case DType::float16:
-  case DType::int16:
-    return 2;
-    break;
-
-  case DType::float32:
-  case DType::int32:
-    return 4;
-    break;
-  case DType::int64:
-    return 8;
-    break;
-  default:
-    throw std::invalid_argument("not implemented");
-    break;
-  }
-}
-std::string getDeviceName(DeviceType device) {
-  switch (device) {
-  case DeviceType::MPS:
-    return "MPS";
-  case DeviceType::CPU:
-    return "CPU";
-  case DeviceType::WEBGPU:
-    return "WEBGPU";
-  default:
-    return "unknown device";
-  }
-}
-std::string getTypeName(DType dtype) {
-  switch (dtype) {
-  case DType::int8:
-    return "int8";
-  case DType::int16:
-    return "int16";
-  case DType::int32:
-    return "int32";
-  case DType::int64:
-    return "int64";
-  case DType::float16:
-    return "float16";
-  case DType::float32:
-    return "float32";
-  default:
-    return "unknown type";
-  }
-}
-// TODO: complete remaining data types
 std::vector<int> compute_broadcast_shape(const Tensor *a, const Tensor *b) {
   int max_rank = std::max(b->dims.size(), a->dims.size());
   std::vector<int> result(max_rank);
@@ -148,4 +94,9 @@ std::vector<int> compute_broadcast_shape(const Tensor *a, const Tensor *b) {
       throw std::invalid_argument("Shapes not broadcastable");
   }
   return result;
+}
+Tensor *make_tensor(std::vector<float> data, std::vector<int> shape,
+                    DType dtype, bool requires_grad, DeviceType device) {
+  Tensor *t = new Tensor(data.data(), data.size(), shape, dtype, false);
+  return t;
 }

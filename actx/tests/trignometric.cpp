@@ -2,15 +2,16 @@
 #include <gtest/gtest.h>
 #include <stdexcept>
 #include <vector>
+#include "utility.h"
 
 TEST(TensorTrig, SinOperation) {
   std::vector<float> data = {0.0, M_PI_2, M_PI, 3 * M_PI_2};
   std::vector<float> expected_data = {0.0, 1.0, 0.0, -1.0};
   std::vector<int> shape = {2, 2};
 
-  Tensor *input = new Tensor(data, shape);
+  Tensor *input = make_tensor(data, shape);
   Tensor *result = input->sin(false);
-  Tensor *expected = new Tensor(expected_data, shape);
+  Tensor *expected = make_tensor(expected_data, shape);
   EXPECT_TRUE(result->logical_e(expected)->all()) << "sin() failed";
   delete input;
   delete result;
@@ -22,9 +23,9 @@ TEST(TensorTrig, CosOperation) {
   std::vector<float> expected_data = {1.0, 0.0, -1.0, 0.0};
   std::vector<int> shape = {2, 2};
 
-  Tensor *input = new Tensor(data, shape);
+  Tensor *input = make_tensor(data, shape);
   Tensor *result = input->cos();
-  Tensor *expected = new Tensor(expected_data, shape);
+  Tensor *expected = make_tensor(expected_data, shape);
 
   EXPECT_TRUE(result->logical_e(expected)->all()) << "cos() failed";
   delete input;
@@ -37,9 +38,9 @@ TEST(TensorTrig, TanOperation) {
   std::vector<float> expected_data = {0.0, 1.0, -1.0, 0.0};
   std::vector<int> shape = {2, 2};
 
-  Tensor *input = new Tensor(data, shape);
+  Tensor *input = make_tensor(data, shape);
   Tensor *result = input->tan();
-  Tensor *expected = new Tensor(expected_data, shape);
+  Tensor *expected = make_tensor(expected_data, shape);
 
   EXPECT_TRUE(result->logical_e(expected)->all()) << "tan() failed";
   delete input;
@@ -53,9 +54,9 @@ TEST(TensorTrig, AsinOperation) {
                                       static_cast<float>(std::asin(-0.5)),
                                       M_PI_2};
   std::vector<int> shape = {2, 2};
-  Tensor *input = new Tensor(data, shape);
+  Tensor *input = make_tensor(data, shape);
   Tensor *result = input->asin();
-  Tensor *expected = new Tensor(expected_data, shape);
+  Tensor *expected = make_tensor(expected_data, shape);
 
   EXPECT_TRUE(result->logical_e(expected)->all()) << "asin() failed";
   delete input;
@@ -69,9 +70,9 @@ TEST(TensorTrig, AcosOperation) {
                                       static_cast<float>(std::acos(-0.5)),
                                       M_PI};
   std::vector<int> shape = {2, 2};
-  Tensor *input = new Tensor(data, shape);
+  Tensor *input = make_tensor(data, shape);
   Tensor *result = input->acos();
-  Tensor *expected = new Tensor(expected_data, shape);
+  Tensor *expected = make_tensor(expected_data, shape);
   EXPECT_TRUE(result->logical_e(expected)->all()) << "acos() failed";
   delete input;
   delete result;
@@ -85,9 +86,9 @@ TEST(TensorTrig, AtanOperation) {
                                       static_cast<float>(std::atan(10.0))};
   std::vector<int> shape = {2, 2};
 
-  Tensor *input = new Tensor(data, shape);
+  Tensor *input = make_tensor(data, shape);
   Tensor *result = input->atan();
-  Tensor *expected = new Tensor(expected_data, shape);
+  Tensor *expected = make_tensor(expected_data, shape);
 
   EXPECT_TRUE(result->logical_e(expected)->all()) << "atan() failed";
   delete input;
@@ -105,10 +106,10 @@ TEST(TensorTrig, Atan2Operation) {
       static_cast<float>(std::atan2(1.0, -1.0))};
   std::vector<int> shape = {2, 2};
 
-  Tensor *y = new Tensor(y_data, shape);
-  Tensor *x = new Tensor(x_data, shape);
+  Tensor *y = make_tensor(y_data, shape);
+  Tensor *x = make_tensor(x_data, shape);
   Tensor *result = x->atan2(y);
-  Tensor *expected = new Tensor(expected_data, shape);
+  Tensor *expected = make_tensor(expected_data, shape);
 
   EXPECT_TRUE(result->logical_e(expected)->all()) << "atan2() failed";
   delete x;

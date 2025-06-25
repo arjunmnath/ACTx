@@ -2,6 +2,7 @@
 #include "tensor.h"
 #include <gtest/gtest.h>
 #include <stdexcept>
+#include "utility.h"
 #include <vector>
 
 TEST(TensorTest, EmptyTensorThrows) {
@@ -11,8 +12,8 @@ TEST(TensorTest, EmptyTensorThrows) {
 
   EXPECT_THROW(
       {
-        Tensor tensor1(data1, shape);
-        Tensor tensor2(data2, shape);
+        Tensor tensor1(data1.data(), data1.size(), shape);
+        Tensor tensor2(data2.data(), data2.size(), shape);
       },
       std::runtime_error);
 }

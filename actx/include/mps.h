@@ -61,6 +61,7 @@ public:
   void zeros(Tensor *a) override;
   void eye(Tensor *a) override;
   void full(Tensor *n, Tensor *result) override;
+  void rand(Tensor *a, Tensor *meta) override;
 
   // comparison
   void logical_e(const Tensor *a, const Tensor *b, Tensor *result) override;

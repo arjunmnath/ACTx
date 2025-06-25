@@ -2,6 +2,8 @@
 #include <gtest/gtest.h>
 #include <stdexcept>
 #include <vector>
+#include "utility.h"
+
 
 /*
 TEST(TensorTest, MatmulShapeMismatchThrows) {
@@ -25,8 +27,8 @@ TEST(TensorShape, BroadcastAddOperationValid) {
   std::vector<int> shape1 = {2, 2};
   std::vector<int> shape2 = {1, 2};
 
-  Tensor *tensor1 = new Tensor(data1, shape1);
-  Tensor *tensor2 = new Tensor(data2, shape2);
+  Tensor *tensor1 = make_tensor(data1, shape1);
+  Tensor *tensor2 = make_tensor(data2, shape2);
 
   EXPECT_NO_THROW({ tensor1->add(tensor2, false); });
 }

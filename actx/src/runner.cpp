@@ -5,7 +5,8 @@
 #include <iostream>
 #include <vector>
 Tensor *make_tensor(std::vector<float> data, std::vector<int> shape = {2}) {
-  Tensor *t = new Tensor(data, shape, DType::float32, false);
+  Tensor *t =
+      new Tensor(data.data(), data.size(), shape, DType::float32, false);
   return t;
 }
 int main() {

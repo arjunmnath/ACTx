@@ -56,10 +56,13 @@ public:
          bool requires_grad = false, DeviceType device = DeviceType::MPS);
   Tensor(Memory *memory, std::vector<int> dims, DType dtype = DType::float32,
          bool requires_grad = false, DeviceType device = DeviceType::MPS);
+  // Tensor(std::vector<float> &values, std::vector<int> dims,
+  //        DType dtype = DType::float32, bool requires_grad = false,
+  //        DeviceType device = DeviceType::MPS);
+  template <typename T>
+  Tensor(T *values, int n, std::vector<int> dims, DType dtype = DType::float32,
+         bool requires_grad = false, DeviceType device = DeviceType::MPS);
 
-  Tensor(std::vector<float> &values, std::vector<int> dims,
-         DType dtype = DType::float32, bool requires_grad = false,
-         DeviceType device = DeviceType::MPS);
   // template <typename T>
   // Tensor(std::vector<T> &values, std::vector<int> dims,
   //        DType dtype = DType::float32, bool requires_grad = false);
@@ -135,14 +138,26 @@ public:
   Tensor *asinh(bool inplace = false);
 
   // not implemented
-  static Tensor *rand(std::vector<int> shape, DType dtype);
-  static Tensor *randn(std::vector<int> shape, DType dtype = DType::float32);
+  static Tensor *rand(std::vector<int> shape, DType dtype,
+                      bool requires_grad = false,
+                      DeviceType device = DeviceType::MPS);
+  static Tensor *randn(std::vector<int> shape, DType dtype = DType::float32,
+                       bool requires_grad = false,
+                       DeviceType device = DeviceType::MPS);
   static Tensor *normal(std::vector<int> shape, float mean = 0,
-                        float stddev = 1, DType dtype = DType::float32);
+                        float stddev = 1, DType dtype = DType::float32,
+                        bool requires_grad = false,
+                        DeviceType device = DeviceType::MPS);
   static Tensor *randint(std::vector<int> shape, int min, int max,
-                         DType dtype = DType::float32);
-  static Tensor *poission(Tensor &other, DType dtype = DType::float32);
-  static Tensor *bernoulli(Tensor &other, DType dtype = DType::float32);
+                         DType dtype = DType::float32,
+                         bool requires_grad = false,
+                         DeviceType device = DeviceType::MPS);
+  static Tensor *poission(Tensor &other, DType dtype = DType::float32,
+                          bool requires_grad = false,
+                          DeviceType device = DeviceType::MPS);
+  static Tensor *bernoulli(Tensor &other, DType dtype = DType::float32,
+                           bool requires_grad = false,
+                           DeviceType device = DeviceType::MPS);
 
   // TODO: modify this to have a numpy like behaviour
   bool all();

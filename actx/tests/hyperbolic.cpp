@@ -1,4 +1,5 @@
 #include "tensor.h"
+#include "utility.h"
 #include <gtest/gtest.h>
 #include <stdexcept>
 #include <vector>
@@ -10,9 +11,9 @@ TEST(TensorTrig, SinhOperation) {
       static_cast<float>(std::sinh(-1.0)), static_cast<float>(std::sinh(2.0))};
   std::vector<int> shape = {2, 2};
 
-  Tensor *input = new Tensor(data, shape);
+  Tensor *input = make_tensor(data, shape);
   Tensor *result = input->sinh();
-  Tensor *expected = new Tensor(expected_data, shape);
+  Tensor *expected = make_tensor(expected_data, shape);
 
   EXPECT_TRUE(result->logical_e(expected)->all()) << "sinh() failed";
   delete input;
@@ -27,9 +28,9 @@ TEST(TensorTrig, CoshOperation) {
       static_cast<float>(std::cosh(-1.0)), static_cast<float>(std::cosh(2.0))};
   std::vector<int> shape = {2, 2};
 
-  Tensor *input = new Tensor(data, shape);
+  Tensor *input = make_tensor(data, shape);
   Tensor *result = input->cosh();
-  Tensor *expected = new Tensor(expected_data, shape);
+  Tensor *expected = make_tensor(expected_data, shape);
 
   EXPECT_TRUE(result->logical_e(expected)->all()) << "cosh() failed";
   delete input;
@@ -44,9 +45,9 @@ TEST(TensorTrig, TanhOperation) {
       static_cast<float>(std::tanh(-1.0)), static_cast<float>(std::tanh(2.0))};
   std::vector<int> shape = {2, 2};
 
-  Tensor *input = new Tensor(data, shape);
+  Tensor *input = make_tensor(data, shape);
   Tensor *result = input->tanh();
-  Tensor *expected = new Tensor(expected_data, shape);
+  Tensor *expected = make_tensor(expected_data, shape);
 
   EXPECT_TRUE(result->logical_e(expected)->all()) << "tanh() failed";
   delete input;
@@ -62,9 +63,9 @@ TEST(TensorTrig, AsinhOperation) {
                                       static_cast<float>(std::asinh(2.0))};
   std::vector<int> shape = {2, 2};
 
-  Tensor *input = new Tensor(data, shape);
+  Tensor *input = make_tensor(data, shape);
   Tensor *result = input->asinh();
-  Tensor *expected = new Tensor(expected_data, shape);
+  Tensor *expected = make_tensor(expected_data, shape);
 
   EXPECT_TRUE(result->logical_e(expected)->all()) << "asinh() failed";
   delete input;
@@ -80,9 +81,9 @@ TEST(TensorTrig, AcoshOperation) {
                                       static_cast<float>(std::acosh(10.0))};
   std::vector<int> shape = {2, 2};
 
-  Tensor *input = new Tensor(data, shape);
+  Tensor *input = make_tensor(data, shape);
   Tensor *result = input->acosh();
-  Tensor *expected = new Tensor(expected_data, shape);
+  Tensor *expected = make_tensor(expected_data, shape);
 
   EXPECT_TRUE(result->logical_e(expected)->all()) << "acosh() failed";
   delete input;
@@ -98,9 +99,9 @@ TEST(TensorTrig, AtanhOperation) {
                                       static_cast<float>(std::atanh(0.9f))};
   std::vector<int> shape = {2, 2};
 
-  Tensor *input = new Tensor(data, shape);
+  Tensor *input = make_tensor(data, shape);
   Tensor *result = input->atanh();
-  Tensor *expected = new Tensor(expected_data, shape);
+  Tensor *expected = make_tensor(expected_data, shape);
 
   EXPECT_TRUE(result->logical_e(expected)->all()) << "atanh() failed";
   delete input;

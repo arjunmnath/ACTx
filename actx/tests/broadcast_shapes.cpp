@@ -1,4 +1,5 @@
 #include "tensor.h"
+#include "utility.h"
 #include <gtest/gtest.h>
 #include <vector>
 
@@ -14,7 +15,7 @@ TEST(TensorBroadcastShapes, BroadcastingAdditionWithOnes) {
   std::vector<int> shape3 = {3, 4};
   std::vector<float> expected_data = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
 
-  Tensor *expected = new Tensor(expected_data, shape3);
+  Tensor *expected = make_tensor(expected_data, shape3);
 
   EXPECT_TRUE(result->logical_e(expected)->all())
       << "Broadcasting addition failed";

@@ -1,4 +1,5 @@
 #include "tensor.h"
+#include "utility.h"
 #include <gtest/gtest.h>
 #include <vector>
 
@@ -8,8 +9,8 @@ TEST(TensorBroadcastInvalidShape, IncompatibleShapesAddition) {
   std::vector<int> shape1 = {3};
   std::vector<int> shape2 = {2};
 
-  Tensor *tensor1 = new Tensor(data1, shape1);
-  Tensor *tensor2 = new Tensor(data2, shape2);
+  Tensor *tensor1 = make_tensor(data1, shape1);
+  Tensor *tensor2 = make_tensor(data2, shape2);
 
   try {
     Tensor *result = tensor1->add(tensor2, false);

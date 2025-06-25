@@ -58,7 +58,6 @@ public:
   virtual void eye(Tensor *a) = 0;
   virtual void full(Tensor *n, Tensor *result) = 0;
 
-  // TODO: modify this to have a numpy like behaviour
-  bool all();
-  bool any();
+  // advanced inits;
+  virtual void rand(Tensor *a, Tensor *meta) = 0;
 };

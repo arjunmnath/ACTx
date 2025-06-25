@@ -1,6 +1,8 @@
 #include "memory.h"
+#include "device_type.h"
 #include "main.h"
 #include "storage.h"
+#include "types.h"
 #include "utility.h"
 #include <cstring>
 #include <stdexcept>
@@ -15,10 +17,11 @@ void Memory::copy(Memory *src, Memory *dest) {
     memcpy(dest->data_ptr, src->data_ptr, src->bytesize);
   }
 };
-void Memory::copy_from_vector(std::vector<type_variant> src,
-                              std::shared_ptr<Memory> dest) {}
-void Memory::copy_to_vector(std::shared_ptr<Memory> src,
-                            std::vector<type_variant> dest) {}
+template <typename T>
+void Memory::copy_from_vector(T *src, std::shared_ptr<Memory> dest) {}
+
+template <typename T>
+void Memory::copy_to_vector(std::shared_ptr<Memory> src, T *dest) {}
 Memory::Memory(DeviceType type, size_t bytesize, DType dtype) {
   this->device = type;
   this->bytesize = bytesize;

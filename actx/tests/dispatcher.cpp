@@ -1,11 +1,7 @@
 
 #include "dispatcher.h"
+#include "utility.h"
 #include <gtest/gtest.h>
-
-Tensor *make_tensor(std::vector<float> data, std::vector<int> shape = {2}) {
-  Tensor *t = new Tensor(data, shape, DType::float32, false);
-  return t;
-}
 
 TEST(DispatcherTest, AddOperationMPS) {
   Dispatcher dispatcher;

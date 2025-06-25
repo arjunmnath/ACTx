@@ -177,9 +177,10 @@ Tensor::Tensor(Memory *memory, std::vector<int> dims, DType dtype,
 
 // FIX: fix the vector<float> and dtype mismatch and allocate memory and do
 // memcpy
-Tensor::Tensor(std::vector<float> &values, std::vector<int> dims, DType dtype,
+template <typename T>
+Tensor::Tensor(T *values, int n, std::vector<int> dims, DType dtype,
                bool requires_grad, DeviceType device) {
-  if (values.size() == 0) {
+  if (0 == n) {
     throw std::runtime_error("values expected");
   }
   this->dtype = dtype;
@@ -190,10 +191,9 @@ Tensor::Tensor(std::vector<float> &values, std::vector<int> dims, DType dtype,
   this->device = device;
   this->size =
       std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
-  assert(values.size() == this->size);
+  assert(n == this->size);
   this->memory = pool->request_memory(this->device, this->size, this->dtype);
-  mps->copy_vector_to_buffer(values.data(), *this->memory,
-                             values.size() * getDTypeSize(dtype));
+  mps->copy_vector_to_buffer(values, *this->memory, n * getDTypeSize(dtype));
   this->reinterpret_pointer(this->memory->data_ptr);
   this->requires_grad = requires_grad;
   if (requires_grad) {
@@ -418,28 +418,6 @@ void Tensor::backward() {
     if ((*it)->type == OPType::NO_OP)
       continue;
     (*it)->op->backward(*it);
-    // bool has_nonleaf = false;
-    // for (Tensor *tensor = current_node->inputs.begin();
-    //      tensor != current_node->inputs.end(); ++tensor) {
-    //   if (tensor->requires_grad) {
-    //     if (tensor->node->type == OPType::NO_OP) {
-    //       Tensor *accumulated_grad = current_node->outputs[0]->grad;
-    //       if (!tensor->grad) {
-    //         tensor->grad = Tensor::clone(accumulated_grad);
-    //       } else {
-    //         tensor->grad->add(accumulated_grad, true);
-    //       }
-    //     } else {
-    //       has_nonleaf = true;
-    //     }
-    //   }
-    // }
-    // if (has_nonleaf) {
-    //   current_node->op->backward(current_node);
-    // }
-    // for (auto x : (*it)->outputs) {
-    //   x->print();
-    // }
   }
 }
 // ================================================================================================================================
@@ -468,16 +446,12 @@ Tensor *Tensor::mul(Tensor *other, bool inplace) {
 }
 
 Tensor *Tensor::div(Tensor *other, bool inplace) {
-  // TODO: fix this division by zero checking
-  Tensor *zeros =
-      Tensor::zeros(other->dims, other->dtype, false, other->device);
-  free(zeros);
   return execute_broadcastable_operation(OPType::DIV, other, inplace);
 }
 
 Tensor *Tensor::pow(float exp, bool inplace) {
   std::vector<float> val = {exp};
-  Tensor *other = new Tensor(val, {1});
+  Tensor *other = new Tensor(val.data(), val.size(), {1});
   return execute_binary_operation(OPType::POW, other);
 }
 
@@ -503,17 +477,10 @@ Tensor *Tensor::logical_lt(Tensor *other) {
 Tensor *Tensor::logical_lte(Tensor *other) {
   return this->execute_binary_operation(OPType::LOGICAL_LTE, other);
 }
-/*
-Tensor Tensor::matmul(Tensor *other) const {
-  // TODO: implement broadcastable matmul;
+Tensor *Tensor::matmul(Tensor *other) const {
   throw std::logic_error("not implemented");
-  if (this->dims[1] != other->dims[0]) {
-    throw std::runtime_error("shape contraint issue");
-  }
-  std::vector<int> m = {this->dims[0], this->dims[1], other->dims[1]};
-  return Tensor(m, true);
+  return NULL;
 }
-*/
 
 // Mathematical operations
 Tensor *Tensor::exp(bool inplace) {
@@ -761,7 +728,7 @@ Tensor *Tensor::eye(int n, DType dtype, bool requires_grad, DeviceType device) {
 Tensor *Tensor::full(std::vector<int> shape, float n, DType dtype,
                      bool requires_grad, DeviceType device) {
   std::vector<float> val = {n};
-  Tensor *other = new Tensor(val, {1});
+  Tensor *other = new Tensor(val.data(), val.size(), {1});
   Memory *result_memory = pool->request_memory(
       device,
       std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>()),
@@ -809,21 +776,13 @@ Tensor *Tensor::clone(Tensor *other) {
   return cloned;
 }
 
-/*
 // TODO: configure the seed && change vector type from float to dynamic;
-Tensor Tensor::rand(std::vector<int> shape, DType dtype) {
-  id<MTLBuffer> meta =
-      device_mps->createBuffer(shape.data(), shape.size(), dtype);
-  int size =
-      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
-  std::vector<float> data(size, 0);
-  for (int i = 0; i < size; i++) {
-    data[i] = __rand();
-  }
-  id<MTLBuffer> result = device_mps->createBuffer(data.data(), size, dtype);
-  return Tensor(result, shape);
+Tensor *Tensor::rand(std::vector<int> shape, DType dtype, bool requires_grad,
+                     DeviceType device) {
+  return NULL;
 }
 
+/*
 Tensor Tensor::randn(std::vector<int> shape, DType dtype) {
   id<MTLBuffer> meta = device_mps->createBuffer(shape.data(), 2, dtype);
 

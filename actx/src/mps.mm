@@ -452,3 +452,19 @@ void MPS::acosh(const Tensor *input, Tensor *output) {
 void MPS::atanh(const Tensor *input, Tensor *output) {
   this->initiate_dispatch_unary("__atanh__", input, output);
 }
+
+void MPS::rand(Tensor *a, Tensor *meta) {
+  std::vector<type_t> data;
+  /* id<MTLBuffer> meta = device_mps->ckkreateBuffer(shape.data(), 2, dtype); */
+  /* int size = */
+  /*     std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+   */
+  /* std::vector<float> data(size, 0); */
+  /* for (int i = 0; i < size; i++) { */
+  /*   data[i] = __randn(); */
+  /* } */
+  /* id<MTLBuffer> result = device_mps->createBuffer(data.data(), size, dtype);
+   */
+  /* return Tensor(result, shape); */
+  /* float __rand(int seed) { */
+}
