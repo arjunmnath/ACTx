@@ -5,11 +5,11 @@
 #include "tensor.h"
 #include <functional>
 
-using TensorOperation = std::function<void(Tensor *, Tensor *, Tensor *)>;
+using TensorOperation = std::function<void(std::vector<Tensor *>)>;
 
 struct Operation {
   TensorOperation func;
-  TensorOperation backward;
+  std::function<void(OpNode *node)> backward;
 };
 
 class OpRegister {
@@ -18,6 +18,6 @@ private:
 
 public:
   void register_op(OPType op, DeviceType device, TensorOperation func,
-                   TensorOperation backward);
+                   std::function<void(OpNode *node)> backward);
   Operation *get(OPType op, DeviceType device);
 };

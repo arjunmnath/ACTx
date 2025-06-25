@@ -2,97 +2,130 @@
 #include <metal_stdlib>
 using namespace metal;
 
-kernel void
-__add__(device const float *A [[buffer(0)]],
-        device const float *B [[buffer(1)]], device float *C [[buffer(2)]],
-        constant int *lshape [[buffer(3)]], constant int *rshape [[buffer(4)]],
-        constant int *outshape [[buffer(5)]], constant int *ranks [[buffer(6)]],
-        uint tid [[thread_position_in_grid]]) {
-  int lrank = ranks[0];
-  int rrank = ranks[1];
-  int trank = ranks[2];
-
-  int li = compute_broadcast_index(tid, lshape, outshape, lrank, trank);
-  int ri = compute_broadcast_index(tid, rshape, outshape, rrank, trank);
-
-  C[tid] = A[li] + B[ri];
-}
-kernel void __sub__(device float *A [[buffer(0)]],
-                    device float *B [[buffer(1)]],
+kernel void __add__(device const float *A [[buffer(0)]],
+                    device const float *B [[buffer(1)]],
                     device float *C [[buffer(2)]],
-                    constant int *lshape [[buffer(3)]],
-                    constant int *rshape [[buffer(4)]],
-                    constant int *result_shape [[buffer(5)]],
-                    constant int *ranks [[buffer(6)]],
+                    constant int *metadata [[buffer(3)]],
                     uint tid [[thread_position_in_grid]]) {
-  int flat_index = tid;
-  int lrank = ranks[0];
-  int rrank = ranks[1];
-  int trank = ranks[2];
-  int lindex =
-      compute_broadcast_index(flat_index, lshape, result_shape, lrank, trank);
-  int rindex =
-      compute_broadcast_index(flat_index, rshape, result_shape, rrank, trank);
-  C[flat_index] = A[lindex] - B[rindex];
+
+  if ((int)tid >= metadata[0])
+    return;
+
+  int arank = metadata[1];
+  int brank = metadata[2];
+  int rrank = metadata[3];
+  const constant int *ashape = metadata + 4;
+  const constant int *astride = ashape + arank;
+  const constant int *bshape = astride + arank;
+  const constant int *bstride = bshape + brank;
+  const constant int *result_shape = bstride + brank;
+  int ai =
+      compute_broadcast_index(tid, ashape, astride, result_shape, arank, rrank);
+  int bi =
+      compute_broadcast_index(tid, bshape, bstride, result_shape, brank, rrank);
+  C[tid] = A[ai] + B[bi];
 }
 
-kernel void __div__(device float *A [[buffer(0)]],
-                    device float *B [[buffer(1)]],
+kernel void __sub__(device const float *A [[buffer(0)]],
+                    device const float *B [[buffer(1)]],
                     device float *C [[buffer(2)]],
-                    constant int *lshape [[buffer(3)]],
-                    constant int *rshape [[buffer(4)]],
-                    constant int *result_shape [[buffer(5)]],
-                    constant int *ranks [[buffer(6)]],
+                    constant int *metadata [[buffer(3)]],
                     uint tid [[thread_position_in_grid]]) {
-  int flat_index = tid;
-  int lrank = ranks[0];
-  int rrank = ranks[1];
-  int trank = ranks[2];
-  int lindex =
-      compute_broadcast_index(flat_index, lshape, result_shape, lrank, trank);
-  int rindex =
-      compute_broadcast_index(flat_index, rshape, result_shape, rrank, trank);
-  C[flat_index] = A[lindex] / B[rindex];
+  if ((int)tid >= metadata[0])
+    return;
+  int arank = metadata[1];
+  int brank = metadata[2];
+  int rrank = metadata[3];
+  const constant int *ashape = metadata + 4;
+  const constant int *astride = ashape + arank;
+  const constant int *bshape = astride + arank;
+  const constant int *bstride = bshape + brank;
+  const constant int *result_shape = bstride + brank;
+
+  int ai =
+      compute_broadcast_index(tid, ashape, astride, result_shape, arank, rrank);
+  int bi =
+      compute_broadcast_index(tid, bshape, bstride, result_shape, brank, rrank);
+  C[tid] = A[ai] - B[bi];
+}
+kernel void __div__(device const float *A [[buffer(0)]],
+                    device const float *B [[buffer(1)]],
+                    device float *C [[buffer(2)]],
+                    constant int *metadata [[buffer(3)]],
+                    uint tid [[thread_position_in_grid]]) {
+  if ((int)tid >= metadata[0])
+    return;
+  int arank = metadata[1];
+  int brank = metadata[2];
+  int rrank = metadata[3];
+  const constant int *ashape = metadata + 4;
+  const constant int *astride = ashape + arank;
+  const constant int *bshape = astride + arank;
+  const constant int *bstride = bshape + brank;
+  const constant int *result_shape = bstride + brank;
+
+  int ai =
+      compute_broadcast_index(tid, ashape, astride, result_shape, arank, rrank);
+  int bi =
+      compute_broadcast_index(tid, bshape, bstride, result_shape, brank, rrank);
+  C[tid] = A[ai] / B[bi];
 }
 
-kernel void __mul__(device float *A [[buffer(0)]],
-                    device float *B [[buffer(1)]],
+kernel void __mul__(device const float *A [[buffer(0)]],
+                    device const float *B [[buffer(1)]],
                     device float *C [[buffer(2)]],
-                    constant int *lshape [[buffer(3)]],
-                    constant int *rshape [[buffer(4)]],
-                    constant int *result_shape [[buffer(5)]],
-                    constant int *ranks [[buffer(6)]],
+                    constant int *metadata [[buffer(3)]],
                     uint tid [[thread_position_in_grid]]) {
-  int flat_index = tid;
-  int lrank = ranks[0];
-  int rrank = ranks[1];
-  int trank = ranks[2];
-  int lindex =
-      compute_broadcast_index(flat_index, lshape, result_shape, lrank, trank);
-  int rindex =
-      compute_broadcast_index(flat_index, rshape, result_shape, rrank, trank);
-  C[flat_index] = A[lindex] * B[rindex];
+  if ((int)tid >= metadata[0])
+    return;
+  int arank = metadata[1];
+  int brank = metadata[2];
+  int rrank = metadata[3];
+  const constant int *ashape = metadata + 4;
+  const constant int *astride = ashape + arank;
+  const constant int *bshape = astride + arank;
+  const constant int *bstride = bshape + brank;
+  const constant int *result_shape = bstride + brank;
+  int ai =
+      compute_broadcast_index(tid, ashape, astride, result_shape, arank, rrank);
+  int bi =
+      compute_broadcast_index(tid, bshape, bstride, result_shape, brank, rrank);
+  C[tid] = A[ai] * B[bi];
 }
 
 // FIX: matmul algorithm to match n dimensional tensors
-kernel void __matmul__(device float *A [[buffer(0)]],
-                       device float *B [[buffer(1)]],
+kernel void __matmul__(device const float *A [[buffer(0)]],
+                       device const float *B [[buffer(1)]],
                        device float *C [[buffer(2)]],
-                       constant int *lshape [[buffer(3)]],
-                       constant int *rshape [[buffer(4)]],
-                       constant int *result_shape [[buffer(5)]],
-                       constant int *ranks [[buffer(6)]],
+                       constant int *metadata [[buffer(3)]],
                        uint tid [[thread_position_in_grid]]) {
-  int flat_index = tid;
-  int lrank = ranks[0];
-  int rrank = ranks[1];
-  int trank = ranks[2];
-  int lindex =
-      compute_broadcast_index(flat_index, lshape, result_shape, lrank, trank);
-  int rindex =
-      compute_broadcast_index(flat_index, rshape, result_shape, rrank, trank);
-  C[flat_index] = A[lindex] * B[rindex];
+  if ((int)tid >= metadata[0])
+    return;
+  int arank = metadata[1];
+  int brank = metadata[2];
+  int rrank = metadata[3];
+  const constant int *ashape = metadata + 4;
+  const constant int *astride = ashape + arank;
+  const constant int *bshape = astride + arank;
+  const constant int *bstride = bshape + brank;
+  const constant int *result_shape = bstride + brank;
+  int ai =
+      compute_broadcast_index(tid, ashape, astride, result_shape, arank, rrank);
+  int bi =
+      compute_broadcast_index(tid, bshape, bstride, result_shape, brank, rrank);
+  C[tid] = A[ai] * B[bi];
 }
+
+kernel void __neg__(device float *input [[buffer(0)]],
+                    device float *output [[buffer(1)]],
+                    constant int *metadata [[buffer(2)]],
+                    uint tid [[thread_position_in_grid]]) {
+
+  if ((int)tid >= metadata[0])
+    return;
+  output[tid] = input[tid] * -1.0f;
+}
+
 /*
 kernel void tensor_matrix_multiply(
     device float *A [[buffer(0)]],       // Left tensor

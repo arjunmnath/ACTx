@@ -5,21 +5,18 @@
 #include <memory>
 #include <set>
 struct MemoryComparator {
-  bool operator()(const std::shared_ptr<Memory> &a,
-                  const std::shared_ptr<Memory> &b) const {
-    return a->size < b->size;
+  bool operator()(const Memory *a, const Memory *b) const {
+    return a->bytesize < b->bytesize;
   }
 };
 class MemoryPool {
 private:
-  std::multiset<std::shared_ptr<Memory>, MemoryComparator> available_pool;
-  std::multiset<std::shared_ptr<Memory>, MemoryComparator> used_pool;
+  std::multiset<Memory *, MemoryComparator> available_pool;
+  std::multiset<Memory *, MemoryComparator> used_pool;
   size_t _compute_pool_size(size_t requested_size);
 
 public:
-  std::shared_ptr<Memory> request_memory(DeviceType device, size_t size,
-                                         DType dtype);
-  std::shared_ptr<Memory> find_suitable_block(DeviceType device, DType dtype,
-                                              size_t requested);
-  void return_memory(std::shared_ptr<Memory> memory);
+  Memory *request_memory(DeviceType device, size_t length, DType dtype);
+  Memory *find_suitable_block(DeviceType device, DType dtype, size_t requested);
+  void return_memory(Memory *memory);
 };

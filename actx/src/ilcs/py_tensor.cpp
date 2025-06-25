@@ -48,9 +48,8 @@ static int PyTensor_init(PyTensorObject *self, PyObject *args,
   PyObject *first = nullptr;
   int DTypeInt = static_cast<int>(DType::float32);
   bool requires_grad = false;
-  static const char *keywords[] = {"dims", "dtype", "requires_grad", NULL};
+  static const char *keywords[] = {"dtype", "requires_grad", NULL};
 
-  import_array();
   if (PyArg_ParseTupleAndKeywords(args, kwargs, "O|ip", (char **)keywords,
                                   &first, &DTypeInt, &requires_grad)) {
 
@@ -628,6 +627,7 @@ static struct PyModuleDef tensormodule = {
     PyModuleDef_HEAD_INIT, "extension.tensor", NULL, -1, TensorModuleMethods};
 
 PyObject *createTensorModule(PyObject *parent) {
+  import_array();
   PyObject *tensor = PyModule_Create(&tensormodule);
   if (tensor == NULL) {
     Py_DECREF(parent);

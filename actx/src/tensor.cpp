@@ -1,5 +1,6 @@
 #include "tensor.h"
 #include "main.h"
+#include "opnode.h"
 #include "types.h"
 #include "utility.h"
 #include <cassert>
@@ -12,6 +13,7 @@
 #include <numeric>
 #include <stdexcept>
 #include <sys/types.h>
+#include <unordered_set>
 #include <vector>
 
 // ================================================================================================================================
@@ -58,6 +60,9 @@ Tensor *Tensor::view(std::vector<Slice> &slices) const {
     new_offset_elements += start * this->stride[d];
   }
   view_tensor->offset_elements = new_offset_elements;
+  view_tensor->size =
+      std::accumulate(view_tensor->dims.begin(), view_tensor->dims.end(), 1,
+                      std::multiplies<int>());
   return view_tensor;
 }
 void Tensor::_compte_stride() {
@@ -130,29 +135,32 @@ void Tensor::reinterpret_pointer(void *ptr) {
 // ================================================================================================================================
 // CONSTRUCTORS
 // ================================================================================================================================
-Tensor::Tensor(std::vector<int> dims, DType dtype, bool requires_grad) {
+Tensor::Tensor(std::vector<int> dims, DType dtype, bool requires_grad,
+               DeviceType device) {
   this->size =
       std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
   this->dims = dims;
   this->ndim = dims.size();
-  // TODO: change this to cpu
-  this->device = DeviceType::MPS;
+  this->device = device;
   this->dtype = dtype;
   this->memory = pool->request_memory(this->device, this->size, this->dtype);
   this->offset_elements = 0;
   this->reinterpret_pointer(this->memory->data_ptr);
   this->_compte_stride();
   this->requires_grad = requires_grad;
+  if (requires_grad) {
+    this->node = new OpNode;
+    this->node->type = OPType::NO_OP;
+  }
 }
 
-Tensor::Tensor(std::shared_ptr<Memory> memory, std::vector<int> dims,
-               DType dtype, bool requires_grad) {
+Tensor::Tensor(Memory *memory, std::vector<int> dims, DType dtype,
+               bool requires_grad, DeviceType device) {
   this->dims = dims;
   this->memory = memory;
   this->dtype = dtype;
   this->reinterpret_pointer(this->memory->data_ptr);
-  // TODO: change this to cpu
-  this->device = DeviceType::MPS;
+  this->device = device;
   this->ndim = dims.size();
 
   this->offset_elements = 0;
@@ -161,12 +169,16 @@ Tensor::Tensor(std::shared_ptr<Memory> memory, std::vector<int> dims,
       std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
 
   this->requires_grad = requires_grad;
+  if (requires_grad) {
+    this->node = new OpNode;
+    this->node->type = OPType::NO_OP;
+  }
 }
 
 // FIX: fix the vector<float> and dtype mismatch and allocate memory and do
 // memcpy
 Tensor::Tensor(std::vector<float> &values, std::vector<int> dims, DType dtype,
-               bool requires_grad) {
+               bool requires_grad, DeviceType device) {
   if (values.size() == 0) {
     throw std::runtime_error("values expected");
   }
@@ -175,7 +187,7 @@ Tensor::Tensor(std::vector<float> &values, std::vector<int> dims, DType dtype,
   this->ndim = dims.size();
   this->_compte_stride();
   this->offset_elements = 0;
-  this->device = DeviceType::MPS;
+  this->device = device;
   this->size =
       std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
   assert(values.size() == this->size);
@@ -184,6 +196,10 @@ Tensor::Tensor(std::vector<float> &values, std::vector<int> dims, DType dtype,
                              values.size() * getDTypeSize(dtype));
   this->reinterpret_pointer(this->memory->data_ptr);
   this->requires_grad = requires_grad;
+  if (requires_grad) {
+    this->node = new OpNode;
+    this->node->type = OPType::NO_OP;
+  }
 }
 
 // ================================================================================================================================
@@ -226,7 +242,10 @@ void Tensor::print(int dim, int offset) const {
   builder.append("Tensor(");
   this->tensor__repr__(0, 0, 0, builder);
   builder.append(", dtype=" + getTypeName(this->dtype));
+  builder.append(", requires_grad=" +
+                 std::string((this->requires_grad ? "True" : "False")));
   builder.append(")");
+
   std::cout << builder << "\n";
   return;
 }
@@ -295,62 +314,58 @@ void Tensor::tensor__repr__(int depth, int offset, int indent,
 }
 
 void Tensor::print_buffer() const {
-  for (int i = 0; i < this->memory->size; i++) {
+  for (int i = 0; i < this->size; i++) {
     std::cout << this->_get_element(i) << " ";
   }
   std::cout << std::endl;
 }
 
+int Tensor::offset() const { return this->offset_elements; }
 Tensor *Tensor::execute_broadcastable_operation(OPType op, Tensor *other,
                                                 bool inplace) {
-  if (this->requires_grad || other->requires_grad) {
-    this->requires_grad = other->requires_grad = true;
-  }
   if (inplace) {
-    if (this->requires_grad)
+    // TODO: recheck this return null logic
+    if (this->requires_grad && other->requires_grad)
       return NULL;
-    dispatcher->call(op, this->device, this, other, this);
+    dispatcher->call(op, this->device, {this, other, this});
     return this;
   }
   auto result_shape = compute_broadcast_shape(this, other);
-  std::shared_ptr<Memory> result_memory = pool->request_memory(
+  Memory *result_memory = pool->request_memory(
       this->device,
       std::accumulate(result_shape.begin(), result_shape.end(), 1,
                       std::multiplies<int>()),
       this->dtype);
 
-  Tensor *result =
-      new Tensor(result_memory, result_shape, this->dtype, this->requires_grad);
-  dispatcher->call(op, this->device, this, other, result);
+  Tensor *result = new Tensor(result_memory, result_shape, this->dtype,
+                              this->requires_grad || other->requires_grad);
+  dispatcher->call(op, this->device, {this, other, result});
   return result;
 }
 
 Tensor *Tensor::execute_init_operation(OPType op, std::vector<int> shape,
                                        DType dtype, bool requires_grad,
                                        DeviceType device) {
-  std::shared_ptr<Memory> result_memory = pool->request_memory(
+  Memory *result_memory = pool->request_memory(
       device,
-      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>()) *
-          getDTypeSize(dtype),
+      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>()),
       dtype);
-  Tensor *result = new Tensor(result_memory, shape, dtype, requires_grad);
-  dispatcher->call(op, device, result, nullptr, nullptr);
+  Tensor *result =
+      new Tensor(result_memory, shape, dtype, requires_grad, device);
+  dispatcher->call(op, device, {result});
   return result;
 }
 
 Tensor *Tensor::execute_binary_operation(OPType op, Tensor *other) {
-  if (this->requires_grad || other->requires_grad) {
-    this->requires_grad = other->requires_grad = true;
-  }
-  std::shared_ptr<Memory> result_memory =
+  Memory *result_memory =
       pool->request_memory(this->device,
                            std::accumulate(this->dims.begin(), this->dims.end(),
                                            1, std::multiplies<int>()),
                            this->dtype);
 
-  Tensor *result =
-      new Tensor(result_memory, this->dims, this->dtype, this->requires_grad);
-  dispatcher->call(op, this->device, this, other, result);
+  Tensor *result = new Tensor(result_memory, this->dims, this->dtype,
+                              this->requires_grad || other->requires_grad);
+  dispatcher->call(op, this->device, {this, other, result});
   return result;
 }
 
@@ -373,9 +388,74 @@ bool Tensor::any() {
   return anyTrue;
 }
 
+std::vector<OpNode *> Tensor::topo_sort() {
+  std::vector<OpNode *> topo;
+  std::unordered_set<OpNode *> visited;
+
+  std::function<void(OpNode *)> dfs = [&](OpNode *node) {
+    if (visited.find(node) == visited.end()) {
+      visited.insert(node);
+      for (Tensor *parent : node->inputs) {
+        if (parent->node)
+          dfs(parent->node);
+      }
+      topo.push_back(node);
+    }
+  };
+  dfs(this->node);
+  return topo;
+}
+
+void Tensor::backward() {
+  if (!this->requires_grad)
+    return;
+  this->grad = Tensor::ones(this->dims, this->dtype, false, this->device);
+
+  std::vector<OpNode *> sorted = this->topo_sort();
+  OpNode *current_node;
+  for (auto it = sorted.rbegin(); it != sorted.rend(); ++it) {
+    current_node = *it;
+    if ((*it)->type == OPType::NO_OP)
+      continue;
+    (*it)->op->backward(*it);
+    // bool has_nonleaf = false;
+    // for (Tensor *tensor = current_node->inputs.begin();
+    //      tensor != current_node->inputs.end(); ++tensor) {
+    //   if (tensor->requires_grad) {
+    //     if (tensor->node->type == OPType::NO_OP) {
+    //       Tensor *accumulated_grad = current_node->outputs[0]->grad;
+    //       if (!tensor->grad) {
+    //         tensor->grad = Tensor::clone(accumulated_grad);
+    //       } else {
+    //         tensor->grad->add(accumulated_grad, true);
+    //       }
+    //     } else {
+    //       has_nonleaf = true;
+    //     }
+    //   }
+    // }
+    // if (has_nonleaf) {
+    //   current_node->op->backward(current_node);
+    // }
+    // for (auto x : (*it)->outputs) {
+    //   x->print();
+    // }
+  }
+}
 // ================================================================================================================================
 // Arithemetic
 // ================================================================================================================================
+Tensor *Tensor::negate(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::NEGATE, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::NEGATE, this->device, {this, result});
+    return result;
+  }
+}
 Tensor *Tensor::add(Tensor *other, bool inplace) {
   return execute_broadcastable_operation(OPType::ADD, other, inplace);
 }
@@ -389,54 +469,40 @@ Tensor *Tensor::mul(Tensor *other, bool inplace) {
 
 Tensor *Tensor::div(Tensor *other, bool inplace) {
   // TODO: fix this division by zero checking
-  Tensor *zeros = Tensor::zeros(other->dims);
-  if (other->logical_e(zeros)->any()) {
-    throw std::runtime_error("division by zero");
-  }
+  Tensor *zeros =
+      Tensor::zeros(other->dims, other->dtype, false, other->device);
+  free(zeros);
   return execute_broadcastable_operation(OPType::DIV, other, inplace);
+}
+
+Tensor *Tensor::pow(float exp, bool inplace) {
+  std::vector<float> val = {exp};
+  Tensor *other = new Tensor(val, {1});
+  return execute_binary_operation(OPType::POW, other);
 }
 
 // Comparison operators
 Tensor *Tensor::logical_e(Tensor *other) {
-  if (this->dims != other->dims) {
-    throw std::runtime_error("shape constraint failed");
-  }
   return this->execute_binary_operation(OPType::LOGICAL_E, other);
 }
 Tensor *Tensor::logical_ne(Tensor *other) {
-  if (this->dims != other->dims) {
-    throw std::runtime_error("shape constraint failed");
-  }
   return this->execute_binary_operation(OPType::LOGICAL_NE, other);
 }
 Tensor *Tensor::logical_gt(Tensor *other) {
-  if (this->dims != other->dims) {
-    throw std::runtime_error("shape constraint failed");
-  }
   return this->execute_binary_operation(OPType::LOGICAL_GT, other);
 }
 
 Tensor *Tensor::logical_gte(Tensor *other) {
-  if (this->dims != other->dims) {
-    throw std::runtime_error("shape contraint failed");
-  }
   return this->execute_binary_operation(OPType::LOGICAL_GTE, other);
 }
 
 Tensor *Tensor::logical_lt(Tensor *other) {
-  if (this->dims != other->dims) {
-    throw std::runtime_error("shape contraint failed");
-  }
   return this->execute_binary_operation(OPType::LOGICAL_LT, other);
 }
 
 Tensor *Tensor::logical_lte(Tensor *other) {
-  if (this->dims != other->dims) {
-    throw std::runtime_error("shape contraint failed");
-  }
   return this->execute_binary_operation(OPType::LOGICAL_LTE, other);
 }
-
 /*
 Tensor Tensor::matmul(Tensor *other) const {
   // TODO: implement broadcastable matmul;
@@ -447,68 +513,214 @@ Tensor Tensor::matmul(Tensor *other) const {
   std::vector<int> m = {this->dims[0], this->dims[1], other->dims[1]};
   return Tensor(m, true);
 }
-
-Tensor Tensor::pow(float exp, bool inplace) {
-  std::vector<float> e = {exp};
-  id<MTLBuffer> meta =
-      device_mps->createBuffer(this->dims.data(), 3, this->dtype);
-  id<MTLBuffer> exponent = device_mps->createBuffer(e.data(), 1, this->dtype);
-  id<MTLBuffer> result;
-  if (!inplace) {
-    result = device_mps->createEmptyBuffer(this->size, this->dtype);
-    device_mps->execute_kernel_binary("elementwise_pow", this->storage,
-                                      exponent, result, meta);
-  } else {
-
-    device_mps->execute_kernel_binary("elementwise_pow", this->storage,
-                                      exponent, this->storage, meta);
-  }
-  return inplace ? *this : Tensor(result, this->dims);
-}
+*/
 
 // Mathematical operations
-Tensor Tensor::exp(bool inplace) {
-  id<MTLBuffer> meta =
-      device_mps->createBuffer(this->dims.data(), 2, this->dtype);
-  id<MTLBuffer> result;
-  if (!inplace) {
-    // TODO: fix fixed float
-    result = device_mps->createEmptyBuffer(this->size, this->dtype);
-    device_mps->execute_kernel_unary("exp", this->storage, result, meta);
+Tensor *Tensor::exp(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::EXP, this->device, {this, this});
+    return this;
   } else {
-    device_mps->execute_kernel_unary("exp", this->storage, this->storage, meta);
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::EXP, this->device, {this, result});
+    return result;
   }
-  return inplace ? *this : Tensor(result, this->dims);
 }
 
-Tensor Tensor::log(bool inplace) {
-  id<MTLBuffer> meta =
-      device_mps->createBuffer(this->dims.data(), 2, this->dtype);
-  id<MTLBuffer> result;
-  if (!inplace) {
-    // TODO: fix fixed float
-    result = device_mps->createEmptyBuffer(this->size, this->dtype);
-    device_mps->execute_kernel_unary("log", this->storage, result, meta);
+Tensor *Tensor::sqrt(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::SQRT, this->device, {this, this});
+    return this;
   } else {
-    device_mps->execute_kernel_unary("log", this->storage, this->storage, meta);
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::SQRT, this->device, {this, result});
+    return result;
   }
-  return inplace ? *this : Tensor(result, this->dims);
 }
 
-Tensor Tensor::sqrt(bool inplace) {
-  id<MTLBuffer> meta =
-      device_mps->createBuffer(this->dims.data(), 2, this->dtype);
-  id<MTLBuffer> result;
-  if (!inplace) {
-    result = device_mps->createEmptyBuffer(this->size, this->dtype);
-    device_mps->execute_kernel_unary("sqrt", this->storage, result, meta);
+Tensor *Tensor::log(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::LOG, this->device, {this, this});
+    return this;
   } else {
-    device_mps->execute_kernel_unary("sqrt", this->storage, this->storage,
-                                     meta);
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::LOG, this->device, {this, result});
+    return result;
   }
-  return inplace ? *this : Tensor(result, this->dims);
 }
-*/
+
+Tensor *Tensor::log10(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::LOG10, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::LOG10, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::log2(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::LOG2, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::LOG2, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::sin(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::SIN, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::SIN, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::cos(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::COS, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::COS, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::tan(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::TAN, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::TAN, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::asin(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::ASIN, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::ASIN, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::acos(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::ACOS, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::ACOS, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::atan(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::ATAN, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::ATAN, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::atan2(Tensor *other, bool inplace) {
+  return execute_broadcastable_operation(OPType::ATAN2, other, inplace);
+}
+Tensor *Tensor::sinh(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::SINH, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::SINH, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::cosh(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::COSH, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::COSH, this->device, {this, result});
+    return result;
+  }
+}
+Tensor *Tensor::tanh(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::TANH, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::TANH, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::asinh(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::ASINH, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::ASINH, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::acosh(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::ACOSH, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::ACOSH, this->device, {this, result});
+    return result;
+  }
+}
+
+Tensor *Tensor::atanh(bool inplace) {
+  if (inplace) {
+    dispatcher->call(OPType::ATANH, this->device, {this, this});
+    return this;
+  } else {
+    Tensor *result =
+        new Tensor(this->dims, this->dtype, this->requires_grad, this->device);
+    dispatcher->call(OPType::ATANH, this->device, {this, result});
+    return result;
+  }
+}
 // ================================================================================================================================
 //                            INIT
 // ================================================================================================================================
@@ -520,51 +732,84 @@ Tensor Tensor::sqrt(bool inplace) {
 // 6) Clone, tensor: ❌
 // 7) Linspace, logspace, arange: ❌
 // =====================================================================================================================
-Tensor *Tensor::ones(std::vector<int> shape, DType dtype, bool requires_grad) {
+Tensor *Tensor::empty(std::vector<int> shape, DType dtype, bool requires_grad,
+                      DeviceType device) {
+  int size =
+      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+  Memory *new_buffer = pool->request_memory(device, size, dtype);
+  Tensor *tensor = new Tensor(new_buffer, shape, dtype, requires_grad, device);
+  return tensor;
+}
+Tensor *Tensor::ones(std::vector<int> shape, DType dtype, bool requires_grad,
+                     DeviceType device) {
   return Tensor::execute_init_operation(OPType::ONES_INIT, shape, dtype,
-                                        requires_grad);
+                                        requires_grad, device);
 }
 
-Tensor *Tensor::zeros(std::vector<int> shape, DType dtype, bool requires_grad) {
+Tensor *Tensor::zeros(std::vector<int> shape, DType dtype, bool requires_grad,
+                      DeviceType device) {
   return Tensor::execute_init_operation(OPType::ZEROES_INIT, shape, dtype,
-                                        requires_grad);
+                                        requires_grad, device);
 }
 
-Tensor *Tensor::eye(int n, DType dtype, bool requires_grad) {
+Tensor *Tensor::eye(int n, DType dtype, bool requires_grad, DeviceType device) {
   std::vector<int> shape = {n, n};
   return Tensor::execute_init_operation(OPType::EYE_INIT, shape, dtype,
-                                        requires_grad);
+                                        requires_grad, device);
+}
+// FIX: use varient for n
+Tensor *Tensor::full(std::vector<int> shape, float n, DType dtype,
+                     bool requires_grad, DeviceType device) {
+  std::vector<float> val = {n};
+  Tensor *other = new Tensor(val, {1});
+  Memory *result_memory = pool->request_memory(
+      device,
+      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>()),
+      dtype);
+
+  Tensor *result = new Tensor(result_memory, shape, dtype, requires_grad);
+  dispatcher->call(OPType::FULL_INIT, device, {other, result});
+  free(other);
+  return result;
+}
+Tensor *Tensor::empty_like(Tensor *a) {
+  return Tensor::empty(a->dims, a->dtype, a->requires_grad, a->device);
+}
+Tensor *Tensor::ones_like(Tensor *a) {
+  return Tensor::ones(a->dims, a->dtype, a->requires_grad, a->device);
+}
+Tensor *Tensor::zeros_like(Tensor *a) {
+  return Tensor::zeros(a->dims, a->dtype, a->requires_grad, a->device);
+}
+Tensor *Tensor::full_like(Tensor *a, float n) {
+  return Tensor::full(a->dims, n, a->dtype, a->requires_grad, a->device);
+}
+
+Tensor *Tensor::clone(Tensor *other) {
+  Memory *new_buffer =
+      pool->request_memory(other->device, other->size, other->dtype);
+  Memory::copy(other->memory, new_buffer);
+  Tensor *cloned = new Tensor(new_buffer, other->dims, other->dtype,
+                              other->requires_grad, other->device);
+  if (other->grad) {
+    Memory *new_grad_buffer = pool->request_memory(
+        other->grad->device, other->grad->memory->bytesize, other->grad->dtype);
+    Memory::copy(other->grad->memory, new_grad_buffer);
+    Tensor *grad_tensor =
+        new Tensor(new_grad_buffer, other->grad->dims, other->grad->dtype,
+                   other->grad->requires_grad, other->grad->device);
+    cloned->grad = grad_tensor;
+  }
+  if (cloned->requires_grad) {
+    cloned->node->outputs = {cloned};
+    cloned->node->inputs = {other};
+    cloned->node->type = OPType::CLONE;
+    cloned->node->op = dispatcher->get(OPType::CLONE, cloned->device);
+  }
+  return cloned;
 }
 
 /*
-Tensor Tensor::empty(std::vector<int> shape, DType dtype) {
-  int size =
-      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
-  id<MTLBuffer> result = device_mps->createEmptyBuffer(size, dtype);
-
-  return Tensor(result, shape);
-}
-
-// FIX: mismatch of type of n and dtype
-template <typename T>
-Tensor Tensor::full(std::vector<int> shape, T n, DType dtype) {
-  id<MTLBuffer> meta =
-      device_mps->createBuffer(shape.data(), shape.size(), dtype);
-  int size =
-      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
-  id<MTLBuffer> result =
-      device_mps->createEmptyBuffer(shape[0] * shape[1], dtype);
-
-  std::vector<T> value = {n};
-  id<MTLBuffer> seed = device_mps->createBuffer(value.data(), 1);
-  device_mps->execute_kernel_unary("__full__", result, seed, meta);
-  return Tensor(result, shape);
-}
-Tensor Tensor::clone(Tensor *other) {
-  id<MTLBuffer> newBuffer = device_mps->clone(other->storage);
-  return Tensor(newBuffer, other->dims);
-}
-
 // TODO: configure the seed && change vector type from float to dynamic;
 Tensor Tensor::rand(std::vector<int> shape, DType dtype) {
   id<MTLBuffer> meta =

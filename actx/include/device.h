@@ -29,11 +29,36 @@ public:
                            Tensor *result) = 0;
 
   // Mathematical operations
-  Tensor exp(bool inplace);
-  Tensor log(bool inplace);
+  virtual void sqrt(const Tensor *input, Tensor *output) = 0;
+  virtual void exp(const Tensor *input, Tensor *output) = 0;
+  virtual void log(const Tensor *input, Tensor *output) = 0;
+  virtual void log10(const Tensor *input, Tensor *output) = 0;
+  virtual void log2(const Tensor *input, Tensor *output) = 0;
+
+  // trignometric
+  virtual void sin(const Tensor *input, Tensor *output) = 0;
+  virtual void cos(const Tensor *input, Tensor *output) = 0;
+  virtual void tan(const Tensor *input, Tensor *output) = 0;
+  virtual void asin(const Tensor *input, Tensor *output) = 0;
+  virtual void acos(const Tensor *input, Tensor *output) = 0;
+  virtual void atan(const Tensor *input, Tensor *output) = 0;
+  virtual void atan2(const Tensor *x, const Tensor *y, Tensor *output) = 0;
+
+  // hyperbolic
+  virtual void sinh(const Tensor *input, Tensor *output) = 0;
+  virtual void cosh(const Tensor *input, Tensor *output) = 0;
+  virtual void tanh(const Tensor *input, Tensor *output) = 0;
+  virtual void asinh(const Tensor *input, Tensor *output) = 0;
+  virtual void acosh(const Tensor *input, Tensor *output) = 0;
+  virtual void atanh(const Tensor *input, Tensor *output) = 0;
+
+  // basic inits
+  virtual void ones(Tensor *a) = 0;
+  virtual void zeros(Tensor *a) = 0;
+  virtual void eye(Tensor *a) = 0;
+  virtual void full(Tensor *n, Tensor *result) = 0;
 
   // TODO: modify this to have a numpy like behaviour
   bool all();
   bool any();
-  Tensor sqrt(bool inplace);
 };

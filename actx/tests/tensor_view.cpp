@@ -3,7 +3,6 @@
 #include <gtest/gtest.h>
 #include <stdexcept>
 #include <vector>
-
 TEST(TensorSlice, BasicSliceWorks) {
   std::vector<float> data = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
@@ -20,12 +19,7 @@ TEST(TensorSlice, BasicSliceWorks) {
 
   // Check that the sliced tensor is equal to the expected one
   EXPECT_TRUE(result->logical_e(expected)->all()) << "Tensor slicing failed";
-
-  delete tensor;
-  delete result;
-  delete expected;
 }
-
 TEST(TensorSlice, SliceWithStepWorks) {
   std::vector<float> data = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 

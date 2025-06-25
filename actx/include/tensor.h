@@ -8,6 +8,7 @@
 #include <variant>
 #include <vector>
 
+class OpNode;
 struct Slice {
   int start;
   int stop;
@@ -31,63 +32,75 @@ private:
                                           bool inplace);
   Tensor *execute_binary_operation(OPType op, Tensor *other);
 
-  static Tensor *execute_init_operation(
-      OPType op, std::vector<int> shape, DType dtype = DType::float32,
-      // TODO: change default devicetype to cpu
-      bool requires_grad = false, DeviceType device = DeviceType::MPS);
-  // FIX: template type
-  float _get_element(int offset) const;
+  // TODO: change default devicetype to cpu
+  static Tensor *execute_init_operation(OPType op, std::vector<int> shape,
+                                        DType dtype, bool requires_grad,
+                                        DeviceType device);
+  std::vector<OpNode *> topo_sort();
 
 public:
   int ndim;
+  Tensor *grad = nullptr;
+  OpNode *node = nullptr;
   std::vector<int> dims;
   std::vector<int> stride;
   bool requires_grad;
   DType dtype;
   size_t size;
   DeviceType device;
-  std::shared_ptr<Memory> memory;
+  Memory *memory;
+  bool is_contigous = true;
+  bool is_leaf = this->node == nullptr;
+  // TODO: change default devicetype to cpu
   Tensor(std::vector<int> dims, DType dtype = DType::float32,
-         bool requires_grad = false);
-  Tensor(std::shared_ptr<Memory> memory, std::vector<int> dims,
-         DType dtype = DType::float32, bool requires_grad = false);
+         bool requires_grad = false, DeviceType device = DeviceType::MPS);
+  Tensor(Memory *memory, std::vector<int> dims, DType dtype = DType::float32,
+         bool requires_grad = false, DeviceType device = DeviceType::MPS);
 
   Tensor(std::vector<float> &values, std::vector<int> dims,
-         DType dtype = DType::float32, bool requires_grad = false);
+         DType dtype = DType::float32, bool requires_grad = false,
+         DeviceType device = DeviceType::MPS);
   // template <typename T>
   // Tensor(std::vector<T> &values, std::vector<int> dims,
   //        DType dtype = DType::float32, bool requires_grad = false);
   //
+  //
+  // FIX: template type
+  float _get_element(int offset) const;
+  int offset() const;
+
   // initialization methods
   static Tensor *ones(std::vector<int> shape, DType dtype = DType::float32,
-                      bool requires_grad = false);
+                      bool requires_grad = false,
+                      DeviceType device = DeviceType::MPS);
   static Tensor *zeros(std::vector<int> shape, DType dtype = DType::float32,
-                       bool requires_grad = false);
+                       bool requires_grad = false,
+                       DeviceType device = DeviceType::MPS);
   static Tensor *eye(int n, DType dtype = DType::float32,
-                     bool requires_grad = false);
+                     bool requires_grad = false,
+                     DeviceType device = DeviceType::MPS);
   static Tensor *empty(std::vector<int> shape, DType dtype = DType::float32,
-                       bool requires_grad = false);
+                       bool requires_grad = false,
+                       DeviceType device = DeviceType::MPS);
 
-  template <typename T>
-  static Tensor *full(std::vector<int> shape, T n,
-                      DType dtype = DType::float32);
+  static Tensor *full(std::vector<int> shape, float n,
+                      DType dtype = DType::float32, bool requires_grad = false,
+                      DeviceType device = DeviceType::MPS);
+
+  static Tensor *empty_like(Tensor *a);
+  static Tensor *ones_like(Tensor *a);
+  static Tensor *zeros_like(Tensor *a);
+  static Tensor *full_like(Tensor *a, float n);
   static Tensor *clone(Tensor *other);
-  static Tensor *rand(std::vector<int> shape, DType dtype);
-  static Tensor *randn(std::vector<int> shape, DType dtype = DType::float32);
-  static Tensor *normal(std::vector<int> shape, float mean = 0,
-                        float stddev = 1, DType dtype = DType::float32);
-  static Tensor *randint(std::vector<int> shape, int min, int max,
-                         DType dtype = DType::float32);
-  static Tensor *poission(Tensor &other, DType dtype = DType::float32);
-  static Tensor *bernoulli(Tensor &other, DType dtype = DType::float32);
 
   // arithmetic operators
-  Tensor *add(Tensor *other, bool inplace);
-  Tensor *sub(Tensor *other, bool inplace);
-  Tensor *mul(Tensor *other, bool inplace);
-  Tensor *div(Tensor *other, bool inplace);
+  Tensor *negate(bool inplace = false);
+  Tensor *add(Tensor *other, bool inplace = false);
+  Tensor *sub(Tensor *other, bool inplace = false);
+  Tensor *mul(Tensor *other, bool inplace = false);
+  Tensor *div(Tensor *other, bool inplace = false);
+  Tensor *pow(float exp, bool inplace = false);
   Tensor *matmul(Tensor *other) const;
-  Tensor *pow(float exp, bool inplace);
 
   // Comparison operators
   Tensor *logical_e(Tensor *other);
@@ -98,19 +111,50 @@ public:
   Tensor *logical_lte(Tensor *other);
 
   // Mathematical operations
-  Tensor exp(bool inplace);
-  Tensor log(bool inplace);
+  Tensor *exp(bool inplace = false);
+  Tensor *sqrt(bool inplace = false);
+  Tensor *log(bool inplace = false);
+  Tensor *log10(bool inplace = false);
+  Tensor *log2(bool inplace = false);
+
+  // trignometric operations
+  Tensor *sin(bool inplace = false);
+  Tensor *cos(bool inplace = false);
+  Tensor *tan(bool inplace = false);
+  Tensor *atan(bool inplace = false);
+  Tensor *acos(bool inplace = false);
+  Tensor *asin(bool inplace = false);
+  Tensor *atan2(Tensor *other, bool inplace = false);
+
+  // hyperbolic
+  Tensor *sinh(bool inplace = false);
+  Tensor *cosh(bool inplace = false);
+  Tensor *tanh(bool inplace = false);
+  Tensor *atanh(bool inplace = false);
+  Tensor *acosh(bool inplace = false);
+  Tensor *asinh(bool inplace = false);
+
+  // not implemented
+  static Tensor *rand(std::vector<int> shape, DType dtype);
+  static Tensor *randn(std::vector<int> shape, DType dtype = DType::float32);
+  static Tensor *normal(std::vector<int> shape, float mean = 0,
+                        float stddev = 1, DType dtype = DType::float32);
+  static Tensor *randint(std::vector<int> shape, int min, int max,
+                         DType dtype = DType::float32);
+  static Tensor *poission(Tensor &other, DType dtype = DType::float32);
+  static Tensor *bernoulli(Tensor &other, DType dtype = DType::float32);
 
   // TODO: modify this to have a numpy like behaviour
   bool all();
   bool any();
-  Tensor sqrt(bool inplace);
 
   // Utility methods
   Tensor transpose() const;
   Tensor *view(std::vector<Slice> &slices) const;
+
+  void backward();
+  void detach();
   // Input/Output
-  //
 
   void print(int dim = 0, int offset = 0) const;
   void print_buffer() const;
