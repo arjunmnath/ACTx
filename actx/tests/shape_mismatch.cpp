@@ -1,9 +1,8 @@
 #include "tensor.h"
+#include "utility.h"
 #include <gtest/gtest.h>
 #include <stdexcept>
 #include <vector>
-#include "utility.h"
-
 
 /*
 TEST(TensorTest, MatmulShapeMismatchThrows) {

@@ -1,7 +1,7 @@
 #include "tensor.h"
+#include "utility.h"
 #include <gtest/gtest.h>
 #include <vector>
-#include "utility.h"
 
 TEST(TensorLogicalOps, LogicalEqual) {
   std::vector<float> a_data = {1, 2, 3, 4};

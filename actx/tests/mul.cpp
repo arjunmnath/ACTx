@@ -1,9 +1,7 @@
 #include "tensor.h"
-#include <gtest/gtest.h>
 #include "utility.h"
+#include <gtest/gtest.h>
 #include <vector>
-
-
 
 TEST(TensorMultiplication, MultiplicationWorks) {
   std::vector<float> data1 = {1, 2, 3, 4};

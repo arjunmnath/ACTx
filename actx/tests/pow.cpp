@@ -1,10 +1,8 @@
 #include "tensor.h"
+#include "utility.h"
 #include <gtest/gtest.h>
 #include <stdexcept>
 #include <vector>
-#include "utility.h"
-
-
 
 TEST(TensorPow, PowerOperationWorks) {
   std::vector<float> data = {2, 3, 4, 5};

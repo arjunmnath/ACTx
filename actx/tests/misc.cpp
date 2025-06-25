@@ -1,8 +1,8 @@
 
 #include "tensor.h"
+#include "utility.h"
 #include <gtest/gtest.h>
 #include <stdexcept>
-#include "utility.h"
 #include <vector>
 
 TEST(TensorTest, EmptyTensorThrows) {

@@ -1,8 +1,8 @@
 #include "tensor.h"
+#include "utility.h"
 #include <gtest/gtest.h>
 #include <stdexcept>
 #include <vector>
-#include "utility.h"
 
 TEST(TensorTrig, SinOperation) {
   std::vector<float> data = {0.0, M_PI_2, M_PI, 3 * M_PI_2};

@@ -1,9 +1,8 @@
 
 #include "tensor.h"
+#include "utility.h"
 #include <gtest/gtest.h>
 #include <vector>
-#include "utility.h"
-
 
 TEST(TensorSubtraction, SubtractionWorks) {
   std::vector<float> data1 = {10, 20, 30, 40};

@@ -1,10 +1,9 @@
 #include "tensor.h"
+#include "utility.h"
 #include <cmath>
 #include <gtest/gtest.h>
 #include <stdexcept>
 #include <vector>
-#include "utility.h"
-
 
 TEST(TensorUnary, Sqrt) {
   std::vector<float> data = {4.0, 9.0, 16.0, 25.0};
